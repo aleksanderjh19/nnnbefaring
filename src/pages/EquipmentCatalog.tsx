@@ -678,7 +678,7 @@ function EquipmentRowWithPreview({
         </div>
         {hovered && (
           <div
-            className="absolute right-0 bottom-full z-50 mb-1 w-72 overflow-hidden rounded-xl border border-border bg-card shadow-lg"
+            className={`absolute right-0 z-50 w-72 overflow-hidden rounded-xl border border-border bg-card shadow-lg ${showAbove ? "bottom-full mb-1" : "top-full mt-1"}`}
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={handleMouseLeave}
           >
