@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      employees: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          department: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          department?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          department?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       inspection_checks: {
         Row: {
           checked: boolean
@@ -40,6 +64,71 @@ export type Database = {
           year?: number
         }
         Relationships: []
+      }
+      training_records: {
+        Row: {
+          confirmation_type: string
+          created_at: string
+          created_by: string | null
+          employee_id: string
+          equipment_name: string
+          equipment_type: string | null
+          id: string
+          noise_level_db: string | null
+          notes: string | null
+          photo_urls: string[] | null
+          trainee_signature_url: string | null
+          trainer_company: string | null
+          trainer_name: string
+          trainer_signature_url: string | null
+          training_date: string
+          vibration_ms2: string | null
+        }
+        Insert: {
+          confirmation_type?: string
+          created_at?: string
+          created_by?: string | null
+          employee_id: string
+          equipment_name: string
+          equipment_type?: string | null
+          id?: string
+          noise_level_db?: string | null
+          notes?: string | null
+          photo_urls?: string[] | null
+          trainee_signature_url?: string | null
+          trainer_company?: string | null
+          trainer_name: string
+          trainer_signature_url?: string | null
+          training_date?: string
+          vibration_ms2?: string | null
+        }
+        Update: {
+          confirmation_type?: string
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string
+          equipment_name?: string
+          equipment_type?: string | null
+          id?: string
+          noise_level_db?: string | null
+          notes?: string | null
+          photo_urls?: string[] | null
+          trainee_signature_url?: string | null
+          trainer_company?: string | null
+          trainer_name?: string
+          trainer_signature_url?: string | null
+          training_date?: string
+          vibration_ms2?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_records_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
