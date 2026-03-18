@@ -89,6 +89,15 @@ const Home = () => {
               <p className="font-body text-xs text-muted-foreground">NNN · {year}</p>
             </div>
 
+            {/* Refresh button - visible on mobile */}
+            <button
+              onClick={() => window.location.reload()}
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground hover:bg-secondary sm:hidden"
+              title="Oppdater"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </button>
+
             {/* Edit mode toggle */}
             <button
               onClick={() => {
