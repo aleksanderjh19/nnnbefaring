@@ -59,6 +59,39 @@ const LinePage = () => {
     return Number(row.getAttribute("data-mast"));
   }, []);
 
+  const scrollAnimationRef = useRef<number | null>(null);
+  const lastDragPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  const autoScrollLoop = useCallback(() => {
+    if (!isDragging.current) return;
+    const y = lastDragPos.current.y;
+    const edgeZone = 80;
+    const maxSpeed = 18;
+    const vh = window.innerHeight;
+
+    let speed = 0;
+    if (y > vh - edgeZone) {
+      speed = maxSpeed * Math.min(1, (y - (vh - edgeZone)) / edgeZone);
+    } else if (y < edgeZone) {
+      speed = -maxSpeed * Math.min(1, (edgeZone - y) / edgeZone);
+    }
+
+    if (speed !== 0) {
+      window.scrollBy(0, speed);
+      const mast = getMastFromPoint(lastDragPos.current.x, lastDragPos.current.y);
+      if (mast !== null && !draggedMasts.current.has(mast)) {
+        draggedMasts.current.add(mast);
+        if (dragTargetValue.current) {
+          setPendingSelection(prev => new Set(prev).add(mast));
+        } else {
+          setPendingSelection(prev => { const next = new Set(prev); next.delete(mast); return next; });
+        }
+      }
+    }
+
+    scrollAnimationRef.current = requestAnimationFrame(autoScrollLoop);
+  }, [getMastFromPoint]);
+
   const handleDragStart = useCallback(
     (mastNumber: number) => {
       if (editMode || isViewingPrevious) return;
@@ -67,24 +100,25 @@ const LinePage = () => {
       const isPending = pendingSelection.has(mastNumber);
       
       if (isPending) {
-        // Deselect from pending
-        dragTargetValue.current = false; // false = remove from pending
+        dragTargetValue.current = false;
         draggedMasts.current = new Set([mastNumber]);
         setPendingSelection(prev => { const next = new Set(prev); next.delete(mastNumber); return next; });
       } else {
-        // Add to pending
-        dragTargetValue.current = true; // true = add to pending
+        dragTargetValue.current = true;
         pendingAction.current = currentlyChecked ? "uncheck" : "check";
         draggedMasts.current = new Set([mastNumber]);
         setPendingSelection(prev => new Set(prev).add(mastNumber));
       }
+      if (scrollAnimationRef.current) cancelAnimationFrame(scrollAnimationRef.current);
+      scrollAnimationRef.current = requestAnimationFrame(autoScrollLoop);
     },
-    [isChecked, safeLineId, editMode, isViewingPrevious, pendingSelection]
+    [isChecked, safeLineId, editMode, isViewingPrevious, pendingSelection, autoScrollLoop]
   );
 
   const handleDragMove = useCallback(
     (x: number, y: number) => {
       if (!isDragging.current) return;
+      lastDragPos.current = { x, y };
       const mast = getMastFromPoint(x, y);
       if (mast === null || draggedMasts.current.has(mast)) return;
       draggedMasts.current.add(mast);
@@ -100,6 +134,10 @@ const LinePage = () => {
   const handleDragEnd = useCallback(() => {
     isDragging.current = false;
     draggedMasts.current.clear();
+    if (scrollAnimationRef.current) {
+      cancelAnimationFrame(scrollAnimationRef.current);
+      scrollAnimationRef.current = null;
+    }
   }, []);
 
   const onMouseDown = useCallback(
