@@ -4,11 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Camera, Save, X, ChevronDown } from "lucide-react";
 import SignaturePad from "@/components/SignaturePad";
 
-const CATEGORIES = [
+const FALLBACK_CATEGORIES = [
   { value: "bensinverktoy", label: "Bensin-/motorverktøy" },
   { value: "el_verktoy", label: "El.verktøy" },
   { value: "kjøretøy", label: "Kjøretøy" },
   { value: "maskin", label: "Maskin" },
+  { value: "traktor_utstyr", label: "Traktor m/utstyr" },
   { value: "utstyr", label: "Utstyr" },
   { value: "annet", label: "Annet" },
 ];
