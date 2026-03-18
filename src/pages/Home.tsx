@@ -132,9 +132,8 @@ const Home = () => {
                         className="flex w-full items-center gap-2 rounded-xl border border-border bg-card text-left transition-colors"
                       >
                         <button
-                          onClick={() => !editMode && navigate(`/linje/${line.id}`)}
-                          disabled={editMode}
-                          className="tap-highlight-none flex min-w-0 flex-1 items-center gap-4 px-4 py-4 hover:bg-secondary disabled:hover:bg-card"
+                          onClick={() => navigate(`/linje/${line.id}`)}
+                          className="tap-highlight-none flex min-w-0 flex-1 items-center gap-4 px-4 py-4 hover:bg-secondary"
                         >
                           <div className="min-w-0 flex-1">
                             {isRenaming ? (
