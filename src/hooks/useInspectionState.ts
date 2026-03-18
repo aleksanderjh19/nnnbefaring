@@ -1,13 +1,27 @@
 import { useState, useCallback, useEffect } from "react";
 
-const STORAGE_KEY = "mast-inspection-2026";
+const YEAR_KEY = "mast-current-year";
+const ARCHIVE_KEY_PREFIX = "mast-inspection-";
+
+function getCurrentYear(): number {
+  try {
+    const saved = localStorage.getItem(YEAR_KEY);
+    if (saved) return parseInt(saved);
+  } catch {}
+  return new Date().getFullYear();
+}
+
+function storageKey(year: number) {
+  return `${ARCHIVE_KEY_PREFIX}${year}`;
+}
 
 type InspectionState = Record<string, Record<number, boolean>>;
 
 export function useInspectionState() {
+  const [year, setYear] = useState(getCurrentYear);
   const [state, setState] = useState<InspectionState>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(storageKey(getCurrentYear()));
       return saved ? JSON.parse(saved) : {};
     } catch {
       return {};
@@ -15,8 +29,12 @@ export function useInspectionState() {
   });
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [state]);
+    localStorage.setItem(storageKey(year), JSON.stringify(state));
+  }, [state, year]);
+
+  useEffect(() => {
+    localStorage.setItem(YEAR_KEY, String(year));
+  }, [year]);
 
   const isChecked = useCallback(
     (lineId: string, mastNumber: number) => {
@@ -71,5 +89,24 @@ export function useInspectionState() {
     [state]
   );
 
-  return { isChecked, toggle, bulkSet, getLineStats, getTotalStats };
+  const advanceYear = useCallback(() => {
+    const prevYear = year - 1;
+    // Delete year before previous (only keep 1 year back)
+    try { localStorage.removeItem(storageKey(prevYear)); } catch {}
+    // Current data is already saved; advance year and reset
+    const newYear = year + 1;
+    setYear(newYear);
+    setState({});
+  }, [year]);
+
+  const getPreviousYearStats = useCallback(() => {
+    const prevYear = year - 1;
+    try {
+      const saved = localStorage.getItem(storageKey(prevYear));
+      if (saved) return { year: prevYear, data: JSON.parse(saved) as InspectionState };
+    } catch {}
+    return null;
+  }, [year]);
+
+  return { isChecked, toggle, bulkSet, getLineStats, getTotalStats, year, advanceYear, getPreviousYearStats };
 }
