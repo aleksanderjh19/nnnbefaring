@@ -118,13 +118,22 @@ const TrainingHome = () => {
           <h2 className="font-display text-xs font-bold uppercase tracking-widest text-statnett">
             Ansatte ({filtered.length})
           </h2>
-          <button
-            onClick={() => setShowAdd(true)}
-            className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 font-body text-xs font-semibold text-primary-foreground hover:bg-primary/90"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Ny ansatt
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => navigate("/dokumentert-opplaering/katalog")}
+              className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 font-body text-xs font-medium text-muted-foreground hover:bg-secondary"
+            >
+              <Settings className="h-3.5 w-3.5" />
+              Utstyrskatalog
+            </button>
+            <button
+              onClick={() => setShowAdd(true)}
+              className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 font-body text-xs font-semibold text-primary-foreground hover:bg-primary/90"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Ny ansatt
+            </button>
+          </div>
         </div>
 
         {/* Add dialog */}

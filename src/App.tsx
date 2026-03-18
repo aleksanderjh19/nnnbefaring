@@ -34,6 +34,7 @@ const App = () => (
             <Route path="/dokumentert-opplaering/ansatt/:employeeId/ny" element={<TrainingForm />} />
             <Route path="/dokumentert-opplaering/ansatt/:employeeId/skjema/:recordId" element={<TrainingForm />} />
             <Route path="/dokumentert-opplaering/ansatt/:employeeId/print" element={<TrainingPrint />} />
+            <Route path="/dokumentert-opplaering/katalog" element={<EquipmentCatalog />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
