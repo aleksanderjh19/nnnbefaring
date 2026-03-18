@@ -67,19 +67,20 @@ const LinePage = () => {
       const isPending = pendingSelection.has(mastNumber);
       
       if (isPending) {
-        // Deselect from pending
-        dragTargetValue.current = false; // false = remove from pending
+        dragTargetValue.current = false;
         draggedMasts.current = new Set([mastNumber]);
         setPendingSelection(prev => { const next = new Set(prev); next.delete(mastNumber); return next; });
       } else {
-        // Add to pending
-        dragTargetValue.current = true; // true = add to pending
+        dragTargetValue.current = true;
         pendingAction.current = currentlyChecked ? "uncheck" : "check";
         draggedMasts.current = new Set([mastNumber]);
         setPendingSelection(prev => new Set(prev).add(mastNumber));
       }
+      // Start auto-scroll loop
+      if (scrollAnimationRef.current) cancelAnimationFrame(scrollAnimationRef.current);
+      scrollAnimationRef.current = requestAnimationFrame(autoScrollLoop);
     },
-    [isChecked, safeLineId, editMode, isViewingPrevious, pendingSelection]
+    [isChecked, safeLineId, editMode, isViewingPrevious, pendingSelection, autoScrollLoop]
   );
 
   const scrollAnimationRef = useRef<number | null>(null);
