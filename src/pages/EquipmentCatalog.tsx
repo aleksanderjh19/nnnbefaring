@@ -662,21 +662,22 @@ function EquipmentRowWithPreview({
       <tr
         ref={rowRef}
         className={`border-t border-border cursor-pointer hover:bg-secondary/50 ${selected ? "bg-primary/5" : ""}`}
-        onClick={onClick}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
-        <td className="px-4 py-2">
+        <td
+          className="w-12 px-4 py-2 cursor-default"
+          onClick={(e) => { e.stopPropagation(); onToggle(); }}
+        >
           <input
             type="checkbox"
             checked={selected}
-            onChange={(e) => { e.stopPropagation(); onToggle(); }}
-            onClick={(e) => e.stopPropagation()}
-            className="h-4 w-4 rounded border-input accent-primary"
+            onChange={() => {}}
+            className="h-4 w-4 rounded border-input accent-primary pointer-events-none"
           />
         </td>
-        <td className="px-4 py-2 font-body text-sm text-foreground">{row.brand || "–"}</td>
-        <td className="px-4 py-2 font-body text-sm text-foreground">{row.type || "–"}</td>
+        <td className="px-4 py-2 font-body text-sm text-foreground" onClick={onClick}>{row.brand || "–"}</td>
+        <td className="px-4 py-2 font-body text-sm text-foreground" onClick={onClick}>{row.type || "–"}</td>
         <td className="px-4 py-2 text-right">
           <div className="flex items-center justify-end gap-1">
             <button
