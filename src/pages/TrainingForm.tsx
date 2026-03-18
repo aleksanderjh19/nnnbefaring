@@ -57,6 +57,26 @@ const TrainingForm = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const equipmentPhotoRef = useRef<HTMLInputElement>(null);
   const [catalogRows, setCatalogRows] = useState<CatalogRow[]>([]);
+  const [selectedTractorTypes, setSelectedTractorTypes] = useState<string[]>([]);
+
+  const isTractorCategory = equipmentCategory === "traktor_utstyr";
+
+  // Get all types for current tractor equipment selection
+  const tractorTypes = useMemo(() => {
+    if (!isTractorCategory || !equipmentName) return [];
+    return catalogRows
+      .filter((r) => r.category_value === "traktor_utstyr" && r.equipment_name === equipmentName && r.type)
+      .map((r) => r.type!);
+  }, [isTractorCategory, equipmentName, catalogRows]);
+
+  // Auto-select all tractor types when equipment name changes
+  useEffect(() => {
+    if (isTractorCategory && equipmentName && tractorTypes.length > 0) {
+      setSelectedTractorTypes(tractorTypes);
+    } else {
+      setSelectedTractorTypes([]);
+    }
+  }, [isTractorCategory, equipmentName, tractorTypes]);
 
   useEffect(() => {
     supabase.from("equipment_catalog").select("id, category_value, category_label, equipment_name, brand, type, image_url").then(({ data }) => {
@@ -215,54 +235,80 @@ const TrainingForm = () => {
       trainerSignUrl = await uploadSignature(trainerSignature, "signatures");
     }
 
-    const fullType = [selectedBrand, equipmentType].filter(Boolean).join(" ") || null;
-
-    // Auto-add to catalog if brand/type doesn't exist
     const catLabel = categories.find((c) => c.value === equipmentCategory)?.label || equipmentCategory;
     const trimmedName = equipmentName.trim();
-    const trimmedBrand = selectedBrand.trim() || null;
-    const trimmedType = equipmentType.trim() || null;
 
-    if (trimmedName) {
-      const existsInCatalog = catalogRows.some(
-        (r) =>
-          r.category_value === equipmentCategory &&
-          r.equipment_name === trimmedName &&
-          (r.brand || null) === trimmedBrand &&
-          (r.type || null) === trimmedType
-      );
-      if (!existsInCatalog) {
-        await supabase.from("equipment_catalog").insert({
-          category_value: equipmentCategory,
-          category_label: catLabel,
+    // For tractor category: create one record per selected type
+    if (isTractorCategory && selectedTractorTypes.length > 0 && !isEdit) {
+      const records = selectedTractorTypes.map((type) => {
+        const catalogMatch = catalogRows.find(
+          (r) => r.category_value === "traktor_utstyr" && r.equipment_name === trimmedName && r.type === type
+        );
+        return {
+          employee_id: employeeId!,
           equipment_name: trimmedName,
-          brand: trimmedBrand,
-          type: trimmedType,
-        });
-      }
-    }
-
-    const record = {
-      employee_id: employeeId!,
-      equipment_name: trimmedName,
-      equipment_type: fullType,
-      equipment_category: equipmentCategory,
-      noise_level_db: noiseLevel.trim() || null,
-      vibration_ms2: vibration.trim() || null,
-      trainer_name: trainerName.trim(),
-      trainer_company: resolvedCompany || null,
-      training_date: trainingDate,
-      confirmation_type: confirmationType,
-      notes: notes.trim() || null,
-      photo_urls: photos,
-      trainee_signature_url: traineeSignUrl,
-      trainer_signature_url: trainerSignUrl,
-    };
-
-    if (isEdit) {
-      await supabase.from("training_records").update(record).eq("id", recordId!);
+          equipment_type: type,
+          equipment_category: equipmentCategory,
+          noise_level_db: catalogMatch ? (catalogMatch as any).noise_level_db || null : noiseLevel.trim() || null,
+          vibration_ms2: catalogMatch ? (catalogMatch as any).vibration_ms2 || null : vibration.trim() || null,
+          trainer_name: trainerName.trim(),
+          trainer_company: resolvedCompany || null,
+          training_date: trainingDate,
+          confirmation_type: confirmationType,
+          notes: notes.trim() || null,
+          photo_urls: photos,
+          trainee_signature_url: traineeSignUrl,
+          trainer_signature_url: trainerSignUrl,
+        };
+      });
+      await supabase.from("training_records").insert(records);
     } else {
-      await supabase.from("training_records").insert(record);
+      // Standard single-record flow
+      const fullType = [selectedBrand, equipmentType].filter(Boolean).join(" ") || null;
+      const trimmedBrand = selectedBrand.trim() || null;
+      const trimmedType = equipmentType.trim() || null;
+
+      if (trimmedName) {
+        const existsInCatalog = catalogRows.some(
+          (r) =>
+            r.category_value === equipmentCategory &&
+            r.equipment_name === trimmedName &&
+            (r.brand || null) === trimmedBrand &&
+            (r.type || null) === trimmedType
+        );
+        if (!existsInCatalog) {
+          await supabase.from("equipment_catalog").insert({
+            category_value: equipmentCategory,
+            category_label: catLabel,
+            equipment_name: trimmedName,
+            brand: trimmedBrand,
+            type: trimmedType,
+          });
+        }
+      }
+
+      const record = {
+        employee_id: employeeId!,
+        equipment_name: trimmedName,
+        equipment_type: fullType,
+        equipment_category: equipmentCategory,
+        noise_level_db: noiseLevel.trim() || null,
+        vibration_ms2: vibration.trim() || null,
+        trainer_name: trainerName.trim(),
+        trainer_company: resolvedCompany || null,
+        training_date: trainingDate,
+        confirmation_type: confirmationType,
+        notes: notes.trim() || null,
+        photo_urls: photos,
+        trainee_signature_url: traineeSignUrl,
+        trainer_signature_url: trainerSignUrl,
+      };
+
+      if (isEdit) {
+        await supabase.from("training_records").update(record).eq("id", recordId!);
+      } else {
+        await supabase.from("training_records").insert(record);
+      }
     }
 
     setSaving(false);
@@ -367,61 +413,100 @@ const TrainingForm = () => {
               )}
             </div>
 
-            {/* Brand dropdown */}
-            {getBrandsForEquipment(equipmentCategory, equipmentName).length > 0 && (
-              <div className="col-span-2 sm:col-span-1">
-                <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Merke</label>
-                <div className="relative">
-                  <select
-                    value={selectedBrand}
-                    onChange={(e) => {
-                      setSelectedBrand(e.target.value);
-                      setEquipmentType("");
-                    }}
-                    className="h-10 w-full appearance-none rounded-lg border border-input bg-background px-3 pr-8 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                  >
-                    <option value="">Velg merke...</option>
-                    {getBrandsForEquipment(equipmentCategory, equipmentName).map((b) => (
-                      <option key={b.brand} value={b.brand}>{b.brand}</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            {/* Tractor: show types checklist */}
+            {isTractorCategory && equipmentName && tractorTypes.length > 0 ? (
+              <div className="col-span-2">
+                <label className="mb-2 block font-body text-xs font-medium text-muted-foreground">
+                  Utstyr inkludert ({selectedTractorTypes.length} av {tractorTypes.length} valgt)
+                </label>
+                <div className="space-y-1.5 rounded-lg border border-border bg-background p-3 max-h-64 overflow-y-auto">
+                  <label className="flex items-center gap-2 pb-2 mb-2 border-b border-border cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedTractorTypes.length === tractorTypes.length}
+                      onChange={(e) => {
+                        setSelectedTractorTypes(e.target.checked ? tractorTypes : []);
+                      }}
+                      className="h-4 w-4 rounded border-input text-primary accent-primary"
+                    />
+                    <span className="font-body text-sm font-medium text-foreground">Velg alle</span>
+                  </label>
+                  {tractorTypes.map((type) => (
+                    <label key={type} className="flex items-center gap-2 cursor-pointer rounded px-1 py-1 hover:bg-secondary">
+                      <input
+                        type="checkbox"
+                        checked={selectedTractorTypes.includes(type)}
+                        onChange={(e) => {
+                          setSelectedTractorTypes((prev) =>
+                            e.target.checked ? [...prev, type] : prev.filter((t) => t !== type)
+                          );
+                        }}
+                        className="h-4 w-4 rounded border-input text-primary accent-primary"
+                      />
+                      <span className="font-body text-sm text-foreground">{type}</span>
+                    </label>
+                  ))}
                 </div>
               </div>
-            )}
-
-            {/* Type dropdown or free text */}
-            <div className="col-span-2 sm:col-span-1">
-              <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Type</label>
-              {getTypesForBrand(equipmentCategory, equipmentName, selectedBrand).length > 0 ? (
-                <div className="space-y-2">
-                  <div className="relative">
-                    <select
-                      value={getTypesForBrand(equipmentCategory, equipmentName, selectedBrand).includes(equipmentType) ? equipmentType : "__custom__"}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setEquipmentType(val === "__custom__" ? "" : val);
-                      }}
-                      className="h-10 w-full appearance-none rounded-lg border border-input bg-background px-3 pr-8 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                    >
-                      <option value="__custom__">Annet (skriv inn)</option>
-                      {getTypesForBrand(equipmentCategory, equipmentName, selectedBrand).map((t) => (
-                        <option key={t} value={t}>{t}</option>
-                      ))}
-                    </select>
-                    <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            ) : (
+              <>
+                {/* Brand dropdown */}
+                {getBrandsForEquipment(equipmentCategory, equipmentName).length > 0 && (
+                  <div className="col-span-2 sm:col-span-1">
+                    <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Merke</label>
+                    <div className="relative">
+                      <select
+                        value={selectedBrand}
+                        onChange={(e) => {
+                          setSelectedBrand(e.target.value);
+                          setEquipmentType("");
+                        }}
+                        className="h-10 w-full appearance-none rounded-lg border border-input bg-background px-3 pr-8 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                      >
+                        <option value="">Velg merke...</option>
+                        {getBrandsForEquipment(equipmentCategory, equipmentName).map((b) => (
+                          <option key={b.brand} value={b.brand}>{b.brand}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    </div>
                   </div>
-                  {!getTypesForBrand(equipmentCategory, equipmentName, selectedBrand).includes(equipmentType) && equipmentType !== "" ? null : null}
+                )}
+
+                {/* Type dropdown or free text */}
+                <div className="col-span-2 sm:col-span-1">
+                  <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Type</label>
+                  {getTypesForBrand(equipmentCategory, equipmentName, selectedBrand).length > 0 ? (
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <select
+                          value={getTypesForBrand(equipmentCategory, equipmentName, selectedBrand).includes(equipmentType) ? equipmentType : "__custom__"}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setEquipmentType(val === "__custom__" ? "" : val);
+                          }}
+                          className="h-10 w-full appearance-none rounded-lg border border-input bg-background px-3 pr-8 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                        >
+                          <option value="__custom__">Annet (skriv inn)</option>
+                          {getTypesForBrand(equipmentCategory, equipmentName, selectedBrand).map((t) => (
+                            <option key={t} value={t}>{t}</option>
+                          ))}
+                        </select>
+                        <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      </div>
+                      {!getTypesForBrand(equipmentCategory, equipmentName, selectedBrand).includes(equipmentType) && equipmentType !== "" ? null : null}
+                    </div>
+                  ) : (
+                    <input
+                      value={equipmentType}
+                      onChange={(e) => setEquipmentType(e.target.value)}
+                      placeholder="F.eks. Honda HS 970"
+                      className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                    />
+                  )}
                 </div>
-              ) : (
-                <input
-                  value={equipmentType}
-                  onChange={(e) => setEquipmentType(e.target.value)}
-                  placeholder="F.eks. Honda HS 970"
-                  className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              )}
-            </div>
+              </>
+            )}
 
             <div>
               <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Lydnivå dB</label>
@@ -658,7 +743,7 @@ const TrainingForm = () => {
           className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary font-body text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
         >
           <Save className="h-4 w-4" />
-          {saving ? "Lagrer..." : isEdit ? "Oppdater opplæring" : "Lagre opplæring"}
+          {saving ? "Lagrer..." : isEdit ? "Oppdater opplæring" : isTractorCategory && selectedTractorTypes.length > 1 ? `Lagre ${selectedTractorTypes.length} opplæringer` : "Lagre opplæring"}
         </button>
       </main>
     </div>
