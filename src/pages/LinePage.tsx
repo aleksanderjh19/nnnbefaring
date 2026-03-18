@@ -16,14 +16,14 @@ const LinePage = () => {
   const { isChecked, toggle, bulkSet, getLineStats } = useInspectionState();
 
   const currentLine = lines.find((l) => l.id === lineId);
+  const safeLineId = currentLine?.id ?? "";
 
-  // Drag-to-select state
   const isDragging = useRef(false);
   const dragTargetValue = useRef<boolean>(true);
   const draggedMasts = useRef<Set<number>>(new Set());
 
-  const mastNumbers = useMemo(() => currentLine ? getMastNumbers(currentLine) : [], [currentLine]);
-  const lineStats = getLineStats(currentLine?.id ?? "", mastNumbers.length);
+  const mastNumbers = useMemo(() => (currentLine ? getMastNumbers(currentLine) : []), [currentLine]);
+  const lineStats = getLineStats(safeLineId, mastNumbers.length);
 
   const filteredMasts = useMemo(() => {
     let result = mastNumbers;
@@ -31,12 +31,12 @@ const LinePage = () => {
       result = result.filter((m) => String(m).includes(search.trim()));
     }
     if (filter === "utfort") {
-      result = result.filter((m) => isChecked(currentLine?.id ?? "", m));
+      result = result.filter((m) => isChecked(safeLineId, m));
     } else if (filter === "ikke-utfort") {
-      result = result.filter((m) => !isChecked(currentLine?.id ?? "", m));
+      result = result.filter((m) => !isChecked(safeLineId, m));
     }
     return result;
-  }, [mastNumbers, search, filter, isChecked, currentLine?.id]);
+  }, [mastNumbers, search, filter, isChecked, safeLineId]);
 
   const getMastFromPoint = useCallback((x: number, y: number): number | null => {
     const el = document.elementFromPoint(x, y);
@@ -45,8 +45,6 @@ const LinePage = () => {
     if (!row) return null;
     return Number(row.getAttribute("data-mast"));
   }, []);
-
-  const safeLineId = currentLine?.id ?? "";
 
   const handleDragStart = useCallback(
     (mastNumber: number) => {
@@ -117,91 +115,8 @@ const LinePage = () => {
     );
   }
 
-  const filteredMasts = useMemo(() => {
-    let result = mastNumbers;
-    if (search.trim()) {
-      result = result.filter((m) => String(m).includes(search.trim()));
-    }
-    if (filter === "utfort") {
-      result = result.filter((m) => isChecked(currentLine.id, m));
-    } else if (filter === "ikke-utfort") {
-      result = result.filter((m) => !isChecked(currentLine.id, m));
-    }
-    return result;
-  }, [mastNumbers, search, filter, isChecked, currentLine.id]);
-
-  const getMastFromPoint = useCallback((x: number, y: number): number | null => {
-    const el = document.elementFromPoint(x, y);
-    if (!el) return null;
-    const row = el.closest("[data-mast]");
-    if (!row) return null;
-    return Number(row.getAttribute("data-mast"));
-  }, []);
-
-  const handleDragStart = useCallback(
-    (mastNumber: number) => {
-      isDragging.current = true;
-      const currentlyChecked = isChecked(currentLine.id, mastNumber);
-      dragTargetValue.current = !currentlyChecked;
-      draggedMasts.current = new Set([mastNumber]);
-      bulkSet(currentLine.id, [mastNumber], !currentlyChecked);
-    },
-    [isChecked, currentLine.id, bulkSet]
-  );
-
-  const handleDragMove = useCallback(
-    (x: number, y: number) => {
-      if (!isDragging.current) return;
-      const mast = getMastFromPoint(x, y);
-      if (mast === null || draggedMasts.current.has(mast)) return;
-      draggedMasts.current.add(mast);
-      bulkSet(currentLine.id, [mast], dragTargetValue.current);
-    },
-    [getMastFromPoint, currentLine.id, bulkSet]
-  );
-
-  const handleDragEnd = useCallback(() => {
-    isDragging.current = false;
-    draggedMasts.current.clear();
-  }, []);
-
-  const onMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      const mast = getMastFromPoint(e.clientX, e.clientY);
-      if (mast !== null) {
-        e.preventDefault();
-        handleDragStart(mast);
-      }
-    },
-    [getMastFromPoint, handleDragStart]
-  );
-
-  const onMouseMove = useCallback(
-    (e: React.MouseEvent) => handleDragMove(e.clientX, e.clientY),
-    [handleDragMove]
-  );
-
-  const onTouchStart = useCallback(
-    (e: React.TouchEvent) => {
-      const touch = e.touches[0];
-      const mast = getMastFromPoint(touch.clientX, touch.clientY);
-      if (mast !== null) handleDragStart(mast);
-    },
-    [getMastFromPoint, handleDragStart]
-  );
-
-  const onTouchMove = useCallback(
-    (e: React.TouchEvent) => {
-      if (!isDragging.current) return;
-      e.preventDefault();
-      handleDragMove(e.touches[0].clientX, e.touches[0].clientY);
-    },
-    [handleDragMove]
-  );
-
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      {/* Header */}
       <header className="sticky top-0 z-20 border-b border-border bg-card/95 backdrop-blur-sm">
         <div className="mx-auto max-w-2xl">
           <div className="flex items-center gap-3 px-4 py-3">
@@ -253,7 +168,6 @@ const LinePage = () => {
         </div>
       </header>
 
-      {/* Mast list */}
       <div
         className="flex-1 select-none px-4 py-3"
         onMouseDown={onMouseDown}
