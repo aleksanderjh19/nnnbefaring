@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { GraduationCap, Mail, Lock, ArrowLeft } from "lucide-react";
+import { Mail, Lock, ArrowLeft } from "lucide-react";
+import heroVideo from "@/assets/hero-video.mp4";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -16,11 +17,9 @@ const Auth = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) navigate("/", { replace: true });
     });
-
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) navigate("/", { replace: true });
     });
-
     return () => subscription.unsubscribe();
   }, [navigate]);
 
@@ -28,7 +27,6 @@ const Auth = () => {
     e.preventDefault();
     setLoading(true);
     setError("");
-
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       setError(error.message);
@@ -58,88 +56,93 @@ const Auth = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
-        <div className="mx-auto flex max-w-md items-center gap-3 px-5 py-4">
-          <button
-            onClick={() => navigate("/")}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-secondary"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </button>
-          <h1 className="font-display text-lg font-extrabold text-foreground">Logg inn</h1>
-        </div>
-      </header>
-
-      <main className="flex flex-1 items-start justify-center px-5 pt-12">
-        <div className="w-full max-w-md space-y-6">
-          <div className="flex flex-col items-center gap-3 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-              <GraduationCap className="h-7 w-7" />
-            </div>
+        <div className="mx-auto max-w-md px-5 py-6 space-y-4">
+          <div className="relative w-full overflow-hidden rounded-xl shadow-lg" style={{ aspectRatio: "4/1" }}>
+            <video
+              src={heroVideo}
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="absolute inset-0 h-full w-full scale-150 object-cover"
+            />
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate("/")}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-secondary"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
             <div>
-              <h2 className="font-display text-xl font-bold text-foreground">NNN Befaring</h2>
-              <p className="font-body text-sm text-muted-foreground">
+              <h1 className="font-display text-xl font-extrabold tracking-tight text-foreground">
+                Statnett Verktøy
+              </h1>
+              <p className="font-body text-xs text-muted-foreground">
                 Logg inn for å fortsette
               </p>
             </div>
           </div>
+        </div>
+      </header>
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">E-post</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="din@epost.no"
-                  className="h-11 w-full rounded-xl border border-input bg-background pl-10 pr-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                  required
-                />
-              </div>
+      <main className="mx-auto max-w-md px-5 py-8">
+        <form onSubmit={handleLogin} className="space-y-4">
+          <div>
+            <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">E-post</label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="din@epost.no"
+                className="h-11 w-full rounded-xl border border-input bg-background pl-10 pr-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                required
+              />
             </div>
-            <div>
-              <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Passord</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="h-11 w-full rounded-xl border border-input bg-background pl-10 pr-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                  required
-                  minLength={6}
-                />
-              </div>
+          </div>
+          <div>
+            <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Passord</label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="h-11 w-full rounded-xl border border-input bg-background pl-10 pr-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                required
+                minLength={6}
+              />
             </div>
+          </div>
 
-            {error && (
-              <p className="rounded-lg bg-destructive/10 px-3 py-2 font-body text-sm text-destructive">{error}</p>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="h-11 w-full rounded-xl bg-primary font-body text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
-            >
-              {loading ? "Venter..." : "Logg inn"}
-            </button>
-          </form>
+          {error && (
+            <p className="rounded-lg bg-destructive/10 px-3 py-2 font-body text-sm text-destructive">{error}</p>
+          )}
 
           <button
-            onClick={handleForgotPassword}
-            className="block w-full text-center font-body text-sm text-muted-foreground hover:text-primary"
+            type="submit"
+            disabled={loading}
+            className="h-11 w-full rounded-xl bg-primary font-body text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
           >
-            Glemt passord?
+            {loading ? "Venter..." : "Logg inn"}
           </button>
+        </form>
 
-          <p className="text-center font-body text-xs text-muted-foreground">
-            Tilgang gis via invitasjon fra administrator.
-          </p>
-        </div>
+        <button
+          onClick={handleForgotPassword}
+          className="mt-4 block w-full text-center font-body text-sm text-muted-foreground hover:text-primary"
+        >
+          Glemt passord?
+        </button>
+
+        <p className="mt-6 text-center font-body text-xs text-muted-foreground">
+          Tilgang gis via invitasjon fra administrator.
+        </p>
       </main>
     </div>
   );
