@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Mail, Lock, ArrowLeft } from "lucide-react";
-import heroVideo from "@/assets/hero-video.mp4";
+import statnettLogo from "@/assets/statnett-logo.png";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -59,14 +59,11 @@ const Auth = () => {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
         <div className="mx-auto max-w-md px-5 py-6 space-y-4">
-          <div className="relative w-full overflow-hidden rounded-xl shadow-lg" style={{ aspectRatio: "4/1" }}>
-            <video
-              src={heroVideo}
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="absolute inset-0 h-full w-full scale-150 object-cover"
+          <div className="flex w-full items-center justify-center overflow-hidden rounded-xl bg-[hsl(155,100%,15%)] px-8 py-8 shadow-lg">
+            <img
+              src={statnettLogo}
+              alt="Statnett"
+              className="h-12 w-auto"
             />
           </div>
           <div className="flex items-center gap-3">
