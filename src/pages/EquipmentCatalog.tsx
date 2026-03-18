@@ -3,8 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ArrowLeft, Plus, Trash2, ChevronDown, ChevronRight,
-  Wrench, Car, HardHat, Cpu, Package, Fuel, Search, X, Tractor
+  Wrench, Car, HardHat, Cpu, Package, Fuel, Search, X, Tractor, GraduationCap, CheckSquare
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 const LOCATIONS = [
   "Bjerka",
@@ -53,6 +60,10 @@ const EquipmentCatalog = () => {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [expandedEquipment, setExpandedEquipment] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [selectedRowIds, setSelectedRowIds] = useState<Set<string>>(new Set());
+  const [showEmployeePicker, setShowEmployeePicker] = useState(false);
+  const [employees, setEmployees] = useState<{ id: string; name: string }[]>([]);
+  const [employeeSearch, setEmployeeSearch] = useState("");
 
   // Add form state
   const [showAdd, setShowAdd] = useState(false);
@@ -145,6 +156,74 @@ const EquipmentCatalog = () => {
       if (types.some((t) => t.toLowerCase().includes(s))) return true;
     }
     return false;
+  };
+
+  const toggleRowSelection = (id: string) => {
+    setSelectedRowIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAllInEquipment = (eqRows: CatalogRow[]) => {
+    const allSelected = eqRows.every((r) => selectedRowIds.has(r.id));
+    setSelectedRowIds((prev) => {
+      const next = new Set(prev);
+      eqRows.forEach((r) => {
+        if (allSelected) next.delete(r.id);
+        else next.add(r.id);
+      });
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    if (showEmployeePicker && employees.length === 0) {
+      supabase.from("employees").select("id, name").order("name").then(({ data }) => {
+        if (data) setEmployees(data);
+      });
+    }
+  }, [showEmployeePicker]);
+
+  const filteredEmployees = employees.filter((e) =>
+    e.name.toLowerCase().includes(employeeSearch.toLowerCase())
+  );
+
+  const selectedRows = rows.filter((r) => selectedRowIds.has(r.id));
+
+  const handleAddTraining = (employeeId: string) => {
+    if (selectedRows.length === 0) return;
+    // If only one selected, navigate directly with full info
+    if (selectedRows.length === 1) {
+      const row = selectedRows[0];
+      const params = new URLSearchParams({
+        category: row.category_value,
+        equipment: row.equipment_name,
+      });
+      if (row.brand) params.set("brand", row.brand);
+      if (row.type) params.set("type", row.type);
+      navigate(`/dokumentert-opplaering/ansatt/${employeeId}/ny?${params.toString()}`);
+      return;
+    }
+    // Multiple selected - navigate with first item and store rest in sessionStorage
+    const items = selectedRows.map((r) => ({
+      category: r.category_value,
+      equipment: r.equipment_name,
+      brand: r.brand || "",
+      type: r.type || "",
+    }));
+    sessionStorage.setItem("bulk_training_items", JSON.stringify(items));
+    const first = items[0];
+    const params = new URLSearchParams({
+      category: first.category,
+      equipment: first.equipment,
+      bulk: "true",
+    });
+    if (first.brand) params.set("brand", first.brand);
+    if (first.type) params.set("type", first.type);
+    navigate(`/dokumentert-opplaering/ansatt/${employeeId}/ny?${params.toString()}`);
   };
 
   return (
@@ -431,10 +510,32 @@ const EquipmentCatalog = () => {
                           </button>
                           {isExpanded && (
                             <div className="border-t border-border bg-secondary/30">
+                              {/* Select all + training button */}
+                              <div className="flex items-center justify-between px-4 py-2 border-b border-border">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={eq.rows.every((r) => selectedRowIds.has(r.id))}
+                                    onChange={() => toggleAllInEquipment(eq.rows)}
+                                    className="h-4 w-4 rounded border-input accent-primary"
+                                  />
+                                  <span className="font-body text-xs font-medium text-muted-foreground">Velg alle</span>
+                                </label>
+                                {eq.rows.some((r) => selectedRowIds.has(r.id)) && (
+                                  <button
+                                    onClick={() => { setEmployeeSearch(""); setShowEmployeePicker(true); }}
+                                    className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 font-body text-xs font-semibold text-primary-foreground hover:bg-primary/90"
+                                  >
+                                    <GraduationCap className="h-3.5 w-3.5" />
+                                    Legg til opplæring ({eq.rows.filter((r) => selectedRowIds.has(r.id)).length})
+                                  </button>
+                                )}
+                              </div>
                               <div className="overflow-hidden">
                                 <table className="w-full text-sm">
                                   <thead>
                                     <tr className="bg-muted/50">
+                                      <th className="w-10 px-4 py-2"></th>
                                       <th className="px-4 py-2 text-left font-body text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Merke</th>
                                       <th className="px-4 py-2 text-left font-body text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Type/modell</th>
                                       <th className="px-4 py-2 text-right font-body text-[10px] font-medium uppercase tracking-wider text-muted-foreground"></th>
@@ -444,9 +545,18 @@ const EquipmentCatalog = () => {
                                     {eq.rows.map((row) => (
                                       <tr
                                         key={row.id}
-                                        className="border-t border-border cursor-pointer hover:bg-secondary/50"
+                                        className={`border-t border-border cursor-pointer hover:bg-secondary/50 ${selectedRowIds.has(row.id) ? "bg-primary/5" : ""}`}
                                         onClick={() => navigate(`/dokumentert-opplaering/katalog/${row.id}`)}
                                       >
+                                        <td className="px-4 py-2">
+                                          <input
+                                            type="checkbox"
+                                            checked={selectedRowIds.has(row.id)}
+                                            onChange={(e) => { e.stopPropagation(); toggleRowSelection(row.id); }}
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="h-4 w-4 rounded border-input accent-primary"
+                                          />
+                                        </td>
                                         <td className="px-4 py-2 font-body text-sm text-foreground">{row.brand || "–"}</td>
                                         <td className="px-4 py-2 font-body text-sm text-foreground">{row.type || "–"}</td>
                                         <td className="px-4 py-2 text-right">
@@ -482,6 +592,38 @@ const EquipmentCatalog = () => {
           </div>
         )}
       </main>
+
+      <Dialog open={showEmployeePicker} onOpenChange={setShowEmployeePicker}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-display text-base">Velg ansatt</DialogTitle>
+            <DialogDescription className="font-body text-sm text-muted-foreground">
+              Legg til opplæring for {selectedRowIds.size} valgt{selectedRowIds.size !== 1 ? "e" : ""} utstyr
+            </DialogDescription>
+          </DialogHeader>
+          <input
+            value={employeeSearch}
+            onChange={(e) => setEmployeeSearch(e.target.value)}
+            placeholder="Søk etter ansatt..."
+            className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+          <div className="max-h-64 overflow-y-auto space-y-1">
+            {filteredEmployees.length === 0 ? (
+              <p className="py-4 text-center font-body text-sm text-muted-foreground">Ingen ansatte funnet</p>
+            ) : (
+              filteredEmployees.map((emp) => (
+                <button
+                  key={emp.id}
+                  onClick={() => handleAddTraining(emp.id)}
+                  className="w-full rounded-lg px-3 py-2.5 text-left font-body text-sm font-medium text-foreground hover:bg-secondary transition-colors"
+                >
+                  {emp.name}
+                </button>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
