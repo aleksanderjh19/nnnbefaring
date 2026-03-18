@@ -442,6 +442,79 @@ const TrainingForm = () => {
               />
             </div>
           </div>
+
+          {/* Equipment photo - from catalog or capture new */}
+          <div className="space-y-2">
+            <label className="block font-body text-xs font-medium text-muted-foreground">Bilde av utstyr</label>
+            {catalogImageUrl ? (
+              <div className="relative inline-block">
+                <img
+                  src={catalogImageUrl}
+                  alt={equipmentName}
+                  className="h-32 w-32 rounded-lg border border-border object-cover"
+                />
+                <button
+                  onClick={() => equipmentPhotoRef.current?.click()}
+                  className="absolute bottom-1 right-1 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground shadow"
+                  title="Bytt bilde"
+                >
+                  <Camera className="h-3 w-3" />
+                </button>
+              </div>
+            ) : photos.length > 0 ? (
+              <div className="flex flex-wrap gap-3">
+                {photos.map((url, i) => (
+                  <div key={i} className="relative h-24 w-24 overflow-hidden rounded-lg border border-border">
+                    <img src={url} alt={`Bilde ${i + 1}`} className="h-full w-full object-cover" />
+                    <button
+                      onClick={() => removePhoto(i)}
+                      className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex h-24 w-24 flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-border text-muted-foreground hover:border-primary hover:text-primary"
+                >
+                  <Camera className="h-5 w-5" />
+                  <span className="font-body text-[10px]">Legg til</span>
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  if (matchingCatalogRow) {
+                    equipmentPhotoRef.current?.click();
+                  } else {
+                    fileInputRef.current?.click();
+                  }
+                }}
+                className="flex h-24 w-32 flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-border text-muted-foreground hover:border-primary hover:text-primary"
+              >
+                <Camera className="h-5 w-5" />
+                <span className="font-body text-[10px]">Ta bilde</span>
+              </button>
+            )}
+            <input
+              ref={equipmentPhotoRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleEquipmentPhotoCapture}
+              className="hidden"
+            />
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              multiple
+              onChange={handlePhotoCapture}
+              className="hidden"
+            />
+          </div>
         </section>
 
         {/* Trainer info */}
