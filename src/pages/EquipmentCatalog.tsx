@@ -592,8 +592,39 @@ const EquipmentCatalog = () => {
           </div>
         )}
       </main>
+
+      <Dialog open={showEmployeePicker} onOpenChange={setShowEmployeePicker}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-display text-base">Velg ansatt</DialogTitle>
+            <DialogDescription className="font-body text-sm text-muted-foreground">
+              Legg til opplæring for {selectedRowIds.size} valgt{selectedRowIds.size !== 1 ? "e" : ""} utstyr
+            </DialogDescription>
+          </DialogHeader>
+          <input
+            value={employeeSearch}
+            onChange={(e) => setEmployeeSearch(e.target.value)}
+            placeholder="Søk etter ansatt..."
+            className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+          <div className="max-h-64 overflow-y-auto space-y-1">
+            {filteredEmployees.length === 0 ? (
+              <p className="py-4 text-center font-body text-sm text-muted-foreground">Ingen ansatte funnet</p>
+            ) : (
+              filteredEmployees.map((emp) => (
+                <button
+                  key={emp.id}
+                  onClick={() => handleAddTraining(emp.id)}
+                  className="w-full rounded-lg px-3 py-2.5 text-left font-body text-sm font-medium text-foreground hover:bg-secondary transition-colors"
+                >
+                  {emp.name}
+                </button>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
-  );
 };
 
 function QuickAdd({
