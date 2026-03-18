@@ -1,51 +1,56 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { GraduationCap, Mail, Lock, User, ArrowLeft } from "lucide-react";
+import { GraduationCap, Mail, Lock, ArrowLeft } from "lucide-react";
 
 const Auth = () => {
   const navigate = useNavigate();
-  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) navigate("/dokumentert-opplaering", { replace: true });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) navigate("/", { replace: true });
     });
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) navigate("/", { replace: true });
+    });
+
+    return () => subscription.unsubscribe();
   }, [navigate]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
-    setMessage("");
 
-    if (isLogin) {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        setError(error.message);
-      } else {
-        navigate("/dokumentert-opplaering", { replace: true });
-      }
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      setError(error.message);
     } else {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { full_name: name },
-          emailRedirectTo: window.location.origin,
-        },
-      });
-      if (error) {
-        setError(error.message);
-      } else {
-        setMessage("Sjekk e-posten din for å bekrefte kontoen.");
-      }
+      navigate("/", { replace: true });
+    }
+    setLoading(false);
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError("Skriv inn e-postadressen din først");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) {
+      setError(error.message);
+    } else {
+      setError("");
+      alert("Sjekk e-posten din for å tilbakestille passordet.");
     }
     setLoading(false);
   };
@@ -71,30 +76,14 @@ const Auth = () => {
               <GraduationCap className="h-7 w-7" />
             </div>
             <div>
-              <h2 className="font-display text-xl font-bold text-foreground">Dokumentert Opplæring</h2>
+              <h2 className="font-display text-xl font-bold text-foreground">NNN Befaring</h2>
               <p className="font-body text-sm text-muted-foreground">
-                {isLogin ? "Logg inn for å fortsette" : "Opprett en ny konto"}
+                Logg inn for å fortsette
               </p>
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {!isLogin && (
-              <div>
-                <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Navn</label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Ditt fulle navn"
-                    className="h-11 w-full rounded-xl border border-input bg-background pl-10 pr-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                    required
-                  />
-                </div>
-              </div>
-            )}
+          <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">E-post</label>
               <div className="relative">
@@ -128,27 +117,25 @@ const Auth = () => {
             {error && (
               <p className="rounded-lg bg-destructive/10 px-3 py-2 font-body text-sm text-destructive">{error}</p>
             )}
-            {message && (
-              <p className="rounded-lg bg-success/10 px-3 py-2 font-body text-sm text-success">{message}</p>
-            )}
 
             <button
               type="submit"
               disabled={loading}
               className="h-11 w-full rounded-xl bg-primary font-body text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
             >
-              {loading ? "Venter..." : isLogin ? "Logg inn" : "Opprett konto"}
+              {loading ? "Venter..." : "Logg inn"}
             </button>
           </form>
 
-          <p className="text-center font-body text-sm text-muted-foreground">
-            {isLogin ? "Har du ikke en konto?" : "Har du allerede en konto?"}{" "}
-            <button
-              onClick={() => { setIsLogin(!isLogin); setError(""); setMessage(""); }}
-              className="font-semibold text-primary hover:underline"
-            >
-              {isLogin ? "Opprett konto" : "Logg inn"}
-            </button>
+          <button
+            onClick={handleForgotPassword}
+            className="block w-full text-center font-body text-sm text-muted-foreground hover:text-primary"
+          >
+            Glemt passord?
+          </button>
+
+          <p className="text-center font-body text-xs text-muted-foreground">
+            Tilgang gis via invitasjon fra administrator.
           </p>
         </div>
       </main>
