@@ -9,7 +9,7 @@ import { useMemo } from "react";
 
 const Home = () => {
   const navigate = useNavigate();
-  const { getLineStats, getTotalStats } = useInspectionState();
+  const { getLineStats, getTotalStats, year, advanceYear } = useInspectionState();
   const { lines, lineGroups, editMode, setEditMode, removeLine, updateLine, addLine } = useLines();
 
   const [renamingId, setRenamingId] = useState<string | null>(null);
