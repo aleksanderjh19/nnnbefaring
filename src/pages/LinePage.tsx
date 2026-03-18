@@ -296,7 +296,7 @@ const LinePage = () => {
         <div className="mx-auto max-w-2xl">
           <div className="flex items-center gap-3 px-4 py-3">
             <button
-              onClick={() => navigate("/")}
+              onClick={() => navigate("/ledningsbefaring")}
               className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card"
             >
               <ArrowLeft className="h-5 w-5 text-foreground" />

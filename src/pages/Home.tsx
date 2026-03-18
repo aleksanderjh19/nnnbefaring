@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, Zap, Settings, Pencil, Trash2, Plus, X, ChevronLeft, CalendarArrowUp, RefreshCw } from "lucide-react";
+import { ChevronRight, Zap, Settings, Pencil, Trash2, Plus, X, ChevronLeft, CalendarArrowUp, RefreshCw, ArrowLeft } from "lucide-react";
 import heroVideo from "@/assets/hero-video.mp4";
 import { getMastNumbers } from "@/data/lines";
 import { useInspectionState } from "@/hooks/useInspectionState";
@@ -82,6 +82,13 @@ const Home = () => {
             />
           </div>
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate("/")}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground hover:bg-secondary"
+              title="Tilbake"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
             <div className="min-w-0 flex-1">
               <h1 className="font-display text-xl font-extrabold tracking-tight text-foreground">
                 Ledningsbefaringer
@@ -252,7 +259,7 @@ const Home = () => {
                         className="flex w-full items-center gap-2 rounded-xl border border-border bg-card text-left transition-colors"
                       >
                         <button
-                          onClick={() => navigate(`/linje/${line.id}`)}
+                          onClick={() => navigate(`/ledningsbefaring/linje/${line.id}`)}
                           className="tap-highlight-none flex min-w-0 flex-1 items-center gap-4 px-4 py-4 hover:bg-secondary"
                         >
                           <div className="min-w-0 flex-1">
