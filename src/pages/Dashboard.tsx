@@ -27,6 +27,14 @@ const tools = [
     path: "/spenningsrunde",
     ready: false,
   },
+  {
+    id: "dokumentert-opplaering",
+    name: "Dokumentert opplæring",
+    description: "Registrering og oppfølging av opplæring",
+    icon: GraduationCap,
+    path: "/dokumentert-opplaering",
+    ready: false,
+  },
 ];
 
 const Dashboard = () => {
