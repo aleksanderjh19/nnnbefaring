@@ -262,7 +262,7 @@ const TrainingForm = () => {
         <section className="rounded-xl border border-border bg-card p-5 space-y-4">
           <h2 className="font-display text-sm font-bold text-foreground">Kategori</h2>
           <div className="flex flex-wrap gap-2">
-            {CATEGORIES.map((cat) => (
+            {categories.map((cat) => (
               <button
                 key={cat.value}
                 onClick={() => {
