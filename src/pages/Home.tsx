@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, Zap, Settings, Pencil, Trash2, Plus, X, CalendarArrowUp, ChevronLeft } from "lucide-react";
+import { ChevronRight, Zap, Settings, Pencil, Trash2, Plus, X, ChevronLeft, CalendarArrowUp } from "lucide-react";
+import heroVideo from "@/assets/hero-video.mp4";
 import { getMastNumbers } from "@/data/lines";
 import { useInspectionState } from "@/hooks/useInspectionState";
 import { useLines } from "@/hooks/useLines.tsx";
