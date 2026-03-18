@@ -159,10 +159,8 @@ const LinePage = () => {
 
   const handleRemoveSelected = () => {
     if (!currentLine || selectedForRemoval.size === 0) return;
-    if (confirm(`Fjern ${selectedForRemoval.size} mastepunkt?`)) {
-      removeMasts(currentLine.id, Array.from(selectedForRemoval));
-      setSelectedForRemoval(new Set());
-    }
+    removeMasts(currentLine.id, Array.from(selectedForRemoval));
+    setSelectedForRemoval(new Set());
   };
 
   if (!currentLine) {
