@@ -161,7 +161,7 @@ const EquipmentDetail = () => {
               <img
                 src={item.image_url}
                 alt={displayName}
-                className="w-full max-h-72 object-cover"
+                className="w-full max-h-72 object-contain bg-muted/30"
               />
               <button
                 onClick={() => fileInputRef.current?.click()}
