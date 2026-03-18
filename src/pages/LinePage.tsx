@@ -35,6 +35,11 @@ const LinePage = () => {
   const dragTargetValue = useRef<boolean>(true);
   const draggedMasts = useRef<Set<number>>(new Set());
 
+  // Touch hold-to-drag: distinguish scroll from select
+  const touchHoldTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const touchStartPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const touchActivated = useRef(false); // true once hold threshold passed
+
   const mastNumbers = useMemo(() => (currentLine ? getMastNumbers(currentLine) : []), [currentLine]);
   const lineStats = getLineStats(safeLineId, mastNumbers.length);
 
