@@ -1,0 +1,1 @@
+ALTER TABLE public.training_records ADD COLUMN equipment_category text DEFAULT 'el_verktoy';
