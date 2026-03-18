@@ -6,7 +6,15 @@ const ARCHIVE_KEY_PREFIX = "mast-inspection-";
 function getActiveYear(): number {
   try {
     const saved = localStorage.getItem(YEAR_KEY);
-    if (saved) return parseInt(saved);
+    if (saved) {
+      const y = parseInt(saved);
+      // Reset to 2026 if somehow advanced beyond current real year
+      if (y > 2026) {
+        localStorage.setItem(YEAR_KEY, "2026");
+        return 2026;
+      }
+      return y;
+    }
   } catch {}
   return new Date().getFullYear();
 }
