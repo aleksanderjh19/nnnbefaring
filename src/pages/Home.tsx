@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, Zap, Settings, Pencil, Trash2, Plus, X, CalendarArrowUp, ChevronLeft } from "lucide-react";
+import { ChevronRight, Zap, Settings, Pencil, Trash2, Plus, X, ChevronLeft, CalendarArrowUp } from "lucide-react";
+import heroVideo from "@/assets/hero-video.mp4";
 import { getMastNumbers } from "@/data/lines";
 import { useInspectionState } from "@/hooks/useInspectionState";
 import { useLines } from "@/hooks/useLines.tsx";
@@ -71,8 +72,18 @@ const Home = () => {
       <header className="border-b border-border bg-card">
         <div className="mx-auto max-w-2xl px-5 py-6">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-              <Zap className="h-5 w-5 text-primary-foreground" />
+            <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl shadow-md ring-2 ring-primary/20">
+              <video
+                src={heroVideo}
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="h-full w-full object-cover"
+              />
+              <div className="absolute inset-0 flex items-center justify-center bg-primary/30 backdrop-blur-[1px]">
+                <Zap className="h-5 w-5 text-primary-foreground drop-shadow" />
+              </div>
             </div>
             <div className="min-w-0 flex-1">
               <h1 className="font-display text-xl font-extrabold tracking-tight text-foreground">
