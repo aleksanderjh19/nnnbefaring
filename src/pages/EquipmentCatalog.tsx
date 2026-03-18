@@ -230,6 +230,27 @@ const EquipmentCatalog = () => {
                   className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
+              <div className="col-span-2">
+                <label className="mb-1 block font-body text-xs text-muted-foreground">Plassering</label>
+                <select
+                  value={addLocation}
+                  onChange={(e) => setAddLocation(e.target.value)}
+                  className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="">Ingen plassering</option>
+                  {LOCATIONS.map((loc) => (
+                    <option key={loc} value={loc}>{loc}</option>
+                  ))}
+                </select>
+                {addLocation === "Annet" && (
+                  <input
+                    value={addCustomLocation}
+                    onChange={(e) => setAddCustomLocation(e.target.value)}
+                    placeholder="Skriv inn plassering"
+                    className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                )}
+              </div>
             </div>
             <div className="flex justify-end">
               <button
