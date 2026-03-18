@@ -93,6 +93,34 @@ const TrainingForm = () => {
     return catalogRows.filter((r) => r.category_value === cat && r.equipment_name === eqName && r.brand === brand && r.type).map((r) => r.type!);
   };
 
+  // Find the matching catalog row for current selection
+  const matchingCatalogRow = useMemo(() => {
+    return catalogRows.find(
+      (r) =>
+        r.category_value === equipmentCategory &&
+        r.equipment_name === equipmentName &&
+        (r.brand || "") === selectedBrand &&
+        (r.type || "") === equipmentType
+    ) || null;
+  }, [catalogRows, equipmentCategory, equipmentName, selectedBrand, equipmentType]);
+
+  const catalogImageUrl = matchingCatalogRow?.image_url || null;
+
+  const handleEquipmentPhotoCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const file = files[0];
+    const url = await uploadFile(file, "equipment-photos");
+    if (url && matchingCatalogRow) {
+      // Update existing catalog row with image
+      await supabase.from("equipment_catalog").update({ image_url: url }).eq("id", matchingCatalogRow.id);
+      setCatalogRows((prev) => prev.map((r) => r.id === matchingCatalogRow.id ? { ...r, image_url: url } : r));
+    } else if (url) {
+      // No matching row yet - save photo to training record photos
+      setPhotos((prev) => [...prev, url]);
+    }
+  };
+
   // Auto-select type when brand has only one type
   useEffect(() => {
     if (selectedBrand) {
