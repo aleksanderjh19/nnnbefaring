@@ -35,6 +35,11 @@ const LinePage = () => {
   const dragTargetValue = useRef<boolean>(true);
   const draggedMasts = useRef<Set<number>>(new Set());
 
+  // Touch hold-to-drag: distinguish scroll from select
+  const touchHoldTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const touchStartPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const touchActivated = useRef(false); // true once hold threshold passed
+
   const mastNumbers = useMemo(() => (currentLine ? getMastNumbers(currentLine) : []), [currentLine]);
   const lineStats = getLineStats(safeLineId, mastNumbers.length);
 
@@ -159,20 +164,56 @@ const LinePage = () => {
   const onTouchStart = useCallback(
     (e: React.TouchEvent) => {
       const touch = e.touches[0];
+      touchStartPos.current = { x: touch.clientX, y: touch.clientY };
+      touchActivated.current = false;
       const mast = getMastFromPoint(touch.clientX, touch.clientY);
-      if (mast !== null) handleDragStart(mast);
+      if (mast === null) return;
+      // Start a timer — if user holds ~150ms without moving much, activate drag mode
+      if (touchHoldTimer.current) clearTimeout(touchHoldTimer.current);
+      touchHoldTimer.current = setTimeout(() => {
+        touchActivated.current = true;
+        handleDragStart(mast);
+      }, 150);
     },
     [getMastFromPoint, handleDragStart]
   );
 
   const onTouchMove = useCallback(
     (e: React.TouchEvent) => {
-      if (!isDragging.current) return;
+      const touch = e.touches[0];
+      const dx = touch.clientX - touchStartPos.current.x;
+      const dy = touch.clientY - touchStartPos.current.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      // If not yet activated and moved too far, cancel — let browser scroll
+      if (!touchActivated.current) {
+        if (dist > 10) {
+          if (touchHoldTimer.current) {
+            clearTimeout(touchHoldTimer.current);
+            touchHoldTimer.current = null;
+          }
+        }
+        return;
+      }
+
+      // Activated: prevent scroll, handle drag
       e.preventDefault();
-      handleDragMove(e.touches[0].clientX, e.touches[0].clientY);
+      handleDragMove(touch.clientX, touch.clientY);
     },
     [handleDragMove]
   );
+
+  const onTouchEnd = useCallback(() => {
+    if (touchHoldTimer.current) {
+      clearTimeout(touchHoldTimer.current);
+      touchHoldTimer.current = null;
+    }
+    // If hold activated but only one mast selected (tap-and-hold), still counts
+    if (touchActivated.current) {
+      handleDragEnd();
+    }
+    touchActivated.current = false;
+  }, [handleDragEnd]);
 
   // Parse range input like "1-5, 8, 10-12"
   const parseRangeInput = (input: string): number[] => {
@@ -439,8 +480,8 @@ const LinePage = () => {
         onMouseLeave={editMode ? undefined : handleDragEnd}
         onTouchStart={editMode ? undefined : onTouchStart}
         onTouchMove={editMode ? undefined : onTouchMove}
-        onTouchEnd={editMode ? undefined : handleDragEnd}
-        onTouchCancel={editMode ? undefined : handleDragEnd}
+        onTouchEnd={editMode ? undefined : onTouchEnd}
+        onTouchCancel={editMode ? undefined : onTouchEnd}
       >
         <div className="mx-auto flex max-w-lg flex-col gap-1.5">
           {filteredMasts.map((mastNumber) => (
