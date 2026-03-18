@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useCallback } from "react";
+import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Search, ChevronDown, ArrowLeft, Plus, Trash2, X, Pencil, Check } from "lucide-react";
 import { getMastNumbers } from "@/data/lines";
