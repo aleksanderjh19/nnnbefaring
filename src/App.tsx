@@ -19,8 +19,9 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/linje/:lineId" element={<LinePage />} />
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/ledningsbefaring" element={<Home />} />
+            <Route path="/ledningsbefaring/linje/:lineId" element={<LinePage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
