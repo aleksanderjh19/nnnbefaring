@@ -1,7 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Camera, MapPin, Volume2, Activity, FileText, Pencil, Save, X } from "lucide-react";
+import { ArrowLeft, Camera, MapPin, Volume2, Activity, FileText, Pencil, Save, X, GraduationCap } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 const LOCATIONS = [
   "Bjerka",
