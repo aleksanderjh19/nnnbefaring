@@ -1,32 +1,37 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Plus, Users, ChevronRight, RefreshCw, Search, Settings } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { ArrowLeft, Plus, Users, ChevronRight, RefreshCw, Search, Settings, UserX, UserCheck } from "lucide-react";
 import heroVideo from "@/assets/hero-video.mp4";
+import { Switch } from "@/components/ui/switch";
 
 interface Employee {
   id: string;
   name: string;
   department: string | null;
+  active: boolean;
   created_at: string;
 }
 
 const TrainingHome = () => {
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDept, setNewDept] = useState("");
   const [search, setSearch] = useState("");
+  const [showInactive, setShowInactive] = useState(false);
   const [recordCounts, setRecordCounts] = useState<Record<string, number>>({});
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const fetchEmployees = async () => {
     setLoading(true);
     const { data } = await supabase.from("employees").select("*").order("name");
-    if (data) setEmployees(data);
+    if (data) setEmployees(data as Employee[]);
 
-    // Get training record counts per employee
     const { data: records } = await supabase.from("training_records").select("employee_id");
     if (records) {
       const counts: Record<string, number> = {};
@@ -56,12 +61,25 @@ const TrainingHome = () => {
     fetchEmployees();
   };
 
+  const toggleActive = async (emp: Employee) => {
+    setTogglingId(emp.id);
+    await supabase.from("employees").update({ active: !emp.active } as any).eq("id", emp.id);
+    setEmployees((prev) =>
+      prev.map((e) => (e.id === emp.id ? { ...e, active: !e.active } : e))
+    );
+    setTogglingId(null);
+  };
 
-  const filtered = employees.filter(
-    (e) =>
-      e.name.toLowerCase().includes(search.toLowerCase()) ||
-      (e.department && e.department.toLowerCase().includes(search.toLowerCase()))
-  );
+  const filtered = employees
+    .filter((e) => showInactive || e.active)
+    .filter(
+      (e) =>
+        e.name.toLowerCase().includes(search.toLowerCase()) ||
+        (e.department && e.department.toLowerCase().includes(search.toLowerCase()))
+    );
+
+  const activeCount = filtered.filter((e) => e.active).length;
+  const inactiveCount = filtered.filter((e) => !e.active).length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -116,9 +134,22 @@ const TrainingHome = () => {
 
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-display text-xs font-bold uppercase tracking-widest text-statnett">
-            Ansatte ({filtered.length})
+            Ansatte ({activeCount}{showInactive && inactiveCount > 0 ? ` + ${inactiveCount} inaktive` : ""})
           </h2>
           <div className="flex gap-2">
+            {isAdmin && (
+              <button
+                onClick={() => setShowInactive(!showInactive)}
+                className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 font-body text-xs font-medium transition-colors ${
+                  showInactive
+                    ? "border-primary/30 bg-primary/10 text-primary"
+                    : "border-border text-muted-foreground hover:bg-secondary"
+                }`}
+              >
+                <UserX className="h-3.5 w-3.5" />
+                Inaktive
+              </button>
+            )}
             <button
               onClick={() => navigate("/dokumentert-opplaering/katalog")}
               className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 font-body text-xs font-medium text-muted-foreground hover:bg-secondary"
@@ -126,18 +157,20 @@ const TrainingHome = () => {
               <Settings className="h-3.5 w-3.5" />
               Utstyrskatalog
             </button>
-            <button
-              onClick={() => setShowAdd(true)}
-              className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 font-body text-xs font-semibold text-primary-foreground hover:bg-primary/90"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Ny ansatt
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => setShowAdd(true)}
+                className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 font-body text-xs font-semibold text-primary-foreground hover:bg-primary/90"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Ny ansatt
+              </button>
+            )}
           </div>
         </div>
 
         {/* Add dialog */}
-        {showAdd && (
+        {showAdd && isAdmin && (
           <div className="mb-4 rounded-xl border border-border bg-card p-4 space-y-3">
             <h3 className="font-display text-sm font-bold text-foreground">Legg til ansatt</h3>
             <div className="grid grid-cols-2 gap-3">
@@ -180,22 +213,63 @@ const TrainingHome = () => {
         ) : (
           <div className="space-y-2">
             {filtered.map((emp) => (
-              <button
+              <div
                 key={emp.id}
-                onClick={() => navigate(`/dokumentert-opplaering/ansatt/${emp.id}`)}
-                className="group flex w-full items-center gap-4 rounded-xl border border-border bg-card px-5 py-4 text-left transition-colors hover:bg-secondary"
+                className={`group flex w-full items-center gap-4 rounded-xl border bg-card px-5 py-4 transition-colors ${
+                  emp.active
+                    ? "border-border hover:bg-secondary"
+                    : "border-border/50 opacity-60"
+                }`}
               >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 font-display text-sm font-bold text-primary">
-                  {emp.name.charAt(0).toUpperCase()}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-display text-sm font-bold text-foreground">{emp.name}</p>
-                  <p className="font-body text-xs text-muted-foreground">
-                    {emp.department || "Ingen avdeling"} · {recordCounts[emp.id] || 0} opplæring{(recordCounts[emp.id] || 0) !== 1 ? "er" : ""}
-                  </p>
-                </div>
-                <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-              </button>
+                <button
+                  onClick={() => navigate(`/dokumentert-opplaering/ansatt/${emp.id}`)}
+                  className="flex flex-1 items-center gap-4 text-left min-w-0"
+                >
+                  <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg font-display text-sm font-bold ${
+                    emp.active
+                      ? "bg-primary/10 text-primary"
+                      : "bg-muted text-muted-foreground"
+                  }`}>
+                    {emp.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-display text-sm font-bold text-foreground">{emp.name}</p>
+                      {!emp.active && (
+                        <span className="rounded-full bg-muted px-2 py-0.5 font-body text-[10px] font-medium text-muted-foreground">
+                          Inaktiv
+                        </span>
+                      )}
+                    </div>
+                    <p className="font-body text-xs text-muted-foreground">
+                      {emp.department || "Ingen avdeling"} · {recordCounts[emp.id] || 0} opplæring{(recordCounts[emp.id] || 0) !== 1 ? "er" : ""}
+                    </p>
+                  </div>
+                  <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                </button>
+
+                {isAdmin && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleActive(emp);
+                    }}
+                    disabled={togglingId === emp.id}
+                    className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 font-body text-[11px] font-medium transition-colors ${
+                      emp.active
+                        ? "border-destructive/30 text-destructive hover:bg-destructive/10"
+                        : "border-primary/30 text-primary hover:bg-primary/10"
+                    }`}
+                    title={emp.active ? "Deaktiver ansatt" : "Aktiver ansatt"}
+                  >
+                    {emp.active ? (
+                      <><UserX className="h-3.5 w-3.5" /> Deaktiver</>
+                    ) : (
+                      <><UserCheck className="h-3.5 w-3.5" /> Aktiver</>
+                    )}
+                  </button>
+                )}
+              </div>
             ))}
           </div>
         )}
