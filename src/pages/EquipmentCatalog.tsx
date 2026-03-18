@@ -60,6 +60,10 @@ const EquipmentCatalog = () => {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [expandedEquipment, setExpandedEquipment] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [selectedRowIds, setSelectedRowIds] = useState<Set<string>>(new Set());
+  const [showEmployeePicker, setShowEmployeePicker] = useState(false);
+  const [employees, setEmployees] = useState<{ id: string; name: string }[]>([]);
+  const [employeeSearch, setEmployeeSearch] = useState("");
 
   // Add form state
   const [showAdd, setShowAdd] = useState(false);
