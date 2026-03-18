@@ -28,8 +28,6 @@ const TrainingForm = () => {
 
   useEffect(() => {
     const load = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { navigate("/auth", { replace: true }); return; }
 
       const { data: emp } = await supabase.from("employees").select("name").eq("id", employeeId!).single();
       if (emp) setEmployeeName(emp.name);
