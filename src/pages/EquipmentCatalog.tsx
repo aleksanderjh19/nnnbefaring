@@ -106,16 +106,20 @@ const EquipmentCatalog = () => {
   const handleAdd = async () => {
     if (!addEquipment.trim()) return;
     const catLabel = CATEGORY_META.find((c) => c.value === addCategory)?.label || addCategory;
+    const resolvedLocation = addLocation === "Annet" ? addCustomLocation.trim() : addLocation;
     await supabase.from("equipment_catalog").insert({
       category_value: addCategory,
       category_label: catLabel,
       equipment_name: addEquipment.trim(),
       brand: addBrand.trim() || null,
       type: addType.trim() || null,
+      location: resolvedLocation || null,
     });
     setAddEquipment("");
     setAddBrand("");
     setAddType("");
+    setAddLocation("");
+    setAddCustomLocation("");
     setShowAdd(false);
     fetchCatalog();
   };
