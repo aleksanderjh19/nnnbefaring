@@ -22,6 +22,93 @@ const LinePage = () => {
   const dragTargetValue = useRef<boolean>(true);
   const draggedMasts = useRef<Set<number>>(new Set());
 
+  const mastNumbers = useMemo(() => currentLine ? getMastNumbers(currentLine) : [], [currentLine]);
+  const lineStats = getLineStats(currentLine?.id ?? "", mastNumbers.length);
+
+  const filteredMasts = useMemo(() => {
+    let result = mastNumbers;
+    if (search.trim()) {
+      result = result.filter((m) => String(m).includes(search.trim()));
+    }
+    if (filter === "utfort") {
+      result = result.filter((m) => isChecked(currentLine?.id ?? "", m));
+    } else if (filter === "ikke-utfort") {
+      result = result.filter((m) => !isChecked(currentLine?.id ?? "", m));
+    }
+    return result;
+  }, [mastNumbers, search, filter, isChecked, currentLine?.id]);
+
+  const getMastFromPoint = useCallback((x: number, y: number): number | null => {
+    const el = document.elementFromPoint(x, y);
+    if (!el) return null;
+    const row = el.closest("[data-mast]");
+    if (!row) return null;
+    return Number(row.getAttribute("data-mast"));
+  }, []);
+
+  const safeLineId = currentLine?.id ?? "";
+
+  const handleDragStart = useCallback(
+    (mastNumber: number) => {
+      isDragging.current = true;
+      const currentlyChecked = isChecked(safeLineId, mastNumber);
+      dragTargetValue.current = !currentlyChecked;
+      draggedMasts.current = new Set([mastNumber]);
+      bulkSet(safeLineId, [mastNumber], !currentlyChecked);
+    },
+    [isChecked, safeLineId, bulkSet]
+  );
+
+  const handleDragMove = useCallback(
+    (x: number, y: number) => {
+      if (!isDragging.current) return;
+      const mast = getMastFromPoint(x, y);
+      if (mast === null || draggedMasts.current.has(mast)) return;
+      draggedMasts.current.add(mast);
+      bulkSet(safeLineId, [mast], dragTargetValue.current);
+    },
+    [getMastFromPoint, safeLineId, bulkSet]
+  );
+
+  const handleDragEnd = useCallback(() => {
+    isDragging.current = false;
+    draggedMasts.current.clear();
+  }, []);
+
+  const onMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      const mast = getMastFromPoint(e.clientX, e.clientY);
+      if (mast !== null) {
+        e.preventDefault();
+        handleDragStart(mast);
+      }
+    },
+    [getMastFromPoint, handleDragStart]
+  );
+
+  const onMouseMove = useCallback(
+    (e: React.MouseEvent) => handleDragMove(e.clientX, e.clientY),
+    [handleDragMove]
+  );
+
+  const onTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      const touch = e.touches[0];
+      const mast = getMastFromPoint(touch.clientX, touch.clientY);
+      if (mast !== null) handleDragStart(mast);
+    },
+    [getMastFromPoint, handleDragStart]
+  );
+
+  const onTouchMove = useCallback(
+    (e: React.TouchEvent) => {
+      if (!isDragging.current) return;
+      e.preventDefault();
+      handleDragMove(e.touches[0].clientX, e.touches[0].clientY);
+    },
+    [handleDragMove]
+  );
+
   if (!currentLine) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -29,9 +116,6 @@ const LinePage = () => {
       </div>
     );
   }
-
-  const mastNumbers = getMastNumbers(currentLine);
-  const lineStats = getLineStats(currentLine.id, mastNumbers.length);
 
   const filteredMasts = useMemo(() => {
     let result = mastNumbers;
