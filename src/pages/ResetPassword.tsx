@@ -12,6 +12,10 @@ const ResetPassword = () => {
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
+    document.title = "Tilbakestill passord – Statnett";
+  }, []);
+
+  useEffect(() => {
     // Check for recovery token in URL hash
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const type = hashParams.get("type");

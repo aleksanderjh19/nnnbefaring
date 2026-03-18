@@ -58,6 +58,8 @@ const EquipmentDetail = () => {
   const [editVibration, setEditVibration] = useState("");
   const [editDescription, setEditDescription] = useState("");
 
+  useEffect(() => { document.title = "Utstyr – Statnett"; }, []);
+
   const fetchItem = async () => {
     setLoading(true);
     const { data } = await supabase

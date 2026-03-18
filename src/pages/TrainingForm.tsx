@@ -36,6 +36,8 @@ const TrainingForm = () => {
   const [searchParams] = useSearchParams();
   const isEdit = !!recordId;
 
+  useEffect(() => { document.title = isEdit ? "Rediger opplæring – Statnett" : "Ny opplæring – Statnett"; }, [isEdit]);
+
   const [employeeName, setEmployeeName] = useState("");
   const [equipmentCategory, setEquipmentCategory] = useState(searchParams.get("category") || "el_verktoy");
   const [equipmentName, setEquipmentName] = useState(searchParams.get("equipment") || "");

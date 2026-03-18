@@ -95,7 +95,7 @@ const EquipmentCatalog = () => {
     setLoading(false);
   };
 
-  useEffect(() => { fetchCatalog(); }, []);
+  useEffect(() => { document.title = "Utstyrskatalog – Statnett"; fetchCatalog(); }, []);
 
   const grouped = useMemo(() => {
     const map = new Map<string, Map<string, GroupedEquipment>>();

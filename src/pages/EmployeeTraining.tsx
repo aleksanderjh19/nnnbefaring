@@ -83,7 +83,10 @@ const EmployeeTraining = () => {
       supabase.from("employees").select("*").eq("id", employeeId!).maybeSingle(),
       supabase.from("training_records").select("*").eq("employee_id", employeeId!).order("training_date", { ascending: false }),
     ]);
-    if (empRes.data) setEmployee(empRes.data);
+    if (empRes.data) {
+      setEmployee(empRes.data);
+      document.title = `${empRes.data.name} – Opplæring`;
+    }
     if (recRes.data) setRecords(recRes.data as any);
     setLoading(false);
   };

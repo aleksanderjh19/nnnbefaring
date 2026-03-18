@@ -53,6 +53,7 @@ const TrainingPrint = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    document.title = "Utskrift – Opplæring";
     const load = async () => {
       const [empRes, recRes] = await Promise.all([
         supabase.from("employees").select("*").eq("id", employeeId!).maybeSingle(),
