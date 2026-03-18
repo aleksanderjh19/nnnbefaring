@@ -11,6 +11,7 @@ import LinePage from "./pages/LinePage.tsx";
 import Auth from "./pages/Auth.tsx";
 import ResetPassword from "./pages/ResetPassword.tsx";
 import AdminPanel from "./pages/AdminPanel.tsx";
+import DevAdminToggle from "./components/DevAdminToggle.tsx";
 import TrainingHome from "./pages/TrainingHome.tsx";
 import EmployeeTraining from "./pages/EmployeeTraining.tsx";
 import TrainingForm from "./pages/TrainingForm.tsx";
@@ -27,6 +28,7 @@ const App = () => (
       <LinesProvider>
         <Toaster />
         <Sonner />
+        <DevAdminToggle />
         <BrowserRouter>
           <Routes>
             {/* Public routes */}

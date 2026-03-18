@@ -2,11 +2,33 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Session, User } from "@supabase/supabase-js";
 
+const DEV_ADMIN_KEY = "__dev_admin_override";
+
+function getDevAdminOverride(): boolean | null {
+  const val = localStorage.getItem(DEV_ADMIN_KEY);
+  if (val === "true") return true;
+  if (val === "false") return false;
+  return null;
+}
+
+export function setDevAdminOverride(isAdmin: boolean) {
+  localStorage.setItem(DEV_ADMIN_KEY, String(isAdmin));
+  window.dispatchEvent(new Event("dev-admin-change"));
+}
+
 export function useAuth() {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [realIsAdmin, setRealIsAdmin] = useState(false);
+  const [devOverride, setDevOverride] = useState<boolean | null>(getDevAdminOverride);
   const [loading, setLoading] = useState(true);
+
+  // Listen for dev toggle changes
+  useEffect(() => {
+    const handler = () => setDevOverride(getDevAdminOverride());
+    window.addEventListener("dev-admin-change", handler);
+    return () => window.removeEventListener("dev-admin-change", handler);
+  }, []);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -20,10 +42,10 @@ export function useAuth() {
             .eq("user_id", session.user.id)
             .eq("role", "admin")
             .maybeSingle()
-            .then(({ data }) => setIsAdmin(!!data));
+            .then(({ data }) => setRealIsAdmin(!!data));
         }, 0);
       } else {
-        setIsAdmin(false);
+        setRealIsAdmin(false);
       }
     });
 
@@ -38,7 +60,7 @@ export function useAuth() {
           .eq("role", "admin")
           .maybeSingle()
           .then(({ data }) => {
-            setIsAdmin(!!data);
+            setRealIsAdmin(!!data);
             setLoading(false);
           });
       } else {
@@ -49,9 +71,11 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, []);
 
+  const isAdmin = devOverride !== null ? devOverride : realIsAdmin;
+
   const signOut = async () => {
     await supabase.auth.signOut();
   };
 
-  return { session, user, isAdmin, loading, signOut };
+  return { session, user, isAdmin, realIsAdmin, loading, signOut };
 }
