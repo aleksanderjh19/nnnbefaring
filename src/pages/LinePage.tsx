@@ -65,8 +65,8 @@ const LinePage = () => {
   const autoScrollLoop = useCallback(() => {
     if (!isDragging.current) return;
     const y = lastDragPos.current.y;
-    const edgeZone = 80;
-    const maxSpeed = 18;
+    const edgeZone = 180;
+    const maxSpeed = 24;
     const vh = window.innerHeight;
 
     let speed = 0;
