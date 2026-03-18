@@ -33,7 +33,7 @@ const tools = [
     description: "Registrering og oppfølging av opplæring",
     icon: GraduationCap,
     path: "/dokumentert-opplaering",
-    ready: false,
+    ready: true,
   },
 ];
 
