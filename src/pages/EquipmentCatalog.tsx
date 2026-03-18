@@ -119,6 +119,7 @@ const EquipmentCatalog = () => {
       location: resolvedLocation || null,
     });
     setAddEquipment("");
+    setAddEquipmentCustom(false);
     setAddBrand("");
     setAddType("");
     setAddLocation("");
