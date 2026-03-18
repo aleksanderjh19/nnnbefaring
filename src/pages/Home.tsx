@@ -82,6 +82,13 @@ const Home = () => {
             />
           </div>
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate("/")}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground hover:bg-secondary"
+              title="Tilbake"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
             <div className="min-w-0 flex-1">
               <h1 className="font-display text-xl font-extrabold tracking-tight text-foreground">
                 Ledningsbefaringer
