@@ -176,9 +176,34 @@ const TrainingForm = () => {
 
     const fullType = [selectedBrand, equipmentType].filter(Boolean).join(" ") || null;
 
+    // Auto-add to catalog if brand/type doesn't exist
+    const catLabel = categories.find((c) => c.value === equipmentCategory)?.label || equipmentCategory;
+    const trimmedName = equipmentName.trim();
+    const trimmedBrand = selectedBrand.trim() || null;
+    const trimmedType = equipmentType.trim() || null;
+
+    if (trimmedName) {
+      const existsInCatalog = catalogRows.some(
+        (r) =>
+          r.category_value === equipmentCategory &&
+          r.equipment_name === trimmedName &&
+          (r.brand || null) === trimmedBrand &&
+          (r.type || null) === trimmedType
+      );
+      if (!existsInCatalog) {
+        await supabase.from("equipment_catalog").insert({
+          category_value: equipmentCategory,
+          category_label: catLabel,
+          equipment_name: trimmedName,
+          brand: trimmedBrand,
+          type: trimmedType,
+        });
+      }
+    }
+
     const record = {
       employee_id: employeeId!,
-      equipment_name: equipmentName.trim(),
+      equipment_name: trimmedName,
       equipment_type: fullType,
       equipment_category: equipmentCategory,
       noise_level_db: noiseLevel.trim() || null,
