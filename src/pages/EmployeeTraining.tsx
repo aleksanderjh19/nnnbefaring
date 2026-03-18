@@ -292,7 +292,9 @@ const EmployeeTraining = () => {
                                 className="h-20 w-20 rounded-lg border border-border object-cover"
                               />
                             ))}
-                      </div>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Signatures */}
                       <div className="grid grid-cols-2 gap-3">
