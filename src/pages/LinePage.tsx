@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Search, ChevronDown, ArrowLeft, Plus, Minus } from "lucide-react";
+import { Search, ChevronDown, ArrowLeft, Plus, Trash2, X } from "lucide-react";
 import { getMastNumbers } from "@/data/lines";
 import { useInspectionState } from "@/hooks/useInspectionState";
 import { useLines } from "@/hooks/useLines";
@@ -15,7 +15,12 @@ const LinePage = () => {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterMode>("alle");
   const { isChecked, toggle, bulkSet, getLineStats } = useInspectionState();
-  const { lines, editMode, addMast, removeMast } = useLines();
+  const { lines, editMode, addMasts, removeMasts } = useLines();
+
+  // Edit mode state
+  const [addInput, setAddInput] = useState("");
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [selectedForRemoval, setSelectedForRemoval] = useState<Set<number>>(new Set());
 
   const currentLine = lines.find((l) => l.id === lineId);
   const safeLineId = currentLine?.id ?? "";
@@ -110,6 +115,56 @@ const LinePage = () => {
     [handleDragMove]
   );
 
+  // Parse range input like "1-5, 8, 10-12"
+  const parseRangeInput = (input: string): number[] => {
+    const result: number[] = [];
+    const parts = input.split(",").map((s) => s.trim()).filter(Boolean);
+    for (const part of parts) {
+      if (part.includes("-")) {
+        const [startStr, endStr] = part.split("-").map((s) => s.trim());
+        const start = parseInt(startStr);
+        const end = parseInt(endStr);
+        if (!isNaN(start) && !isNaN(end) && start <= end) {
+          for (let i = start; i <= end; i++) result.push(i);
+        }
+      } else {
+        const num = parseInt(part);
+        if (!isNaN(num)) result.push(num);
+      }
+    }
+    return result;
+  };
+
+  const handleAddMasts = () => {
+    if (!addInput.trim() || !currentLine) return;
+    const newMasts = parseRangeInput(addInput);
+    if (newMasts.length > 0) {
+      addMasts(currentLine.id, newMasts);
+      setAddInput("");
+      setShowAddForm(false);
+    }
+  };
+
+  const toggleRemovalSelection = (mastNumber: number) => {
+    setSelectedForRemoval((prev) => {
+      const next = new Set(prev);
+      if (next.has(mastNumber)) {
+        next.delete(mastNumber);
+      } else {
+        next.add(mastNumber);
+      }
+      return next;
+    });
+  };
+
+  const handleRemoveSelected = () => {
+    if (!currentLine || selectedForRemoval.size === 0) return;
+    if (confirm(`Fjern ${selectedForRemoval.size} mastepunkt?`)) {
+      removeMasts(currentLine.id, Array.from(selectedForRemoval));
+      setSelectedForRemoval(new Set());
+    }
+  };
+
   if (!currentLine) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -137,36 +192,66 @@ const LinePage = () => {
                 {currentLine.description} · {lineStats.done}/{lineStats.total} utført
               </p>
             </div>
-
-            {/* Edit mode: add/remove mast buttons */}
-            {editMode && (
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => removeMast(currentLine.id)}
-                  title="Fjern siste mast"
-                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-destructive/70 hover:bg-destructive/10 hover:text-destructive"
-                >
-                  <Minus className="h-4 w-4" />
-                </button>
-                <span className="min-w-[3rem] text-center font-body text-xs text-muted-foreground">
-                  {mastNumbers.length} master
-                </span>
-                <button
-                  onClick={() => addMast(currentLine.id)}
-                  title="Legg til mast"
-                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-primary hover:bg-primary/10"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
-              </div>
-            )}
           </div>
 
+          {/* Edit mode toolbar */}
           {editMode && (
-            <div className="mx-4 mb-2 rounded-lg border border-accent/30 bg-accent/5 px-3 py-2">
-              <p className="font-body text-xs font-medium text-accent">
-                Redigeringsmodus — bruk +/- for å legge til eller fjerne master.
-              </p>
+            <div className="mx-4 mb-2 space-y-2">
+              <div className="rounded-lg border border-accent/30 bg-accent/5 px-3 py-2">
+                <p className="font-body text-xs font-medium text-accent">
+                  Redigeringsmodus — velg master for å fjerne, eller legg til nye.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowAddForm(!showAddForm)}
+                  className="flex h-9 items-center gap-1.5 rounded-lg border border-border bg-card px-3 font-body text-xs font-medium text-primary hover:bg-primary/5"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Legg til master
+                </button>
+                {selectedForRemoval.size > 0 && (
+                  <button
+                    onClick={handleRemoveSelected}
+                    className="flex h-9 items-center gap-1.5 rounded-lg bg-destructive px-3 font-body text-xs font-medium text-destructive-foreground"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Fjern {selectedForRemoval.size} valgte
+                  </button>
+                )}
+                {selectedForRemoval.size > 0 && (
+                  <button
+                    onClick={() => setSelectedForRemoval(new Set())}
+                    className="flex h-9 items-center gap-1.5 rounded-lg border border-border bg-card px-3 font-body text-xs text-muted-foreground hover:bg-secondary"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                    Avbryt
+                  </button>
+                )}
+              </div>
+              {showAddForm && (
+                <div className="rounded-lg border border-border bg-card p-3">
+                  <label className="mb-1 block font-body text-xs text-muted-foreground">
+                    Skriv mastnummer (f.eks. «5» eller «1-5, 8, 10-12»)
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      value={addInput}
+                      onChange={(e) => setAddInput(e.target.value)}
+                      placeholder="1-5, 8, 10-12"
+                      onKeyDown={(e) => e.key === "Enter" && handleAddMasts()}
+                      className="h-10 flex-1 rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                    />
+                    <button
+                      onClick={handleAddMasts}
+                      disabled={!addInput.trim()}
+                      className="h-10 rounded-lg bg-primary px-4 font-body text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                    >
+                      Legg til
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -215,12 +300,21 @@ const LinePage = () => {
       >
         <div className="mx-auto flex max-w-lg flex-col gap-1.5">
           {filteredMasts.map((mastNumber) => (
-            <MastRow
-              key={mastNumber}
-              mastNumber={mastNumber}
-              checked={isChecked(currentLine.id, mastNumber)}
-              onToggle={() => !editMode && toggle(currentLine.id, mastNumber)}
-            />
+            editMode ? (
+              <EditMastRow
+                key={mastNumber}
+                mastNumber={mastNumber}
+                selected={selectedForRemoval.has(mastNumber)}
+                onToggle={() => toggleRemovalSelection(mastNumber)}
+              />
+            ) : (
+              <MastRow
+                key={mastNumber}
+                mastNumber={mastNumber}
+                checked={isChecked(currentLine.id, mastNumber)}
+                onToggle={() => toggle(currentLine.id, mastNumber)}
+              />
+            )
           ))}
         </div>
         {filteredMasts.length === 0 && (
@@ -232,5 +326,33 @@ const LinePage = () => {
     </div>
   );
 };
+
+function EditMastRow({ mastNumber, selected, onToggle }: { mastNumber: number; selected: boolean; onToggle: () => void }) {
+  return (
+    <button
+      onClick={onToggle}
+      data-mast={mastNumber}
+      className={`tap-highlight-none flex w-full items-center justify-between rounded-lg border px-4 py-3 transition-colors duration-100 ${
+        selected
+          ? "border-destructive/40 bg-destructive/10"
+          : "border-border bg-card hover:bg-secondary"
+      }`}
+    >
+      <span className="pointer-events-none font-display text-sm font-semibold tracking-tight text-foreground">
+        MAST {mastNumber}
+      </span>
+      <div
+        className={`pointer-events-none flex h-10 w-10 shrink-0 items-center justify-center rounded-md transition-all duration-100 ${
+          selected
+            ? "bg-destructive"
+            : "border-2 border-muted bg-card"
+        }`}
+      >
+        {selected && <Trash2 className="h-4 w-4 text-destructive-foreground" />}
+      </div>
+    </button>
+  );
+}
+
 
 export default LinePage;

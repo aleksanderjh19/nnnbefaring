@@ -45,13 +45,16 @@ const Home = () => {
 
   const handleAddLine = () => {
     if (!newLineName.trim()) return;
+    const start = parseInt(newLineMastStart) || 1;
+    const end = parseInt(newLineMastEnd) || 100;
+    const masts: number[] = [];
+    for (let i = start; i <= end; i++) masts.push(i);
     addLine({
       id: newLineName.trim(),
       name: newLineName.trim(),
       description: newLineDesc.trim(),
       group: newLineGroup,
-      mastStart: parseInt(newLineMastStart) || 1,
-      mastEnd: parseInt(newLineMastEnd) || 100,
+      masts,
     });
     setShowAddLine(false);
     setNewLineName("");
