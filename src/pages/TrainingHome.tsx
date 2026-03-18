@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Plus, Users, ChevronRight, RefreshCw, Search } from "lucide-react";
+import heroVideo from "@/assets/hero-video.mp4";
 
 interface Employee {
   id: string;
@@ -65,21 +66,34 @@ const TrainingHome = () => {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
-        <div className="mx-auto max-w-2xl px-5 py-4">
+        <div className="mx-auto max-w-2xl px-5 py-6 space-y-4">
+          <div className="relative w-full overflow-hidden rounded-xl shadow-lg" style={{ aspectRatio: "4/1" }}>
+            <video
+              src={heroVideo}
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="absolute inset-0 h-full w-full scale-150 object-cover"
+            />
+          </div>
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate("/")}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-secondary"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground hover:bg-secondary"
+              title="Tilbake"
             >
               <ArrowLeft className="h-4 w-4" />
             </button>
             <div className="min-w-0 flex-1">
-              <h1 className="font-display text-lg font-extrabold text-foreground">Dokumentert Opplæring</h1>
+              <h1 className="font-display text-xl font-extrabold tracking-tight text-foreground">
+                Dokumentert Opplæring
+              </h1>
               <p className="font-body text-xs text-muted-foreground">Velg ansatt for å administrere opplæring</p>
             </div>
             <button
               onClick={() => window.location.reload()}
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-secondary sm:hidden"
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground hover:bg-secondary sm:hidden"
               title="Oppdater"
             >
               <RefreshCw className="h-4 w-4" />
