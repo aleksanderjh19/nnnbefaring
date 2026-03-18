@@ -510,10 +510,32 @@ const EquipmentCatalog = () => {
                           </button>
                           {isExpanded && (
                             <div className="border-t border-border bg-secondary/30">
+                              {/* Select all + training button */}
+                              <div className="flex items-center justify-between px-4 py-2 border-b border-border">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={eq.rows.every((r) => selectedRowIds.has(r.id))}
+                                    onChange={() => toggleAllInEquipment(eq.rows)}
+                                    className="h-4 w-4 rounded border-input accent-primary"
+                                  />
+                                  <span className="font-body text-xs font-medium text-muted-foreground">Velg alle</span>
+                                </label>
+                                {eq.rows.some((r) => selectedRowIds.has(r.id)) && (
+                                  <button
+                                    onClick={() => { setEmployeeSearch(""); setShowEmployeePicker(true); }}
+                                    className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 font-body text-xs font-semibold text-primary-foreground hover:bg-primary/90"
+                                  >
+                                    <GraduationCap className="h-3.5 w-3.5" />
+                                    Legg til opplæring ({eq.rows.filter((r) => selectedRowIds.has(r.id)).length})
+                                  </button>
+                                )}
+                              </div>
                               <div className="overflow-hidden">
                                 <table className="w-full text-sm">
                                   <thead>
                                     <tr className="bg-muted/50">
+                                      <th className="w-10 px-4 py-2"></th>
                                       <th className="px-4 py-2 text-left font-body text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Merke</th>
                                       <th className="px-4 py-2 text-left font-body text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Type/modell</th>
                                       <th className="px-4 py-2 text-right font-body text-[10px] font-medium uppercase tracking-wider text-muted-foreground"></th>
@@ -523,9 +545,18 @@ const EquipmentCatalog = () => {
                                     {eq.rows.map((row) => (
                                       <tr
                                         key={row.id}
-                                        className="border-t border-border cursor-pointer hover:bg-secondary/50"
+                                        className={`border-t border-border cursor-pointer hover:bg-secondary/50 ${selectedRowIds.has(row.id) ? "bg-primary/5" : ""}`}
                                         onClick={() => navigate(`/dokumentert-opplaering/katalog/${row.id}`)}
                                       >
+                                        <td className="px-4 py-2">
+                                          <input
+                                            type="checkbox"
+                                            checked={selectedRowIds.has(row.id)}
+                                            onChange={(e) => { e.stopPropagation(); toggleRowSelection(row.id); }}
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="h-4 w-4 rounded border-input accent-primary"
+                                          />
+                                        </td>
                                         <td className="px-4 py-2 font-body text-sm text-foreground">{row.brand || "–"}</td>
                                         <td className="px-4 py-2 font-body text-sm text-foreground">{row.type || "–"}</td>
                                         <td className="px-4 py-2 text-right">
