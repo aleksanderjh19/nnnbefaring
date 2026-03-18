@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ArrowLeft, Plus, Trash2, ChevronDown, ChevronRight,
-  Wrench, Car, HardHat, Cpu, Package, Fuel, Search, X, Tractor, GraduationCap, CheckSquare
+  Wrench, Car, HardHat, Cpu, Package, Fuel, Search, X, Tractor, GraduationCap, MapPin, Volume2, Activity
 } from "lucide-react";
 import {
   Dialog,
@@ -45,6 +45,11 @@ interface CatalogRow {
   equipment_name: string;
   brand: string | null;
   type: string | null;
+  image_url: string | null;
+  location: string | null;
+  noise_level_db: string | null;
+  vibration_ms2: string | null;
+  description: string | null;
 }
 
 interface GroupedEquipment {
@@ -543,32 +548,14 @@ const EquipmentCatalog = () => {
                                   </thead>
                                   <tbody>
                                     {eq.rows.map((row) => (
-                                      <tr
+                                      <EquipmentRowWithPreview
                                         key={row.id}
-                                        className={`border-t border-border cursor-pointer hover:bg-secondary/50 ${selectedRowIds.has(row.id) ? "bg-primary/5" : ""}`}
+                                        row={row}
+                                        selected={selectedRowIds.has(row.id)}
+                                        onToggle={() => toggleRowSelection(row.id)}
+                                        onDelete={() => handleDelete(row.id)}
                                         onClick={() => navigate(`/dokumentert-opplaering/katalog/${row.id}`)}
-                                      >
-                                        <td className="px-4 py-2">
-                                          <input
-                                            type="checkbox"
-                                            checked={selectedRowIds.has(row.id)}
-                                            onChange={(e) => { e.stopPropagation(); toggleRowSelection(row.id); }}
-                                            onClick={(e) => e.stopPropagation()}
-                                            className="h-4 w-4 rounded border-input accent-primary"
-                                          />
-                                        </td>
-                                        <td className="px-4 py-2 font-body text-sm text-foreground">{row.brand || "–"}</td>
-                                        <td className="px-4 py-2 font-body text-sm text-foreground">{row.type || "–"}</td>
-                                        <td className="px-4 py-2 text-right">
-                                          <button
-                                            onClick={(e) => { e.stopPropagation(); handleDelete(row.id); }}
-                                            className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                                            title="Slett"
-                                          >
-                                            <Trash2 className="h-3.5 w-3.5" />
-                                          </button>
-                                        </td>
-                                      </tr>
+                                      />
                                     ))}
                                   </tbody>
                                 </table>
@@ -627,6 +614,113 @@ const EquipmentCatalog = () => {
     </div>
   );
 };
+
+function EquipmentRowWithPreview({
+  row,
+  selected,
+  onToggle,
+  onDelete,
+  onClick,
+}: {
+  row: CatalogRow;
+  selected: boolean;
+  onToggle: () => void;
+  onDelete: () => void;
+  onClick: () => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  const [hoverTimeout, setHoverTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleMouseEnter = () => {
+    const t = setTimeout(() => setHovered(true), 300);
+    setHoverTimeout(t);
+  };
+  const handleMouseLeave = () => {
+    if (hoverTimeout) clearTimeout(hoverTimeout);
+    setHovered(false);
+  };
+
+  return (
+    <tr
+      className={`relative border-t border-border cursor-pointer hover:bg-secondary/50 ${selected ? "bg-primary/5" : ""}`}
+      onClick={onClick}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      <td className="px-4 py-2">
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={(e) => { e.stopPropagation(); onToggle(); }}
+          onClick={(e) => e.stopPropagation()}
+          className="h-4 w-4 rounded border-input accent-primary"
+        />
+      </td>
+      <td className="px-4 py-2 font-body text-sm text-foreground">{row.brand || "–"}</td>
+      <td className="px-4 py-2 font-body text-sm text-foreground">{row.type || "–"}</td>
+      <td className="px-4 py-2 text-right">
+        <div className="flex items-center justify-end gap-1">
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+            title="Slett"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+        {hovered && (
+          <div
+            className="absolute right-0 top-full z-50 mt-1 w-72 overflow-hidden rounded-xl border border-border bg-card shadow-lg"
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={handleMouseLeave}
+          >
+            {row.image_url && (
+              <img
+                src={row.image_url}
+                alt={row.equipment_name}
+                className="h-36 w-full object-contain bg-muted/30"
+              />
+            )}
+            <div className="p-3 space-y-2">
+              <div>
+                <p className="font-display text-sm font-bold text-foreground">{row.equipment_name}</p>
+                <p className="font-body text-xs text-muted-foreground">
+                  {[row.brand, row.type].filter(Boolean).join(" · ") || row.category_label}
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {row.location && (
+                  <div className="flex items-center gap-1.5 text-muted-foreground">
+                    <MapPin className="h-3 w-3 shrink-0" />
+                    <span className="font-body text-xs truncate">{row.location}</span>
+                  </div>
+                )}
+                {row.noise_level_db && (
+                  <div className="flex items-center gap-1.5 text-muted-foreground">
+                    <Volume2 className="h-3 w-3 shrink-0" />
+                    <span className="font-body text-xs">{row.noise_level_db} dB</span>
+                  </div>
+                )}
+                {row.vibration_ms2 && (
+                  <div className="flex items-center gap-1.5 text-muted-foreground">
+                    <Activity className="h-3 w-3 shrink-0" />
+                    <span className="font-body text-xs">{row.vibration_ms2} m/s²</span>
+                  </div>
+                )}
+              </div>
+              {row.description && (
+                <p className="font-body text-xs text-muted-foreground line-clamp-2">{row.description}</p>
+              )}
+              {!row.image_url && !row.location && !row.noise_level_db && !row.vibration_ms2 && !row.description && (
+                <p className="font-body text-xs italic text-muted-foreground">Ingen detaljer lagt til ennå</p>
+              )}
+            </div>
+          </div>
+        )}
+      </td>
+    </tr>
+  );
+}
 
 function QuickAdd({
   categoryValue,
