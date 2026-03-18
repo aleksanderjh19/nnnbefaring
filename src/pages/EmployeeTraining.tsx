@@ -38,11 +38,8 @@ const EmployeeTraining = () => {
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) navigate("/auth", { replace: true });
-      else fetchData();
-    });
-  }, [employeeId, navigate]);
+    fetchData();
+  }, [employeeId]);
 
   const deleteRecord = async (id: string) => {
     if (!confirm("Er du sikker på at du vil slette denne opplæringen?")) return;
