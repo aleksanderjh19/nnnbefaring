@@ -3,8 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ArrowLeft, Plus, Trash2, ChevronDown, ChevronRight,
-  Wrench, Car, HardHat, Cpu, Package, Fuel, Search, X, Tractor, GraduationCap, CheckSquare
+  Wrench, Car, HardHat, Cpu, Package, Fuel, Search, X, Tractor, GraduationCap, MapPin, Volume2, Activity
 } from "lucide-react";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 import {
   Dialog,
   DialogContent,
