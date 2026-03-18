@@ -208,24 +208,97 @@ const TrainingForm = () => {
           </p>
 
           <div className="grid grid-cols-2 gap-3">
+            {/* Equipment name - dropdown + free text */}
             <div className="col-span-2 sm:col-span-1">
               <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Maskin/utstyr *</label>
-              <input
-                value={equipmentName}
-                onChange={(e) => setEquipmentName(e.target.value)}
-                placeholder="F.eks. snøfres"
-                className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              />
+              <div className="relative">
+                <select
+                  value={getEquipmentForCategory(equipmentCategory).some((e) => e.name === equipmentName) ? equipmentName : "__custom__"}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === "__custom__") {
+                      setEquipmentName("");
+                    } else {
+                      setEquipmentName(val);
+                    }
+                    setSelectedBrand("");
+                    setEquipmentType("");
+                  }}
+                  className="h-10 w-full appearance-none rounded-lg border border-input bg-background px-3 pr-8 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="__custom__">Annet (skriv inn)</option>
+                  {getEquipmentForCategory(equipmentCategory).map((eq) => (
+                    <option key={eq.name} value={eq.name}>{eq.name}</option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              </div>
+              {!getEquipmentForCategory(equipmentCategory).some((e) => e.name === equipmentName) && (
+                <input
+                  value={equipmentName}
+                  onChange={(e) => setEquipmentName(e.target.value)}
+                  placeholder="Skriv inn maskin/utstyr"
+                  className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              )}
             </div>
+
+            {/* Brand dropdown */}
+            {getBrandsForEquipment(equipmentCategory, equipmentName).length > 0 && (
+              <div className="col-span-2 sm:col-span-1">
+                <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Merke</label>
+                <div className="relative">
+                  <select
+                    value={selectedBrand}
+                    onChange={(e) => {
+                      setSelectedBrand(e.target.value);
+                      setEquipmentType("");
+                    }}
+                    className="h-10 w-full appearance-none rounded-lg border border-input bg-background px-3 pr-8 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="">Velg merke...</option>
+                    {getBrandsForEquipment(equipmentCategory, equipmentName).map((b) => (
+                      <option key={b.brand} value={b.brand}>{b.brand}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                </div>
+              </div>
+            )}
+
+            {/* Type dropdown or free text */}
             <div className="col-span-2 sm:col-span-1">
               <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Type</label>
-              <input
-                value={equipmentType}
-                onChange={(e) => setEquipmentType(e.target.value)}
-                placeholder="F.eks. Honda HS 970"
-                className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              />
+              {getTypesForBrand(equipmentCategory, equipmentName, selectedBrand).length > 0 ? (
+                <div className="space-y-2">
+                  <div className="relative">
+                    <select
+                      value={getTypesForBrand(equipmentCategory, equipmentName, selectedBrand).includes(equipmentType) ? equipmentType : "__custom__"}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEquipmentType(val === "__custom__" ? "" : val);
+                      }}
+                      className="h-10 w-full appearance-none rounded-lg border border-input bg-background px-3 pr-8 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                    >
+                      <option value="__custom__">Annet (skriv inn)</option>
+                      {getTypesForBrand(equipmentCategory, equipmentName, selectedBrand).map((t) => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  </div>
+                  {!getTypesForBrand(equipmentCategory, equipmentName, selectedBrand).includes(equipmentType) && equipmentType !== "" ? null : null}
+                </div>
+              ) : (
+                <input
+                  value={equipmentType}
+                  onChange={(e) => setEquipmentType(e.target.value)}
+                  placeholder="F.eks. Honda HS 970"
+                  className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              )}
             </div>
+
             <div>
               <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Lydnivå dB</label>
               <input
