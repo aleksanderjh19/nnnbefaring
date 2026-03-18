@@ -81,6 +81,9 @@ const EquipmentCatalog = () => {
   const [addType, setAddType] = useState("");
   const [addLocation, setAddLocation] = useState("");
   const [addCustomLocation, setAddCustomLocation] = useState("");
+  const [addImageFile, setAddImageFile] = useState<File | null>(null);
+  const [addImagePreview, setAddImagePreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const fetchCatalog = async () => {
     setLoading(true);
