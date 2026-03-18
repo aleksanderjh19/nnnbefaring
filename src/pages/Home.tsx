@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, Zap, Settings, Pencil, Trash2, Plus, X, ChevronLeft, CalendarArrowUp } from "lucide-react";
+import { ChevronRight, Zap, Settings, Pencil, Trash2, Plus, X, ChevronLeft, CalendarArrowUp, RefreshCw } from "lucide-react";
 import heroVideo from "@/assets/hero-video.mp4";
 import { getMastNumbers } from "@/data/lines";
 import { useInspectionState } from "@/hooks/useInspectionState";
@@ -88,6 +88,15 @@ const Home = () => {
               </h1>
               <p className="font-body text-xs text-muted-foreground">NNN · {year}</p>
             </div>
+
+            {/* Refresh button - visible on mobile */}
+            <button
+              onClick={() => window.location.reload()}
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground hover:bg-secondary sm:hidden"
+              title="Oppdater"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </button>
 
             {/* Edit mode toggle */}
             <button
