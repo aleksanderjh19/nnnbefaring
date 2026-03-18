@@ -235,54 +235,80 @@ const TrainingForm = () => {
       trainerSignUrl = await uploadSignature(trainerSignature, "signatures");
     }
 
-    const fullType = [selectedBrand, equipmentType].filter(Boolean).join(" ") || null;
-
-    // Auto-add to catalog if brand/type doesn't exist
     const catLabel = categories.find((c) => c.value === equipmentCategory)?.label || equipmentCategory;
     const trimmedName = equipmentName.trim();
-    const trimmedBrand = selectedBrand.trim() || null;
-    const trimmedType = equipmentType.trim() || null;
 
-    if (trimmedName) {
-      const existsInCatalog = catalogRows.some(
-        (r) =>
-          r.category_value === equipmentCategory &&
-          r.equipment_name === trimmedName &&
-          (r.brand || null) === trimmedBrand &&
-          (r.type || null) === trimmedType
-      );
-      if (!existsInCatalog) {
-        await supabase.from("equipment_catalog").insert({
-          category_value: equipmentCategory,
-          category_label: catLabel,
+    // For tractor category: create one record per selected type
+    if (isTractorCategory && selectedTractorTypes.length > 0 && !isEdit) {
+      const records = selectedTractorTypes.map((type) => {
+        const catalogMatch = catalogRows.find(
+          (r) => r.category_value === "traktor_utstyr" && r.equipment_name === trimmedName && r.type === type
+        );
+        return {
+          employee_id: employeeId!,
           equipment_name: trimmedName,
-          brand: trimmedBrand,
-          type: trimmedType,
-        });
-      }
-    }
-
-    const record = {
-      employee_id: employeeId!,
-      equipment_name: trimmedName,
-      equipment_type: fullType,
-      equipment_category: equipmentCategory,
-      noise_level_db: noiseLevel.trim() || null,
-      vibration_ms2: vibration.trim() || null,
-      trainer_name: trainerName.trim(),
-      trainer_company: resolvedCompany || null,
-      training_date: trainingDate,
-      confirmation_type: confirmationType,
-      notes: notes.trim() || null,
-      photo_urls: photos,
-      trainee_signature_url: traineeSignUrl,
-      trainer_signature_url: trainerSignUrl,
-    };
-
-    if (isEdit) {
-      await supabase.from("training_records").update(record).eq("id", recordId!);
+          equipment_type: type,
+          equipment_category: equipmentCategory,
+          noise_level_db: catalogMatch ? (catalogMatch as any).noise_level_db || null : noiseLevel.trim() || null,
+          vibration_ms2: catalogMatch ? (catalogMatch as any).vibration_ms2 || null : vibration.trim() || null,
+          trainer_name: trainerName.trim(),
+          trainer_company: resolvedCompany || null,
+          training_date: trainingDate,
+          confirmation_type: confirmationType,
+          notes: notes.trim() || null,
+          photo_urls: photos,
+          trainee_signature_url: traineeSignUrl,
+          trainer_signature_url: trainerSignUrl,
+        };
+      });
+      await supabase.from("training_records").insert(records);
     } else {
-      await supabase.from("training_records").insert(record);
+      // Standard single-record flow
+      const fullType = [selectedBrand, equipmentType].filter(Boolean).join(" ") || null;
+      const trimmedBrand = selectedBrand.trim() || null;
+      const trimmedType = equipmentType.trim() || null;
+
+      if (trimmedName) {
+        const existsInCatalog = catalogRows.some(
+          (r) =>
+            r.category_value === equipmentCategory &&
+            r.equipment_name === trimmedName &&
+            (r.brand || null) === trimmedBrand &&
+            (r.type || null) === trimmedType
+        );
+        if (!existsInCatalog) {
+          await supabase.from("equipment_catalog").insert({
+            category_value: equipmentCategory,
+            category_label: catLabel,
+            equipment_name: trimmedName,
+            brand: trimmedBrand,
+            type: trimmedType,
+          });
+        }
+      }
+
+      const record = {
+        employee_id: employeeId!,
+        equipment_name: trimmedName,
+        equipment_type: fullType,
+        equipment_category: equipmentCategory,
+        noise_level_db: noiseLevel.trim() || null,
+        vibration_ms2: vibration.trim() || null,
+        trainer_name: trainerName.trim(),
+        trainer_company: resolvedCompany || null,
+        training_date: trainingDate,
+        confirmation_type: confirmationType,
+        notes: notes.trim() || null,
+        photo_urls: photos,
+        trainee_signature_url: traineeSignUrl,
+        trainer_signature_url: trainerSignUrl,
+      };
+
+      if (isEdit) {
+        await supabase.from("training_records").update(record).eq("id", recordId!);
+      } else {
+        await supabase.from("training_records").insert(record);
+      }
     }
 
     setSaving(false);
