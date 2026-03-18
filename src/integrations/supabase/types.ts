@@ -14,7 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      inspection_checks: {
+        Row: {
+          checked: boolean
+          id: string
+          line_id: string
+          mast_number: number
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          checked?: boolean
+          id?: string
+          line_id: string
+          mast_number: number
+          updated_at?: string
+          year?: number
+        }
+        Update: {
+          checked?: boolean
+          id?: string
+          line_id?: string
+          mast_number?: number
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
