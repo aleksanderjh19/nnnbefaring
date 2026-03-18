@@ -61,14 +61,25 @@ const LinePage = () => {
 
   const handleDragStart = useCallback(
     (mastNumber: number) => {
-      if (editMode) return;
+      if (editMode || isViewingPrevious) return;
       isDragging.current = true;
       const currentlyChecked = isChecked(safeLineId, mastNumber);
-      dragTargetValue.current = !currentlyChecked;
-      draggedMasts.current = new Set([mastNumber]);
-      bulkSet(safeLineId, [mastNumber], !currentlyChecked);
+      const isPending = pendingSelection.has(mastNumber);
+      
+      if (isPending) {
+        // Deselect from pending
+        dragTargetValue.current = false; // false = remove from pending
+        draggedMasts.current = new Set([mastNumber]);
+        setPendingSelection(prev => { const next = new Set(prev); next.delete(mastNumber); return next; });
+      } else {
+        // Add to pending
+        dragTargetValue.current = true; // true = add to pending
+        pendingAction.current = currentlyChecked ? "uncheck" : "check";
+        draggedMasts.current = new Set([mastNumber]);
+        setPendingSelection(prev => new Set(prev).add(mastNumber));
+      }
     },
-    [isChecked, safeLineId, bulkSet, editMode]
+    [isChecked, safeLineId, editMode, isViewingPrevious, pendingSelection]
   );
 
   const handleDragMove = useCallback(
