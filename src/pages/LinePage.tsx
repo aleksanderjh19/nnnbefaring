@@ -493,7 +493,7 @@ const LinePage = () => {
 
       <div
         ref={dragContainerRef}
-        className="flex-1 select-none px-4 py-3"
+        className={`flex-1 select-none px-4 py-3 ${pendingSelection.size > 0 && !editMode ? "pb-24" : "pb-3"}`}
         onMouseDown={editMode ? undefined : onMouseDown}
         onMouseMove={editMode ? undefined : onMouseMove}
         onMouseUp={editMode ? undefined : handleDragEnd}
