@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Plus, Users, ChevronRight, RefreshCw, Search } from "lucide-react";
+import { ArrowLeft, Plus, Users, ChevronRight, RefreshCw, Search, Settings } from "lucide-react";
 import heroVideo from "@/assets/hero-video.mp4";
 
 interface Employee {
