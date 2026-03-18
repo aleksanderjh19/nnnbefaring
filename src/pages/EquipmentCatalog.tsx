@@ -45,6 +45,11 @@ interface CatalogRow {
   equipment_name: string;
   brand: string | null;
   type: string | null;
+  image_url: string | null;
+  location: string | null;
+  noise_level_db: string | null;
+  vibration_ms2: string | null;
+  description: string | null;
 }
 
 interface GroupedEquipment {
