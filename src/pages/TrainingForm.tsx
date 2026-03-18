@@ -123,10 +123,12 @@ const TrainingForm = () => {
       trainerSignUrl = await uploadSignature(trainerSignature, "signatures");
     }
 
+    const fullType = [selectedBrand, equipmentType].filter(Boolean).join(" ") || null;
+
     const record = {
       employee_id: employeeId!,
       equipment_name: equipmentName.trim(),
-      equipment_type: equipmentType.trim() || null,
+      equipment_type: fullType,
       equipment_category: equipmentCategory,
       noise_level_db: noiseLevel.trim() || null,
       vibration_ms2: vibration.trim() || null,
