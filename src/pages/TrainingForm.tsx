@@ -189,7 +189,12 @@ const TrainingForm = () => {
             {CATEGORIES.map((cat) => (
               <button
                 key={cat.value}
-                onClick={() => setEquipmentCategory(cat.value)}
+                onClick={() => {
+                  setEquipmentCategory(cat.value);
+                  setEquipmentName("");
+                  setSelectedBrand("");
+                  setEquipmentType("");
+                }}
                 className={`rounded-lg px-4 py-2 font-body text-sm font-medium transition-colors ${
                   equipmentCategory === cat.value
                     ? "bg-primary text-primary-foreground"
