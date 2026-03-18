@@ -1,16 +1,11 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Camera, Save, X, ChevronDown } from "lucide-react";
 import SignaturePad from "@/components/SignaturePad";
+import { EQUIPMENT_CATALOG, getEquipmentForCategory, getBrandsForEquipment, getTypesForBrand } from "@/data/equipmentCatalog";
 
-const CATEGORIES = [
-  { value: "el_verktoy", label: "El.verktøy" },
-  { value: "kjøretøy", label: "Kjøretøy" },
-  { value: "utstyr", label: "Utstyr" },
-  { value: "maskin", label: "Maskin" },
-  { value: "annet", label: "Annet" },
-];
+const CATEGORIES = EQUIPMENT_CATALOG.map((c) => ({ value: c.value, label: c.label }));
 
 const COMPANIES = ["Statnett SF", "Annet"];
 
@@ -27,6 +22,7 @@ const TrainingForm = () => {
   const [employeeName, setEmployeeName] = useState("");
   const [equipmentCategory, setEquipmentCategory] = useState("el_verktoy");
   const [equipmentName, setEquipmentName] = useState("");
+  const [selectedBrand, setSelectedBrand] = useState("");
   const [equipmentType, setEquipmentType] = useState("");
   const [noiseLevel, setNoiseLevel] = useState("");
   const [vibration, setVibration] = useState("");
@@ -127,10 +123,12 @@ const TrainingForm = () => {
       trainerSignUrl = await uploadSignature(trainerSignature, "signatures");
     }
 
+    const fullType = [selectedBrand, equipmentType].filter(Boolean).join(" ") || null;
+
     const record = {
       employee_id: employeeId!,
       equipment_name: equipmentName.trim(),
-      equipment_type: equipmentType.trim() || null,
+      equipment_type: fullType,
       equipment_category: equipmentCategory,
       noise_level_db: noiseLevel.trim() || null,
       vibration_ms2: vibration.trim() || null,
@@ -191,7 +189,12 @@ const TrainingForm = () => {
             {CATEGORIES.map((cat) => (
               <button
                 key={cat.value}
-                onClick={() => setEquipmentCategory(cat.value)}
+                onClick={() => {
+                  setEquipmentCategory(cat.value);
+                  setEquipmentName("");
+                  setSelectedBrand("");
+                  setEquipmentType("");
+                }}
                 className={`rounded-lg px-4 py-2 font-body text-sm font-medium transition-colors ${
                   equipmentCategory === cat.value
                     ? "bg-primary text-primary-foreground"
@@ -212,24 +215,97 @@ const TrainingForm = () => {
           </p>
 
           <div className="grid grid-cols-2 gap-3">
+            {/* Equipment name - dropdown + free text */}
             <div className="col-span-2 sm:col-span-1">
               <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Maskin/utstyr *</label>
-              <input
-                value={equipmentName}
-                onChange={(e) => setEquipmentName(e.target.value)}
-                placeholder="F.eks. snøfres"
-                className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              />
+              <div className="relative">
+                <select
+                  value={getEquipmentForCategory(equipmentCategory).some((e) => e.name === equipmentName) ? equipmentName : "__custom__"}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === "__custom__") {
+                      setEquipmentName("");
+                    } else {
+                      setEquipmentName(val);
+                    }
+                    setSelectedBrand("");
+                    setEquipmentType("");
+                  }}
+                  className="h-10 w-full appearance-none rounded-lg border border-input bg-background px-3 pr-8 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="__custom__">Annet (skriv inn)</option>
+                  {getEquipmentForCategory(equipmentCategory).map((eq) => (
+                    <option key={eq.name} value={eq.name}>{eq.name}</option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              </div>
+              {!getEquipmentForCategory(equipmentCategory).some((e) => e.name === equipmentName) && (
+                <input
+                  value={equipmentName}
+                  onChange={(e) => setEquipmentName(e.target.value)}
+                  placeholder="Skriv inn maskin/utstyr"
+                  className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              )}
             </div>
+
+            {/* Brand dropdown */}
+            {getBrandsForEquipment(equipmentCategory, equipmentName).length > 0 && (
+              <div className="col-span-2 sm:col-span-1">
+                <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Merke</label>
+                <div className="relative">
+                  <select
+                    value={selectedBrand}
+                    onChange={(e) => {
+                      setSelectedBrand(e.target.value);
+                      setEquipmentType("");
+                    }}
+                    className="h-10 w-full appearance-none rounded-lg border border-input bg-background px-3 pr-8 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="">Velg merke...</option>
+                    {getBrandsForEquipment(equipmentCategory, equipmentName).map((b) => (
+                      <option key={b.brand} value={b.brand}>{b.brand}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                </div>
+              </div>
+            )}
+
+            {/* Type dropdown or free text */}
             <div className="col-span-2 sm:col-span-1">
               <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Type</label>
-              <input
-                value={equipmentType}
-                onChange={(e) => setEquipmentType(e.target.value)}
-                placeholder="F.eks. Honda HS 970"
-                className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              />
+              {getTypesForBrand(equipmentCategory, equipmentName, selectedBrand).length > 0 ? (
+                <div className="space-y-2">
+                  <div className="relative">
+                    <select
+                      value={getTypesForBrand(equipmentCategory, equipmentName, selectedBrand).includes(equipmentType) ? equipmentType : "__custom__"}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEquipmentType(val === "__custom__" ? "" : val);
+                      }}
+                      className="h-10 w-full appearance-none rounded-lg border border-input bg-background px-3 pr-8 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                    >
+                      <option value="__custom__">Annet (skriv inn)</option>
+                      {getTypesForBrand(equipmentCategory, equipmentName, selectedBrand).map((t) => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  </div>
+                  {!getTypesForBrand(equipmentCategory, equipmentName, selectedBrand).includes(equipmentType) && equipmentType !== "" ? null : null}
+                </div>
+              ) : (
+                <input
+                  value={equipmentType}
+                  onChange={(e) => setEquipmentType(e.target.value)}
+                  placeholder="F.eks. Honda HS 970"
+                  className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              )}
             </div>
+
             <div>
               <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Lydnivå dB</label>
               <input
