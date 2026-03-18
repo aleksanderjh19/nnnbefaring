@@ -60,6 +60,7 @@ const EquipmentCatalog = () => {
   const [addEquipment, setAddEquipment] = useState("");
   const [addEquipmentCustom, setAddEquipmentCustom] = useState(false);
   const [addBrand, setAddBrand] = useState("");
+  const [addBrandCustom, setAddBrandCustom] = useState(false);
   const [addType, setAddType] = useState("");
   const [addLocation, setAddLocation] = useState("");
   const [addCustomLocation, setAddCustomLocation] = useState("");
@@ -121,6 +122,7 @@ const EquipmentCatalog = () => {
     setAddEquipment("");
     setAddEquipmentCustom(false);
     setAddBrand("");
+    setAddBrandCustom(false);
     setAddType("");
     setAddLocation("");
     setAddCustomLocation("");
@@ -199,7 +201,7 @@ const EquipmentCatalog = () => {
                 <label className="mb-1 block font-body text-xs text-muted-foreground">Kategori *</label>
                 <select
                   value={addCategory}
-                  onChange={(e) => { setAddCategory(e.target.value); setAddEquipment(""); setAddEquipmentCustom(false); }}
+                  onChange={(e) => { setAddCategory(e.target.value); setAddEquipment(""); setAddEquipmentCustom(false); setAddBrand(""); setAddBrandCustom(false); }}
                   className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 >
                   {CATEGORY_META.map((c) => (
@@ -249,22 +251,68 @@ const EquipmentCatalog = () => {
                       className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                     >
                       <option value="">Velg maskin/utstyr...</option>
+                      <option value="__custom__">✏️ Skriv eget...</option>
                       {existingNames.map((name) => (
                         <option key={name} value={name}>{name}</option>
                       ))}
-                      <option value="__custom__">✏️ Skriv eget...</option>
                     </select>
                   );
                 })()}
               </div>
               <div>
                 <label className="mb-1 block font-body text-xs text-muted-foreground">Merke</label>
-                <input
-                  value={addBrand}
-                  onChange={(e) => setAddBrand(e.target.value)}
-                  placeholder="F.eks. Stihl"
-                  className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                />
+                {(() => {
+                  const existingBrands = Array.from(
+                    new Set(
+                      rows
+                        .filter((r) => r.category_value === addCategory && (!addEquipment || r.equipment_name === addEquipment))
+                        .map((r) => r.brand)
+                        .filter(Boolean) as string[]
+                    )
+                  ).sort();
+                  if (addBrandCustom || existingBrands.length === 0) {
+                    return (
+                      <div className="flex gap-1">
+                        <input
+                          value={addBrand}
+                          onChange={(e) => setAddBrand(e.target.value)}
+                          placeholder="F.eks. Stihl"
+                          className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                        />
+                        {existingBrands.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => { setAddBrandCustom(false); setAddBrand(""); }}
+                            className="shrink-0 rounded-lg border border-input px-2 text-muted-foreground hover:bg-secondary"
+                            title="Velg fra liste"
+                          >
+                            <ChevronDown className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  }
+                  return (
+                    <select
+                      value={addBrand}
+                      onChange={(e) => {
+                        if (e.target.value === "__custom__") {
+                          setAddBrandCustom(true);
+                          setAddBrand("");
+                        } else {
+                          setAddBrand(e.target.value);
+                        }
+                      }}
+                      className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                    >
+                      <option value="">Velg merke...</option>
+                      <option value="__custom__">✏️ Skriv eget...</option>
+                      {existingBrands.map((brand) => (
+                        <option key={brand} value={brand}>{brand}</option>
+                      ))}
+                    </select>
+                  );
+                })()}
               </div>
               <div>
                 <label className="mb-1 block font-body text-xs text-muted-foreground">Type/modell</label>
