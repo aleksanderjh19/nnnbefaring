@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, Zap, Settings, Pencil, Trash2, Plus, X } from "lucide-react";
+import { ChevronRight, Zap, Settings, Pencil, Trash2, Plus, X, CalendarArrowUp } from "lucide-react";
 import { getMastNumbers } from "@/data/lines";
 import { useInspectionState } from "@/hooks/useInspectionState";
 import { useLines } from "@/hooks/useLines.tsx";
@@ -9,7 +9,7 @@ import { useMemo } from "react";
 
 const Home = () => {
   const navigate = useNavigate();
-  const { getLineStats, getTotalStats } = useInspectionState();
+  const { getLineStats, getTotalStats, year, advanceYear } = useInspectionState();
   const { lines, lineGroups, editMode, setEditMode, removeLine, updateLine, addLine } = useLines();
 
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -75,7 +75,7 @@ const Home = () => {
               <h1 className="font-display text-xl font-extrabold tracking-tight text-foreground">
                 Ledningsbefaringer
               </h1>
-              <p className="font-body text-xs text-muted-foreground">NNN · 2026</p>
+              <p className="font-body text-xs text-muted-foreground">NNN · {year}</p>
             </div>
 
             {/* Edit mode toggle */}
@@ -99,10 +99,22 @@ const Home = () => {
 
       <main className="mx-auto max-w-2xl px-5 py-5">
         {editMode && (
-          <div className="mb-4 rounded-lg border border-accent/30 bg-accent/5 px-4 py-3">
-            <p className="font-body text-sm font-medium text-accent">
-              Redigeringsmodus aktiv — du kan endre navn, slette og legge til linjer.
-            </p>
+          <div className="mb-4 space-y-3">
+            <div className="rounded-lg border border-accent/30 bg-accent/5 px-4 py-3">
+              <p className="font-body text-sm font-medium text-accent">
+                Redigeringsmodus aktiv — du kan endre navn, slette og legge til linjer.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                advanceYear();
+                setEditMode(false);
+              }}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-primary/30 bg-primary/5 py-3 font-body text-sm font-medium text-primary transition-colors hover:bg-primary/10"
+            >
+              <CalendarArrowUp className="h-4 w-4" />
+              Gå videre til {year + 1} (nullstill alle avhukinger)
+            </button>
           </div>
         )}
 
