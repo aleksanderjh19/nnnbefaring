@@ -43,6 +43,7 @@ const App = () => (
             <Route path="/ledningsbefaring/linje/:lineId" element={<ProtectedRoute><LinePage /></ProtectedRoute>} />
             <Route path="/dokumentert-opplaering" element={<ProtectedRoute><TrainingHome /></ProtectedRoute>} />
             <Route path="/dokumentert-opplaering/ansatt/:employeeId" element={<ProtectedRoute><EmployeeTraining /></ProtectedRoute>} />
+            <Route path="/dokumentert-opplaering/ansatte" element={<ProtectedRoute requireAdmin><AdminEmployeeList /></ProtectedRoute>} />
             <Route path="/dokumentert-opplaering/ansatt/:employeeId/ny" element={<ProtectedRoute><TrainingForm /></ProtectedRoute>} />
             <Route path="/dokumentert-opplaering/ansatt/:employeeId/skjema/:recordId" element={<ProtectedRoute><TrainingForm /></ProtectedRoute>} />
             <Route path="/dokumentert-opplaering/ansatt/:employeeId/print" element={<ProtectedRoute><TrainingPrint /></ProtectedRoute>} />
