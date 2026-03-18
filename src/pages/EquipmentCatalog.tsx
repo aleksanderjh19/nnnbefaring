@@ -251,10 +251,10 @@ const EquipmentCatalog = () => {
                       className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                     >
                       <option value="">Velg maskin/utstyr...</option>
+                      <option value="__custom__">✏️ Skriv eget...</option>
                       {existingNames.map((name) => (
                         <option key={name} value={name}>{name}</option>
                       ))}
-                      <option value="__custom__">✏️ Skriv eget...</option>
                     </select>
                   );
                 })()}
