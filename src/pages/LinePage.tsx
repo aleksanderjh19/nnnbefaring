@@ -15,7 +15,7 @@ const LinePage = () => {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterMode>("alle");
   const { isChecked, toggle, bulkSet, getLineStats } = useInspectionState();
-  const { lines, editMode, addMasts, removeMasts } = useLines();
+  const { lines, editMode, addMasts, removeMasts, updateLine } = useLines();
 
   // Edit mode state
   const [addInput, setAddInput] = useState("");
