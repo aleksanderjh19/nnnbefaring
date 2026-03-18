@@ -208,12 +208,53 @@ const EquipmentCatalog = () => {
               </div>
               <div>
                 <label className="mb-1 block font-body text-xs text-muted-foreground">Maskin/utstyr *</label>
-                <input
-                  value={addEquipment}
-                  onChange={(e) => setAddEquipment(e.target.value)}
-                  placeholder="F.eks. Motorsag"
-                  className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                />
+                {(() => {
+                  const existingNames = Array.from(
+                    new Set(rows.filter((r) => r.category_value === addCategory).map((r) => r.equipment_name))
+                  ).sort();
+                  if (addEquipmentCustom || existingNames.length === 0) {
+                    return (
+                      <div className="flex gap-1">
+                        <input
+                          value={addEquipment}
+                          onChange={(e) => setAddEquipment(e.target.value)}
+                          placeholder="F.eks. Motorsag"
+                          className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                        />
+                        {existingNames.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => { setAddEquipmentCustom(false); setAddEquipment(""); }}
+                            className="shrink-0 rounded-lg border border-input px-2 text-muted-foreground hover:bg-secondary"
+                            title="Velg fra liste"
+                          >
+                            <ChevronDown className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  }
+                  return (
+                    <select
+                      value={addEquipment}
+                      onChange={(e) => {
+                        if (e.target.value === "__custom__") {
+                          setAddEquipmentCustom(true);
+                          setAddEquipment("");
+                        } else {
+                          setAddEquipment(e.target.value);
+                        }
+                      }}
+                      className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                    >
+                      <option value="">Velg maskin/utstyr...</option>
+                      {existingNames.map((name) => (
+                        <option key={name} value={name}>{name}</option>
+                      ))}
+                      <option value="__custom__">✏️ Skriv eget...</option>
+                    </select>
+                  );
+                })()}
               </div>
               <div>
                 <label className="mb-1 block font-body text-xs text-muted-foreground">Merke</label>
