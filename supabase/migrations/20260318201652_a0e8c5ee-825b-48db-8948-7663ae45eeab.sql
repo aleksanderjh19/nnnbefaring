@@ -1,0 +1,1 @@
+ALTER TABLE public.equipment_catalog ADD COLUMN image_url text;

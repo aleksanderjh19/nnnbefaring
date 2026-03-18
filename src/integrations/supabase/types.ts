@@ -46,6 +46,7 @@ export type Database = {
           created_at: string
           equipment_name: string
           id: string
+          image_url: string | null
           type: string | null
         }
         Insert: {
@@ -55,6 +56,7 @@ export type Database = {
           created_at?: string
           equipment_name: string
           id?: string
+          image_url?: string | null
           type?: string | null
         }
         Update: {
@@ -64,6 +66,7 @@ export type Database = {
           created_at?: string
           equipment_name?: string
           id?: string
+          image_url?: string | null
           type?: string | null
         }
         Relationships: []
