@@ -1,0 +1,2 @@
+UPDATE training_records SET equipment_category = 'bensinverktoy' WHERE equipment_category = 'el_verktoy' AND equipment_name IN ('Motorsag', 'Ryddesag', 'Kantklipper');
+UPDATE training_records SET equipment_category = 'bensinverktoy' WHERE equipment_name = 'Plenklipper';

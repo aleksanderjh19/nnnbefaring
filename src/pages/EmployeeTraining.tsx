@@ -3,15 +3,18 @@ import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ArrowLeft, Plus, FileText, Trash2, ChevronRight, ChevronDown, Printer,
-  Wrench, Car, HardHat, Cpu, Package, Pencil, X, Calendar, User, Building2
+  Wrench, Car, HardHat, Cpu, Package, Pencil, X, Calendar, User, Building2, Fuel
 } from "lucide-react";
 import statnettLogo from "@/assets/statnett-logo.png";
 
+
+
 const CATEGORIES = [
+  { value: "bensinverktoy", label: "Bensin-/motorverktøy", icon: Fuel },
   { value: "el_verktoy", label: "El.verktøy", icon: Wrench },
   { value: "kjøretøy", label: "Kjøretøy", icon: Car },
-  { value: "utstyr", label: "Utstyr", icon: HardHat },
   { value: "maskin", label: "Maskin", icon: Cpu },
+  { value: "utstyr", label: "Utstyr", icon: HardHat },
   { value: "annet", label: "Annet", icon: Package },
 ];
 
