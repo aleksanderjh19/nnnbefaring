@@ -15,10 +15,12 @@ const FALLBACK_CATEGORIES = [
 ];
 
 interface CatalogRow {
+  id: string;
   category_value: string;
   equipment_name: string;
   brand: string | null;
   type: string | null;
+  image_url: string | null;
 }
 
 const COMPANIES = ["Statnett SF", "Annet"];
