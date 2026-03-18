@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useCallback } from "react";
+import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Search, ChevronDown, ArrowLeft, Plus, Trash2, X, Pencil, Check } from "lucide-react";
 import { getMastNumbers } from "@/data/lines";
@@ -161,33 +161,35 @@ const LinePage = () => {
     [handleDragMove]
   );
 
-  const onTouchStart = useCallback(
-    (e: React.TouchEvent) => {
+  // Touch handling with non-passive listeners for proper preventDefault
+  const dragContainerRef = useRef<HTMLDivElement>(null);
+
+  const touchStartHandler = useCallback(
+    (e: TouchEvent) => {
+      if (editMode || isViewingPrevious) return;
       const touch = e.touches[0];
       touchStartPos.current = { x: touch.clientX, y: touch.clientY };
       touchActivated.current = false;
       const mast = getMastFromPoint(touch.clientX, touch.clientY);
       if (mast === null) return;
-      // Start a timer — if user holds ~150ms without moving much, activate drag mode
       if (touchHoldTimer.current) clearTimeout(touchHoldTimer.current);
       touchHoldTimer.current = setTimeout(() => {
         touchActivated.current = true;
         handleDragStart(mast);
-      }, 150);
+      }, 120);
     },
-    [getMastFromPoint, handleDragStart]
+    [getMastFromPoint, handleDragStart, editMode, isViewingPrevious]
   );
 
-  const onTouchMove = useCallback(
-    (e: React.TouchEvent) => {
+  const touchMoveHandler = useCallback(
+    (e: TouchEvent) => {
       const touch = e.touches[0];
       const dx = touch.clientX - touchStartPos.current.x;
       const dy = touch.clientY - touchStartPos.current.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
 
-      // If not yet activated and moved too far, cancel — let browser scroll
       if (!touchActivated.current) {
-        if (dist > 10) {
+        if (dist > 8) {
           if (touchHoldTimer.current) {
             clearTimeout(touchHoldTimer.current);
             touchHoldTimer.current = null;
@@ -196,24 +198,41 @@ const LinePage = () => {
         return;
       }
 
-      // Activated: prevent scroll, handle drag
+      // Prevent native scroll when drag-selecting
       e.preventDefault();
       handleDragMove(touch.clientX, touch.clientY);
     },
     [handleDragMove]
   );
 
-  const onTouchEnd = useCallback(() => {
+  const touchEndHandler = useCallback(() => {
     if (touchHoldTimer.current) {
       clearTimeout(touchHoldTimer.current);
       touchHoldTimer.current = null;
     }
-    // If hold activated but only one mast selected (tap-and-hold), still counts
     if (touchActivated.current) {
       handleDragEnd();
     }
     touchActivated.current = false;
   }, [handleDragEnd]);
+
+  // Attach non-passive touch listeners so preventDefault works on mobile
+  useEffect(() => {
+    const el = dragContainerRef.current;
+    if (!el || editMode) return;
+
+    el.addEventListener("touchstart", touchStartHandler, { passive: true });
+    el.addEventListener("touchmove", touchMoveHandler, { passive: false });
+    el.addEventListener("touchend", touchEndHandler, { passive: true });
+    el.addEventListener("touchcancel", touchEndHandler, { passive: true });
+
+    return () => {
+      el.removeEventListener("touchstart", touchStartHandler);
+      el.removeEventListener("touchmove", touchMoveHandler);
+      el.removeEventListener("touchend", touchEndHandler);
+      el.removeEventListener("touchcancel", touchEndHandler);
+    };
+  }, [editMode, touchStartHandler, touchMoveHandler, touchEndHandler]);
 
   // Parse range input like "1-5, 8, 10-12"
   const parseRangeInput = (input: string): number[] => {
@@ -473,15 +492,12 @@ const LinePage = () => {
       )}
 
       <div
+        ref={dragContainerRef}
         className="flex-1 select-none px-4 py-3"
         onMouseDown={editMode ? undefined : onMouseDown}
         onMouseMove={editMode ? undefined : onMouseMove}
         onMouseUp={editMode ? undefined : handleDragEnd}
         onMouseLeave={editMode ? undefined : handleDragEnd}
-        onTouchStart={editMode ? undefined : onTouchStart}
-        onTouchMove={editMode ? undefined : onTouchMove}
-        onTouchEnd={editMode ? undefined : onTouchEnd}
-        onTouchCancel={editMode ? undefined : onTouchEnd}
       >
         <div className="mx-auto flex max-w-lg flex-col gap-1.5">
           {filteredMasts.map((mastNumber) => (
