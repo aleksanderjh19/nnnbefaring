@@ -21,6 +21,8 @@ const LinePage = () => {
   const [addInput, setAddInput] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedForRemoval, setSelectedForRemoval] = useState<Set<number>>(new Set());
+  const [renamingField, setRenamingField] = useState<"name" | "description" | null>(null);
+  const [renameValue, setRenameValue] = useState("");
 
   const currentLine = lines.find((l) => l.id === lineId);
   const safeLineId = currentLine?.id ?? "";
