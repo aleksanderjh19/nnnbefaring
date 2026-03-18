@@ -174,13 +174,22 @@ const EquipmentDetail = () => {
               <p className="font-body text-xs text-muted-foreground">{item.category_label}</p>
             </div>
             {!editing && (
-              <button
-                onClick={() => setEditing(true)}
-                className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 font-body text-xs font-semibold text-primary-foreground hover:bg-primary/90"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-                Rediger
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowEmployeePicker(true)}
+                  className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 font-body text-xs font-semibold text-foreground hover:bg-secondary"
+                >
+                  <GraduationCap className="h-3.5 w-3.5" />
+                  Legg til opplæring
+                </button>
+                <button
+                  onClick={() => setEditing(true)}
+                  className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 font-body text-xs font-semibold text-primary-foreground hover:bg-primary/90"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  Rediger
+                </button>
+              </div>
             )}
           </div>
         </div>
