@@ -1,7 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Camera, MapPin, Volume2, Activity, FileText, Pencil, Save, X } from "lucide-react";
+import { ArrowLeft, Camera, MapPin, Volume2, Activity, FileText, Pencil, Save, X, GraduationCap } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 const LOCATIONS = [
   "Bjerka",
@@ -40,6 +47,9 @@ const EquipmentDetail = () => {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showEmployeePicker, setShowEmployeePicker] = useState(false);
+  const [employees, setEmployees] = useState<{ id: string; name: string }[]>([]);
+  const [employeeSearch, setEmployeeSearch] = useState("");
 
   // Edit state
   const [editLocation, setEditLocation] = useState("");
@@ -79,6 +89,27 @@ const EquipmentDetail = () => {
   useEffect(() => {
     fetchItem();
   }, [itemId]);
+
+  useEffect(() => {
+    if (showEmployeePicker && employees.length === 0) {
+      supabase.from("employees").select("id, name").order("name").then(({ data }) => {
+        if (data) setEmployees(data);
+      });
+    }
+  }, [showEmployeePicker]);
+
+  const handleAddTraining = (employeeId: string) => {
+    if (!item) return;
+    const params = new URLSearchParams({
+      category: item.category_value,
+      equipment: item.equipment_name,
+    });
+    navigate(`/dokumentert-opplaering/ansatt/${employeeId}/ny?${params.toString()}`);
+  };
+
+  const filteredEmployees = employees.filter((e) =>
+    e.name.toLowerCase().includes(employeeSearch.toLowerCase())
+  );
 
   const handleSave = async () => {
     if (!item) return;
@@ -143,13 +174,22 @@ const EquipmentDetail = () => {
               <p className="font-body text-xs text-muted-foreground">{item.category_label}</p>
             </div>
             {!editing && (
-              <button
-                onClick={() => setEditing(true)}
-                className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 font-body text-xs font-semibold text-primary-foreground hover:bg-primary/90"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-                Rediger
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowEmployeePicker(true)}
+                  className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 font-body text-xs font-semibold text-foreground hover:bg-secondary"
+                >
+                  <GraduationCap className="h-3.5 w-3.5" />
+                  Legg til opplæring
+                </button>
+                <button
+                  onClick={() => setEditing(true)}
+                  className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 font-body text-xs font-semibold text-primary-foreground hover:bg-primary/90"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  Rediger
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -293,6 +333,38 @@ const EquipmentDetail = () => {
           </section>
         )}
       </main>
+
+      <Dialog open={showEmployeePicker} onOpenChange={setShowEmployeePicker}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-display text-base">Velg ansatt</DialogTitle>
+            <DialogDescription className="font-body text-sm text-muted-foreground">
+              Velg hvem som skal få opplæring på {item.equipment_name}
+            </DialogDescription>
+          </DialogHeader>
+          <input
+            value={employeeSearch}
+            onChange={(e) => setEmployeeSearch(e.target.value)}
+            placeholder="Søk etter ansatt..."
+            className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+          <div className="max-h-64 overflow-y-auto space-y-1">
+            {filteredEmployees.length === 0 ? (
+              <p className="py-4 text-center font-body text-sm text-muted-foreground">Ingen ansatte funnet</p>
+            ) : (
+              filteredEmployees.map((emp) => (
+                <button
+                  key={emp.id}
+                  onClick={() => handleAddTraining(emp.id)}
+                  className="w-full rounded-lg px-3 py-2.5 text-left font-body text-sm font-medium text-foreground hover:bg-secondary transition-colors"
+                >
+                  {emp.name}
+                </button>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

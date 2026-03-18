@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Camera, Save, X, ChevronDown } from "lucide-react";
 import SignaturePad from "@/components/SignaturePad";
@@ -33,11 +33,12 @@ interface Employee {
 const TrainingForm = () => {
   const navigate = useNavigate();
   const { employeeId, recordId } = useParams<{ employeeId: string; recordId?: string }>();
+  const [searchParams] = useSearchParams();
   const isEdit = !!recordId;
 
   const [employeeName, setEmployeeName] = useState("");
-  const [equipmentCategory, setEquipmentCategory] = useState("el_verktoy");
-  const [equipmentName, setEquipmentName] = useState("");
+  const [equipmentCategory, setEquipmentCategory] = useState(searchParams.get("category") || "el_verktoy");
+  const [equipmentName, setEquipmentName] = useState(searchParams.get("equipment") || "");
   const [selectedBrand, setSelectedBrand] = useState("");
   const [equipmentType, setEquipmentType] = useState("");
   const [noiseLevel, setNoiseLevel] = useState("");
