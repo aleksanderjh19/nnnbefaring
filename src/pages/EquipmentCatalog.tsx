@@ -449,14 +449,51 @@ const EquipmentCatalog = () => {
                   />
                 )}
               </div>
+              <div className="col-span-2">
+                <label className="mb-1 block font-body text-xs text-muted-foreground">Bilde</label>
+                <div className="flex items-center gap-3">
+                  <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-input px-4 py-2.5 text-muted-foreground transition-colors hover:border-primary hover:text-foreground">
+                    <ImagePlus className="h-4 w-4" />
+                    <span className="font-body text-xs">{addImageFile ? addImageFile.name : "Velg bilde..."}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null;
+                        setAddImageFile(file);
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (ev) => setAddImagePreview(ev.target?.result as string);
+                          reader.readAsDataURL(file);
+                        } else {
+                          setAddImagePreview(null);
+                        }
+                      }}
+                    />
+                  </label>
+                  {addImagePreview && (
+                    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-border">
+                      <img src={addImagePreview} alt="Forhåndsvisning" className="h-full w-full object-contain" />
+                      <button
+                        type="button"
+                        onClick={() => { setAddImageFile(null); setAddImagePreview(null); }}
+                        className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
             <div className="flex justify-end">
               <button
                 onClick={handleAdd}
-                disabled={!addEquipment.trim()}
+                disabled={!addEquipment.trim() || uploading}
                 className="rounded-lg bg-primary px-4 py-2 font-body text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
               >
-                Legg til
+                {uploading ? "Laster opp..." : "Legg til"}
               </button>
             </div>
           </div>
