@@ -743,7 +743,7 @@ const TrainingForm = () => {
           className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary font-body text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
         >
           <Save className="h-4 w-4" />
-          {saving ? "Lagrer..." : isEdit ? "Oppdater opplæring" : "Lagre opplæring"}
+          {saving ? "Lagrer..." : isEdit ? "Oppdater opplæring" : isTractorCategory && selectedTractorTypes.length > 1 ? `Lagre ${selectedTractorTypes.length} opplæringer` : "Lagre opplæring"}
         </button>
       </main>
     </div>
