@@ -3,7 +3,7 @@ import { useState, useCallback, useEffect } from "react";
 const YEAR_KEY = "mast-current-year";
 const ARCHIVE_KEY_PREFIX = "mast-inspection-";
 
-function getCurrentYear(): number {
+function getActiveYear(): number {
   try {
     const saved = localStorage.getItem(YEAR_KEY);
     if (saved) return parseInt(saved);
@@ -15,26 +15,39 @@ function storageKey(year: number) {
   return `${ARCHIVE_KEY_PREFIX}${year}`;
 }
 
+function loadState(year: number): InspectionState {
+  try {
+    const saved = localStorage.getItem(storageKey(year));
+    return saved ? JSON.parse(saved) : {};
+  } catch {
+    return {};
+  }
+}
+
 type InspectionState = Record<string, Record<number, boolean>>;
 
 export function useInspectionState() {
-  const [year, setYear] = useState(getCurrentYear);
-  const [state, setState] = useState<InspectionState>(() => {
-    try {
-      const saved = localStorage.getItem(storageKey(getCurrentYear()));
-      return saved ? JSON.parse(saved) : {};
-    } catch {
-      return {};
+  const [activeYear] = useState(getActiveYear); // the "current" working year
+  const [viewingYear, setViewingYear] = useState(getActiveYear);
+  const [state, setState] = useState<InspectionState>(() => loadState(getActiveYear()));
+
+  const isViewingPrevious = viewingYear < activeYear;
+
+  // When viewingYear changes, load that year's data
+  useEffect(() => {
+    setState(loadState(viewingYear));
+  }, [viewingYear]);
+
+  // Only persist if viewing the active year
+  useEffect(() => {
+    if (!isViewingPrevious) {
+      localStorage.setItem(storageKey(viewingYear), JSON.stringify(state));
     }
-  });
+  }, [state, viewingYear, isViewingPrevious]);
 
   useEffect(() => {
-    localStorage.setItem(storageKey(year), JSON.stringify(state));
-  }, [state, year]);
-
-  useEffect(() => {
-    localStorage.setItem(YEAR_KEY, String(year));
-  }, [year]);
+    localStorage.setItem(YEAR_KEY, String(activeYear));
+  }, [activeYear]);
 
   const isChecked = useCallback(
     (lineId: string, mastNumber: number) => {
@@ -44,6 +57,7 @@ export function useInspectionState() {
   );
 
   const toggle = useCallback((lineId: string, mastNumber: number) => {
+    if (isViewingPrevious) return; // read-only
     setState((prev) => {
       const lineState = prev[lineId] ?? {};
       return {
@@ -54,9 +68,10 @@ export function useInspectionState() {
         },
       };
     });
-  }, []);
+  }, [isViewingPrevious]);
 
   const bulkSet = useCallback((lineId: string, mastNumbers: number[], value: boolean) => {
+    if (isViewingPrevious) return; // read-only
     setState((prev) => {
       const lineState = { ...(prev[lineId] ?? {}) };
       for (const m of mastNumbers) {
@@ -64,7 +79,7 @@ export function useInspectionState() {
       }
       return { ...prev, [lineId]: lineState };
     });
-  }, []);
+  }, [isViewingPrevious]);
 
   const getLineStats = useCallback(
     (lineId: string, totalMasts: number) => {
@@ -90,23 +105,34 @@ export function useInspectionState() {
   );
 
   const advanceYear = useCallback(() => {
-    const prevYear = year - 1;
-    // Delete year before previous (only keep 1 year back)
-    try { localStorage.removeItem(storageKey(prevYear)); } catch {}
-    // Current data is already saved; advance year and reset
-    const newYear = year + 1;
-    setYear(newYear);
-    setState({});
-  }, [year]);
+    const prevPrevYear = activeYear - 1;
+    // Delete 2+ years old data (only keep 1 year back)
+    try { localStorage.removeItem(storageKey(prevPrevYear)); } catch {}
+    // Current data is already saved; advance
+    const newYear = activeYear + 1;
+    localStorage.setItem(YEAR_KEY, String(newYear));
+    // Force reload to pick up new year
+    window.location.reload();
+  }, [activeYear]);
 
-  const getPreviousYearStats = useCallback(() => {
-    const prevYear = year - 1;
+  const hasPreviousYear = useCallback(() => {
     try {
-      const saved = localStorage.getItem(storageKey(prevYear));
-      if (saved) return { year: prevYear, data: JSON.parse(saved) as InspectionState };
-    } catch {}
-    return null;
-  }, [year]);
+      const saved = localStorage.getItem(storageKey(activeYear - 1));
+      return saved !== null;
+    } catch { return false; }
+  }, [activeYear]);
 
-  return { isChecked, toggle, bulkSet, getLineStats, getTotalStats, year, advanceYear, getPreviousYearStats };
+  const viewPreviousYear = useCallback(() => {
+    setViewingYear(activeYear - 1);
+  }, [activeYear]);
+
+  const viewCurrentYear = useCallback(() => {
+    setViewingYear(activeYear);
+  }, [activeYear]);
+
+  return {
+    isChecked, toggle, bulkSet, getLineStats, getTotalStats,
+    year: viewingYear, activeYear, isViewingPrevious,
+    advanceYear, hasPreviousYear, viewPreviousYear, viewCurrentYear,
+  };
 }
