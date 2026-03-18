@@ -58,7 +58,7 @@ const TrainingForm = () => {
   const [catalogRows, setCatalogRows] = useState<CatalogRow[]>([]);
 
   useEffect(() => {
-    supabase.from("equipment_catalog").select("category_value, category_label, equipment_name, brand, type").then(({ data }) => {
+    supabase.from("equipment_catalog").select("id, category_value, category_label, equipment_name, brand, type, image_url").then(({ data }) => {
       if (data) setCatalogRows(data as (CatalogRow & { category_label: string })[]);
     });
   }, []);
