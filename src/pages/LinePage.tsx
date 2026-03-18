@@ -1,8 +1,9 @@
 import { useState, useMemo, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Search, ChevronDown, ArrowLeft } from "lucide-react";
-import { lines, getMastNumbers } from "@/data/lines";
+import { Search, ChevronDown, ArrowLeft, Plus, Minus } from "lucide-react";
+import { getMastNumbers } from "@/data/lines";
 import { useInspectionState } from "@/hooks/useInspectionState";
+import { useLines } from "@/hooks/useLines";
 import { MastRow } from "@/components/MastRow";
 import { ProgressBar } from "@/components/ProgressBar";
 
@@ -14,6 +15,7 @@ const LinePage = () => {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterMode>("alle");
   const { isChecked, toggle, bulkSet, getLineStats } = useInspectionState();
+  const { lines, editMode, addMast, removeMast } = useLines();
 
   const currentLine = lines.find((l) => l.id === lineId);
   const safeLineId = currentLine?.id ?? "";
@@ -48,13 +50,14 @@ const LinePage = () => {
 
   const handleDragStart = useCallback(
     (mastNumber: number) => {
+      if (editMode) return;
       isDragging.current = true;
       const currentlyChecked = isChecked(safeLineId, mastNumber);
       dragTargetValue.current = !currentlyChecked;
       draggedMasts.current = new Set([mastNumber]);
       bulkSet(safeLineId, [mastNumber], !currentlyChecked);
     },
-    [isChecked, safeLineId, bulkSet]
+    [isChecked, safeLineId, bulkSet, editMode]
   );
 
   const handleDragMove = useCallback(
@@ -134,7 +137,38 @@ const LinePage = () => {
                 {currentLine.description} · {lineStats.done}/{lineStats.total} utført
               </p>
             </div>
+
+            {/* Edit mode: add/remove mast buttons */}
+            {editMode && (
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => removeMast(currentLine.id)}
+                  title="Fjern siste mast"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-destructive/70 hover:bg-destructive/10 hover:text-destructive"
+                >
+                  <Minus className="h-4 w-4" />
+                </button>
+                <span className="min-w-[3rem] text-center font-body text-xs text-muted-foreground">
+                  {mastNumbers.length} master
+                </span>
+                <button
+                  onClick={() => addMast(currentLine.id)}
+                  title="Legg til mast"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-primary hover:bg-primary/10"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              </div>
+            )}
           </div>
+
+          {editMode && (
+            <div className="mx-4 mb-2 rounded-lg border border-accent/30 bg-accent/5 px-3 py-2">
+              <p className="font-body text-xs font-medium text-accent">
+                Redigeringsmodus — bruk +/- for å legge til eller fjerne master.
+              </p>
+            </div>
+          )}
 
           <div className="flex items-center gap-2 border-t border-border px-4 py-2">
             <div className="relative flex-1">
@@ -170,14 +204,14 @@ const LinePage = () => {
 
       <div
         className="flex-1 select-none px-4 py-3"
-        onMouseDown={onMouseDown}
-        onMouseMove={onMouseMove}
-        onMouseUp={handleDragEnd}
-        onMouseLeave={handleDragEnd}
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={handleDragEnd}
-        onTouchCancel={handleDragEnd}
+        onMouseDown={editMode ? undefined : onMouseDown}
+        onMouseMove={editMode ? undefined : onMouseMove}
+        onMouseUp={editMode ? undefined : handleDragEnd}
+        onMouseLeave={editMode ? undefined : handleDragEnd}
+        onTouchStart={editMode ? undefined : onTouchStart}
+        onTouchMove={editMode ? undefined : onTouchMove}
+        onTouchEnd={editMode ? undefined : handleDragEnd}
+        onTouchCancel={editMode ? undefined : handleDragEnd}
       >
         <div className="mx-auto flex max-w-lg flex-col gap-1.5">
           {filteredMasts.map((mastNumber) => (
@@ -185,7 +219,7 @@ const LinePage = () => {
               key={mastNumber}
               mastNumber={mastNumber}
               checked={isChecked(currentLine.id, mastNumber)}
-              onToggle={() => toggle(currentLine.id, mastNumber)}
+              onToggle={() => !editMode && toggle(currentLine.id, mastNumber)}
             />
           ))}
         </div>
