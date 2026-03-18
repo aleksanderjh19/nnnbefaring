@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Search, ChevronDown, ArrowLeft, Plus, Trash2, X } from "lucide-react";
+import { Search, ChevronDown, ArrowLeft, Plus, Trash2, X, Pencil } from "lucide-react";
 import { getMastNumbers } from "@/data/lines";
 import { useInspectionState } from "@/hooks/useInspectionState";
 import { useLines } from "@/hooks/useLines.tsx";
@@ -15,12 +15,14 @@ const LinePage = () => {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterMode>("alle");
   const { isChecked, toggle, bulkSet, getLineStats } = useInspectionState();
-  const { lines, editMode, addMasts, removeMasts } = useLines();
+  const { lines, editMode, addMasts, removeMasts, updateLine } = useLines();
 
   // Edit mode state
   const [addInput, setAddInput] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedForRemoval, setSelectedForRemoval] = useState<Set<number>>(new Set());
+  const [renamingField, setRenamingField] = useState<"name" | "description" | null>(null);
+  const [renameValue, setRenameValue] = useState("");
 
   const currentLine = lines.find((l) => l.id === lineId);
   const safeLineId = currentLine?.id ?? "";
@@ -183,12 +185,66 @@ const LinePage = () => {
               <ArrowLeft className="h-5 w-5 text-foreground" />
             </button>
             <div className="min-w-0 flex-1">
-              <h2 className="font-display text-base font-bold text-foreground lg:text-lg">
-                {currentLine.name}
-              </h2>
-              <p className="font-body text-xs text-muted-foreground">
-                {currentLine.description} · {lineStats.done}/{lineStats.total} utført
-              </p>
+              {renamingField === "name" ? (
+                <input
+                  autoFocus
+                  value={renameValue}
+                  onChange={(e) => setRenameValue(e.target.value)}
+                  onBlur={() => {
+                    if (renameValue.trim()) updateLine(currentLine.id, { name: renameValue.trim() });
+                    setRenamingField(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") { if (renameValue.trim()) updateLine(currentLine.id, { name: renameValue.trim() }); setRenamingField(null); }
+                    if (e.key === "Escape") setRenamingField(null);
+                  }}
+                  className="w-full rounded border border-input bg-background px-2 py-1 font-display text-base font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-ring lg:text-lg"
+                />
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <h2 className="font-display text-base font-bold text-foreground lg:text-lg">
+                    {currentLine.name}
+                  </h2>
+                  {editMode && (
+                    <button
+                      onClick={() => { setRenamingField("name"); setRenameValue(currentLine.name); }}
+                      className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground hover:bg-secondary hover:text-foreground"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              )}
+              {renamingField === "description" ? (
+                <input
+                  autoFocus
+                  value={renameValue}
+                  onChange={(e) => setRenameValue(e.target.value)}
+                  onBlur={() => {
+                    if (renameValue.trim()) updateLine(currentLine.id, { description: renameValue.trim() });
+                    setRenamingField(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") { if (renameValue.trim()) updateLine(currentLine.id, { description: renameValue.trim() }); setRenamingField(null); }
+                    if (e.key === "Escape") setRenamingField(null);
+                  }}
+                  className="w-full rounded border border-input bg-background px-2 py-0.5 font-body text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <p className="font-body text-xs text-muted-foreground">
+                    {currentLine.description} · {lineStats.done}/{lineStats.total} utført
+                  </p>
+                  {editMode && (
+                    <button
+                      onClick={() => { setRenamingField("description"); setRenameValue(currentLine.description); }}
+                      className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-secondary hover:text-foreground"
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
