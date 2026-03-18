@@ -19,8 +19,8 @@ export interface CategoryEntry {
 
 export const EQUIPMENT_CATALOG: CategoryEntry[] = [
   {
-    value: "el_verktoy",
-    label: "El.verktøy",
+    value: "bensinverktoy",
+    label: "Bensin-/motorverktøy",
     equipment: [
       {
         name: "Motorsag",
@@ -45,6 +45,20 @@ export const EQUIPMENT_CATALOG: CategoryEntry[] = [
           { brand: "Honda", types: ["UMC425E"] },
         ],
       },
+      {
+        name: "Plenklipper",
+        brands: [
+          { brand: "Ariens", types: ["200 M 42 CE"] },
+          { brand: "John Deere", types: ["LTR 180"] },
+          { brand: "Husqvarna", types: ["R 13 C"] },
+        ],
+      },
+    ],
+  },
+  {
+    value: "el_verktoy",
+    label: "El.verktøy",
+    equipment: [
       {
         name: "Vinkelsliper",
         brands: [
@@ -208,14 +222,6 @@ export const EQUIPMENT_CATALOG: CategoryEntry[] = [
           { brand: "Palazzani", types: ["TZX 190"] },
           { brand: "Nifty", types: ["120 T", "150"] },
           { brand: "JLG", types: ["660 SJ"] },
-        ],
-      },
-      {
-        name: "Plenklipper",
-        brands: [
-          { brand: "Ariens", types: ["200 M 42 CE"] },
-          { brand: "John Deere", types: ["LTR 180"] },
-          { brand: "Husqvarna", types: ["R 13 C"] },
         ],
       },
     ],

@@ -7,11 +7,14 @@ import {
 } from "lucide-react";
 import statnettLogo from "@/assets/statnett-logo.png";
 
+import { Fuel } from "lucide-react";
+
 const CATEGORIES = [
+  { value: "bensinverktoy", label: "Bensin-/motorverktøy", icon: Fuel },
   { value: "el_verktoy", label: "El.verktøy", icon: Wrench },
   { value: "kjøretøy", label: "Kjøretøy", icon: Car },
-  { value: "utstyr", label: "Utstyr", icon: HardHat },
   { value: "maskin", label: "Maskin", icon: Cpu },
+  { value: "utstyr", label: "Utstyr", icon: HardHat },
   { value: "annet", label: "Annet", icon: Package },
 ];
 
