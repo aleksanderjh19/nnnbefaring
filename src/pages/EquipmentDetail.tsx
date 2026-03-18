@@ -47,6 +47,9 @@ const EquipmentDetail = () => {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showEmployeePicker, setShowEmployeePicker] = useState(false);
+  const [employees, setEmployees] = useState<{ id: string; name: string }[]>([]);
+  const [employeeSearch, setEmployeeSearch] = useState("");
 
   // Edit state
   const [editLocation, setEditLocation] = useState("");
