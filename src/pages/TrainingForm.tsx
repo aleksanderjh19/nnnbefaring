@@ -56,10 +56,26 @@ const TrainingForm = () => {
   const [catalogRows, setCatalogRows] = useState<CatalogRow[]>([]);
 
   useEffect(() => {
-    supabase.from("equipment_catalog").select("category_value, equipment_name, brand, type").then(({ data }) => {
-      if (data) setCatalogRows(data as CatalogRow[]);
+    supabase.from("equipment_catalog").select("category_value, category_label, equipment_name, brand, type").then(({ data }) => {
+      if (data) setCatalogRows(data as (CatalogRow & { category_label: string })[]);
     });
   }, []);
+
+  const categories = useMemo(() => {
+    const dbCats = new Map<string, string>();
+    catalogRows.forEach((r: any) => {
+      if (r.category_value && r.category_label) {
+        dbCats.set(r.category_value, r.category_label);
+      }
+    });
+    const merged = [...FALLBACK_CATEGORIES];
+    dbCats.forEach((label, value) => {
+      if (!merged.some((c) => c.value === value)) {
+        merged.push({ value, label });
+      }
+    });
+    return merged;
+  }, [catalogRows]);
 
   const getEquipmentForCategory = (cat: string) => {
     const names = [...new Set(catalogRows.filter((r) => r.category_value === cat).map((r) => r.equipment_name))];
