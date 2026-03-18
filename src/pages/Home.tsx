@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronRight, Zap, Settings, Pencil, Trash2, Plus, X, ChevronLeft, CalendarArrowUp, RefreshCw, ArrowLeft } from "lucide-react";
 import heroVideo from "@/assets/hero-video.mp4";
