@@ -195,9 +195,8 @@ const Home = () => {
                               <span className="font-body text-[10px] font-bold">Abc</span>
                             </button>
                             <button
-                              onClick={() => {
-                                if (confirm(`Slett ${line.name}?`)) removeLine(line.id);
-                              }}
+                              onClick={() => removeLine(line.id)}
+                              title="Slett linje"
                               title="Slett linje"
                               className="flex h-9 w-9 items-center justify-center rounded-lg text-destructive/70 hover:bg-destructive/10 hover:text-destructive"
                             >
