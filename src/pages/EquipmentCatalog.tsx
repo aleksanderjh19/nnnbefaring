@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -630,8 +630,15 @@ function EquipmentRowWithPreview({
 }) {
   const [hovered, setHovered] = useState(false);
   const [hoverTimeout, setHoverTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const [showAbove, setShowAbove] = useState(false);
+  const rowRef = useRef<HTMLTableRowElement>(null);
 
   const handleMouseEnter = () => {
+    if (rowRef.current) {
+      const rect = rowRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      setShowAbove(spaceBelow < 320);
+    }
     const t = setTimeout(() => setHovered(true), 300);
     setHoverTimeout(t);
   };
@@ -642,6 +649,7 @@ function EquipmentRowWithPreview({
 
   return (
     <tr
+      ref={rowRef}
       className={`relative border-t border-border cursor-pointer hover:bg-secondary/50 ${selected ? "bg-primary/5" : ""}`}
       onClick={onClick}
       onMouseEnter={handleMouseEnter}
@@ -670,7 +678,7 @@ function EquipmentRowWithPreview({
         </div>
         {hovered && (
           <div
-            className="absolute right-0 bottom-full z-50 mb-1 w-72 overflow-hidden rounded-xl border border-border bg-card shadow-lg"
+            className={`absolute right-0 z-50 w-72 overflow-hidden rounded-xl border border-border bg-card shadow-lg ${showAbove ? "bottom-full mb-1" : "top-full mt-1"}`}
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={handleMouseLeave}
           >
