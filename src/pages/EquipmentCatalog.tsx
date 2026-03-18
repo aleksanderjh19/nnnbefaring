@@ -201,7 +201,7 @@ const EquipmentCatalog = () => {
                 <label className="mb-1 block font-body text-xs text-muted-foreground">Kategori *</label>
                 <select
                   value={addCategory}
-                  onChange={(e) => { setAddCategory(e.target.value); setAddEquipment(""); setAddEquipmentCustom(false); }}
+                  onChange={(e) => { setAddCategory(e.target.value); setAddEquipment(""); setAddEquipmentCustom(false); setAddBrand(""); setAddBrandCustom(false); }}
                   className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 >
                   {CATEGORY_META.map((c) => (
