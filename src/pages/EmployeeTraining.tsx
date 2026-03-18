@@ -1,7 +1,15 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Plus, FileText, Trash2, ChevronRight, Printer } from "lucide-react";
+import { ArrowLeft, Plus, FileText, Trash2, ChevronRight, Printer, Wrench, Car, HardHat, Cpu, Package } from "lucide-react";
+
+const CATEGORIES = [
+  { value: "el_verktoy", label: "El.verktøy", icon: Wrench },
+  { value: "kjøretøy", label: "Kjøretøy", icon: Car },
+  { value: "utstyr", label: "Utstyr", icon: HardHat },
+  { value: "maskin", label: "Maskin", icon: Cpu },
+  { value: "annet", label: "Annet", icon: Package },
+];
 
 interface Employee {
   id: string;
@@ -13,6 +21,7 @@ interface TrainingRecord {
   id: string;
   equipment_name: string;
   equipment_type: string | null;
+  equipment_category: string | null;
   training_date: string;
   trainer_name: string;
   trainee_signature_url: string | null;
@@ -25,15 +34,16 @@ const EmployeeTraining = () => {
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [records, setRecords] = useState<TrainingRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
     const [empRes, recRes] = await Promise.all([
-      supabase.from("employees").select("*").eq("id", employeeId!).single(),
+      supabase.from("employees").select("*").eq("id", employeeId!).maybeSingle(),
       supabase.from("training_records").select("*").eq("employee_id", employeeId!).order("training_date", { ascending: false }),
     ]);
     if (empRes.data) setEmployee(empRes.data);
-    if (recRes.data) setRecords(recRes.data);
+    if (recRes.data) setRecords(recRes.data as any);
     setLoading(false);
   };
 
@@ -50,6 +60,20 @@ const EmployeeTraining = () => {
   const handlePrintAll = () => {
     navigate(`/dokumentert-opplaering/ansatt/${employeeId}/print`);
   };
+
+  const filteredRecords = activeFilter
+    ? records.filter((r) => r.equipment_category === activeFilter)
+    : records;
+
+  const getCategoryInfo = (value: string | null) => {
+    return CATEGORIES.find((c) => c.value === value) || CATEGORIES[4]; // default to "Annet"
+  };
+
+  // Count records per category
+  const categoryCounts = CATEGORIES.map((cat) => ({
+    ...cat,
+    count: records.filter((r) => (r.equipment_category || "annet") === cat.value).length,
+  })).filter((c) => c.count > 0);
 
   if (loading) {
     return (
@@ -111,49 +135,88 @@ const EmployeeTraining = () => {
           </div>
         </div>
 
+        {/* Category filter chips */}
+        {categoryCounts.length > 0 && (
+          <div className="mb-4 flex flex-wrap gap-2">
+            <button
+              onClick={() => setActiveFilter(null)}
+              className={`rounded-lg px-3 py-1.5 font-body text-xs font-medium transition-colors ${
+                activeFilter === null
+                  ? "bg-primary text-primary-foreground"
+                  : "border border-border text-muted-foreground hover:bg-secondary"
+              }`}
+            >
+              Alle ({records.length})
+            </button>
+            {categoryCounts.map((cat) => (
+              <button
+                key={cat.value}
+                onClick={() => setActiveFilter(activeFilter === cat.value ? null : cat.value)}
+                className={`rounded-lg px-3 py-1.5 font-body text-xs font-medium transition-colors ${
+                  activeFilter === cat.value
+                    ? "bg-primary text-primary-foreground"
+                    : "border border-border text-muted-foreground hover:bg-secondary"
+                }`}
+              >
+                {cat.label} ({cat.count})
+              </button>
+            ))}
+          </div>
+        )}
+
         {records.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-12 text-center">
             <FileText className="h-10 w-10 text-muted" />
             <p className="font-body text-sm text-muted-foreground">Ingen opplæringer registrert ennå</p>
           </div>
+        ) : filteredRecords.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 py-12 text-center">
+            <p className="font-body text-sm text-muted-foreground">Ingen opplæringer i denne kategorien</p>
+          </div>
         ) : (
           <div className="space-y-2">
-            {records.map((rec) => (
-              <div
-                key={rec.id}
-                className="flex items-center gap-2 rounded-xl border border-border bg-card"
-              >
-                <button
-                  onClick={() => navigate(`/dokumentert-opplaering/ansatt/${employeeId}/skjema/${rec.id}`)}
-                  className="flex min-w-0 flex-1 items-center gap-4 px-5 py-4 text-left hover:bg-secondary rounded-l-xl"
+            {filteredRecords.map((rec) => {
+              const catInfo = getCategoryInfo(rec.equipment_category);
+              const CatIcon = catInfo.icon;
+              return (
+                <div
+                  key={rec.id}
+                  className="flex items-center gap-2 rounded-xl border border-border bg-card"
                 >
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">
-                    <FileText className="h-5 w-5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-display text-sm font-bold text-foreground">{rec.equipment_name}</p>
-                    <p className="font-body text-xs text-muted-foreground">
-                      {rec.equipment_type && `${rec.equipment_type} · `}
-                      {new Date(rec.training_date).toLocaleDateString("nb-NO")} · {rec.trainer_name}
-                    </p>
-                    <div className="mt-1 flex gap-1.5">
-                      {rec.trainee_signature_url ? (
-                        <span className="rounded-full bg-success/10 px-2 py-0.5 font-body text-[10px] font-medium text-success">Signert av mottaker</span>
-                      ) : (
-                        <span className="rounded-full bg-muted px-2 py-0.5 font-body text-[10px] font-medium text-muted-foreground">Mangler signatur</span>
-                      )}
+                  <button
+                    onClick={() => navigate(`/dokumentert-opplaering/ansatt/${employeeId}/skjema/${rec.id}`)}
+                    className="flex min-w-0 flex-1 items-center gap-4 px-5 py-4 text-left hover:bg-secondary rounded-l-xl"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">
+                      <CatIcon className="h-5 w-5" />
                     </div>
-                  </div>
-                  <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
-                </button>
-                <button
-                  onClick={() => deleteRecord(rec.id)}
-                  className="flex h-full shrink-0 items-center px-3 text-destructive/60 hover:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            ))}
+                    <div className="min-w-0 flex-1">
+                      <p className="font-display text-sm font-bold text-foreground">{rec.equipment_name}</p>
+                      <p className="font-body text-xs text-muted-foreground">
+                        <span className="font-medium text-foreground/70">{catInfo.label}</span>
+                        {rec.equipment_type && ` · ${rec.equipment_type}`}
+                        {" · "}
+                        {new Date(rec.training_date).toLocaleDateString("nb-NO")} · {rec.trainer_name}
+                      </p>
+                      <div className="mt-1 flex gap-1.5">
+                        {rec.trainee_signature_url ? (
+                          <span className="rounded-full bg-success/10 px-2 py-0.5 font-body text-[10px] font-medium text-success">Signert av mottaker</span>
+                        ) : (
+                          <span className="rounded-full bg-muted px-2 py-0.5 font-body text-[10px] font-medium text-muted-foreground">Mangler signatur</span>
+                        )}
+                      </div>
+                    </div>
+                    <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+                  </button>
+                  <button
+                    onClick={() => deleteRecord(rec.id)}
+                    className="flex h-full shrink-0 items-center px-3 text-destructive/60 hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              );
+            })}
           </div>
         )}
       </main>

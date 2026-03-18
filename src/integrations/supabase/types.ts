@@ -71,6 +71,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           employee_id: string
+          equipment_category: string | null
           equipment_name: string
           equipment_type: string | null
           id: string
@@ -89,6 +90,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           employee_id: string
+          equipment_category?: string | null
           equipment_name: string
           equipment_type?: string | null
           id?: string
@@ -107,6 +109,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           employee_id?: string
+          equipment_category?: string | null
           equipment_name?: string
           equipment_type?: string | null
           id?: string

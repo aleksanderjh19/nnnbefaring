@@ -1,8 +1,23 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Camera, Save, X } from "lucide-react";
+import { ArrowLeft, Camera, Save, X, ChevronDown } from "lucide-react";
 import SignaturePad from "@/components/SignaturePad";
+
+const CATEGORIES = [
+  { value: "el_verktoy", label: "El.verktøy" },
+  { value: "kjøretøy", label: "Kjøretøy" },
+  { value: "utstyr", label: "Utstyr" },
+  { value: "maskin", label: "Maskin" },
+  { value: "annet", label: "Annet" },
+];
+
+const COMPANIES = ["Statnett SF", "Annet"];
+
+interface Employee {
+  id: string;
+  name: string;
+}
 
 const TrainingForm = () => {
   const navigate = useNavigate();
@@ -10,12 +25,14 @@ const TrainingForm = () => {
   const isEdit = !!recordId;
 
   const [employeeName, setEmployeeName] = useState("");
+  const [equipmentCategory, setEquipmentCategory] = useState("el_verktoy");
   const [equipmentName, setEquipmentName] = useState("");
   const [equipmentType, setEquipmentType] = useState("");
   const [noiseLevel, setNoiseLevel] = useState("");
   const [vibration, setVibration] = useState("");
   const [trainerName, setTrainerName] = useState("");
-  const [trainerCompany, setTrainerCompany] = useState("");
+  const [trainerCompany, setTrainerCompany] = useState("Statnett SF");
+  const [customCompany, setCustomCompany] = useState("");
   const [trainingDate, setTrainingDate] = useState(new Date().toISOString().split("T")[0]);
   const [confirmationType, setConfirmationType] = useState("practical_and_theoretical");
   const [notes, setNotes] = useState("");
@@ -24,23 +41,34 @@ const TrainingForm = () => {
   const [trainerSignature, setTrainerSignature] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const load = async () => {
-
-      const { data: emp } = await supabase.from("employees").select("name").eq("id", employeeId!).single();
-      if (emp) setEmployeeName(emp.name);
+      const [empRes, allEmpRes] = await Promise.all([
+        supabase.from("employees").select("name").eq("id", employeeId!).maybeSingle(),
+        supabase.from("employees").select("id, name").order("name"),
+      ]);
+      if (empRes.data) setEmployeeName(empRes.data.name);
+      if (allEmpRes.data) setAllEmployees(allEmpRes.data);
 
       if (isEdit) {
-        const { data: rec } = await supabase.from("training_records").select("*").eq("id", recordId!).single();
+        const { data: rec } = await supabase.from("training_records").select("*").eq("id", recordId!).maybeSingle();
         if (rec) {
           setEquipmentName(rec.equipment_name);
           setEquipmentType(rec.equipment_type || "");
+          setEquipmentCategory((rec as any).equipment_category || "el_verktoy");
           setNoiseLevel(rec.noise_level_db || "");
           setVibration(rec.vibration_ms2 || "");
           setTrainerName(rec.trainer_name);
-          setTrainerCompany(rec.trainer_company || "");
+          const company = rec.trainer_company || "";
+          if (COMPANIES.includes(company)) {
+            setTrainerCompany(company);
+          } else {
+            setTrainerCompany("Annet");
+            setCustomCompany(company);
+          }
           setTrainingDate(rec.training_date);
           setConfirmationType(rec.confirmation_type);
           setNotes(rec.notes || "");
@@ -83,6 +111,8 @@ const TrainingForm = () => {
     setPhotos((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const resolvedCompany = trainerCompany === "Annet" ? customCompany.trim() : trainerCompany;
+
   const handleSave = async () => {
     if (!equipmentName.trim() || !trainerName.trim()) return;
     setSaving(true);
@@ -90,7 +120,6 @@ const TrainingForm = () => {
     let traineeSignUrl = traineeSignature;
     let trainerSignUrl = trainerSignature;
 
-    // Upload signatures if they are data URLs (new signatures)
     if (traineeSignature?.startsWith("data:")) {
       traineeSignUrl = await uploadSignature(traineeSignature, "signatures");
     }
@@ -98,23 +127,21 @@ const TrainingForm = () => {
       trainerSignUrl = await uploadSignature(trainerSignature, "signatures");
     }
 
-    const { data: { session } } = await supabase.auth.getSession();
-
     const record = {
       employee_id: employeeId!,
       equipment_name: equipmentName.trim(),
       equipment_type: equipmentType.trim() || null,
+      equipment_category: equipmentCategory,
       noise_level_db: noiseLevel.trim() || null,
       vibration_ms2: vibration.trim() || null,
       trainer_name: trainerName.trim(),
-      trainer_company: trainerCompany.trim() || null,
+      trainer_company: resolvedCompany || null,
       training_date: trainingDate,
       confirmation_type: confirmationType,
       notes: notes.trim() || null,
       photo_urls: photos,
       trainee_signature_url: traineeSignUrl,
       trainer_signature_url: trainerSignUrl,
-      created_by: session?.user.id,
     };
 
     if (isEdit) {
@@ -157,7 +184,27 @@ const TrainingForm = () => {
       </header>
 
       <main className="mx-auto max-w-2xl px-5 py-5 space-y-6">
-        {/* Equipment info - based on Word template */}
+        {/* Category */}
+        <section className="rounded-xl border border-border bg-card p-5 space-y-4">
+          <h2 className="font-display text-sm font-bold text-foreground">Kategori</h2>
+          <div className="flex flex-wrap gap-2">
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat.value}
+                onClick={() => setEquipmentCategory(cat.value)}
+                className={`rounded-lg px-4 py-2 font-body text-sm font-medium transition-colors ${
+                  equipmentCategory === cat.value
+                    ? "bg-primary text-primary-foreground"
+                    : "border border-border bg-background text-muted-foreground hover:bg-secondary"
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Equipment info */}
         <section className="rounded-xl border border-border bg-card p-5 space-y-4">
           <h2 className="font-display text-sm font-bold text-foreground">Detaljert beskrivelse av utstyr</h2>
           <p className="font-body text-xs text-muted-foreground">
@@ -210,21 +257,42 @@ const TrainingForm = () => {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Navn *</label>
-              <input
-                value={trainerName}
-                onChange={(e) => setTrainerName(e.target.value)}
-                placeholder="Fullt navn"
-                className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              />
+              <div className="relative">
+                <select
+                  value={trainerName}
+                  onChange={(e) => setTrainerName(e.target.value)}
+                  className="h-10 w-full appearance-none rounded-lg border border-input bg-background px-3 pr-8 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="">Velg person...</option>
+                  {allEmployees.map((emp) => (
+                    <option key={emp.id} value={emp.name}>{emp.name}</option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              </div>
             </div>
             <div>
               <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Virksomhet</label>
-              <input
-                value={trainerCompany}
-                onChange={(e) => setTrainerCompany(e.target.value)}
-                placeholder="Virksomhet"
-                className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              />
+              <div className="relative">
+                <select
+                  value={trainerCompany}
+                  onChange={(e) => setTrainerCompany(e.target.value)}
+                  className="h-10 w-full appearance-none rounded-lg border border-input bg-background px-3 pr-8 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  {COMPANIES.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              </div>
+              {trainerCompany === "Annet" && (
+                <input
+                  value={customCompany}
+                  onChange={(e) => setCustomCompany(e.target.value)}
+                  placeholder="Skriv inn virksomhet"
+                  className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              )}
             </div>
           </div>
         </section>
@@ -328,7 +396,9 @@ const TrainingForm = () => {
 
           <div className="space-y-4">
             <div>
-              <p className="mb-2 font-body text-xs font-medium text-muted-foreground">Signatur, opplært person ({employeeName})</p>
+              <p className="mb-2 font-body text-xs font-medium text-muted-foreground">
+                Signatur – opplært person ({employeeName})
+              </p>
               <SignaturePad
                 value={traineeSignature}
                 onChange={setTraineeSignature}
@@ -336,7 +406,9 @@ const TrainingForm = () => {
             </div>
 
             <div>
-              <p className="mb-2 font-body text-xs font-medium text-muted-foreground">Signatur, opplæringsansvarlig</p>
+              <p className="mb-2 font-body text-xs font-medium text-muted-foreground">
+                Signatur – opplæringsansvarlig ({trainerName || "ikke valgt"})
+              </p>
               <SignaturePad
                 value={trainerSignature}
                 onChange={setTrainerSignature}
