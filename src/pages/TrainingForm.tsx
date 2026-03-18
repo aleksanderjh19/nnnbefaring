@@ -22,6 +22,7 @@ const TrainingForm = () => {
   const [employeeName, setEmployeeName] = useState("");
   const [equipmentCategory, setEquipmentCategory] = useState("el_verktoy");
   const [equipmentName, setEquipmentName] = useState("");
+  const [selectedBrand, setSelectedBrand] = useState("");
   const [equipmentType, setEquipmentType] = useState("");
   const [noiseLevel, setNoiseLevel] = useState("");
   const [vibration, setVibration] = useState("");
