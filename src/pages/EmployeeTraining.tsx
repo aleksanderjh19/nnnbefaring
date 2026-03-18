@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ArrowLeft, Plus, FileText, Trash2, ChevronRight, ChevronDown, Printer,
-  Wrench, Car, HardHat, Cpu, Package, Pencil, X, Calendar, User, Building2
+  Wrench, Car, HardHat, Cpu, Package, Pencil, X, Calendar, User, Building2, Fuel
 } from "lucide-react";
 import statnettLogo from "@/assets/statnett-logo.png";
 
