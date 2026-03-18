@@ -99,10 +99,22 @@ const Home = () => {
 
       <main className="mx-auto max-w-2xl px-5 py-5">
         {editMode && (
-          <div className="mb-4 rounded-lg border border-accent/30 bg-accent/5 px-4 py-3">
-            <p className="font-body text-sm font-medium text-accent">
-              Redigeringsmodus aktiv — du kan endre navn, slette og legge til linjer.
-            </p>
+          <div className="mb-4 space-y-3">
+            <div className="rounded-lg border border-accent/30 bg-accent/5 px-4 py-3">
+              <p className="font-body text-sm font-medium text-accent">
+                Redigeringsmodus aktiv — du kan endre navn, slette og legge til linjer.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                advanceYear();
+                setEditMode(false);
+              }}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-primary/30 bg-primary/5 py-3 font-body text-sm font-medium text-primary transition-colors hover:bg-primary/10"
+            >
+              <CalendarArrowUp className="h-4 w-4" />
+              Gå videre til {year + 1} (nullstill alle avhukinger)
+            </button>
           </div>
         )}
 
