@@ -10,7 +10,7 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => {
+  useEffect(() => { document.title = "Logg inn – Statnett"; }, []);
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) navigate("/", { replace: true });
     });

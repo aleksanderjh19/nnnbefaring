@@ -9,6 +9,7 @@ import { ProgressBar } from "@/components/ProgressBar";
 import { useMemo } from "react";
 
 const Home = () => {
+  useEffect(() => { document.title = "Ledningsbefaring – Statnett"; }, []);
   const navigate = useNavigate();
   const { getLineStats, getTotalStats, year, activeYear, isViewingPrevious, advanceYear, hasPreviousYear, viewPreviousYear, viewCurrentYear } = useInspectionState();
   const { lines, lineGroups, editMode, setEditMode, removeLine, updateLine, addLine } = useLines();

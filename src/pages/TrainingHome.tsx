@@ -44,6 +44,7 @@ const TrainingHome = () => {
   };
 
   useEffect(() => {
+    document.title = "Dokumentert Opplæring – Statnett";
     fetchEmployees();
   }, []);
 

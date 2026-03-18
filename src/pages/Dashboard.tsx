@@ -38,6 +38,7 @@ const tools = [
 ];
 
 const Dashboard = () => {
+  useEffect(() => { document.title = "Statnett Verktøy"; }, []);
   const navigate = useNavigate();
 
   return (

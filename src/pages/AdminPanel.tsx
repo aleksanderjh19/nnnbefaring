@@ -12,6 +12,8 @@ const AdminPanel = () => {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
+  useEffect(() => { document.title = "Admin – Statnett"; }, []);
+
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
