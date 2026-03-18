@@ -16,11 +16,12 @@ const LinePage = () => {
   const [filter, setFilter] = useState<FilterMode>("alle");
   const { isChecked, toggle, bulkSet, getLineStats, isViewingPrevious } = useInspectionState();
   const { lines, editMode, addMasts, removeMasts, updateLine } = useLines();
-  const line = lines.find((l) => l.id === lineId);
+
+  const currentLine = lines.find((l) => l.id === lineId);
 
   useEffect(() => {
-    document.title = line ? `${line.name} – Befaring` : "Linje – Befaring";
-  }, [line]);
+    document.title = currentLine ? `${currentLine.name} – Befaring` : "Linje – Befaring";
+  }, [currentLine]);
 
   // Pending selection state (two-step confirm)
   const [pendingSelection, setPendingSelection] = useState<Set<number>>(new Set());
