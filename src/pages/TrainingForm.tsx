@@ -4,11 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Camera, Save, X, ChevronDown } from "lucide-react";
 import SignaturePad from "@/components/SignaturePad";
 
-const CATEGORIES = [
+const FALLBACK_CATEGORIES = [
   { value: "bensinverktoy", label: "Bensin-/motorverktøy" },
   { value: "el_verktoy", label: "El.verktøy" },
   { value: "kjøretøy", label: "Kjøretøy" },
   { value: "maskin", label: "Maskin" },
+  { value: "traktor_utstyr", label: "Traktor m/utstyr" },
   { value: "utstyr", label: "Utstyr" },
   { value: "annet", label: "Annet" },
 ];
@@ -55,10 +56,26 @@ const TrainingForm = () => {
   const [catalogRows, setCatalogRows] = useState<CatalogRow[]>([]);
 
   useEffect(() => {
-    supabase.from("equipment_catalog").select("category_value, equipment_name, brand, type").then(({ data }) => {
-      if (data) setCatalogRows(data as CatalogRow[]);
+    supabase.from("equipment_catalog").select("category_value, category_label, equipment_name, brand, type").then(({ data }) => {
+      if (data) setCatalogRows(data as (CatalogRow & { category_label: string })[]);
     });
   }, []);
+
+  const categories = useMemo(() => {
+    const dbCats = new Map<string, string>();
+    catalogRows.forEach((r: any) => {
+      if (r.category_value && r.category_label) {
+        dbCats.set(r.category_value, r.category_label);
+      }
+    });
+    const merged = [...FALLBACK_CATEGORIES];
+    dbCats.forEach((label, value) => {
+      if (!merged.some((c) => c.value === value)) {
+        merged.push({ value, label });
+      }
+    });
+    return merged;
+  }, [catalogRows]);
 
   const getEquipmentForCategory = (cat: string) => {
     const names = [...new Set(catalogRows.filter((r) => r.category_value === cat).map((r) => r.equipment_name))];
@@ -159,9 +176,34 @@ const TrainingForm = () => {
 
     const fullType = [selectedBrand, equipmentType].filter(Boolean).join(" ") || null;
 
+    // Auto-add to catalog if brand/type doesn't exist
+    const catLabel = categories.find((c) => c.value === equipmentCategory)?.label || equipmentCategory;
+    const trimmedName = equipmentName.trim();
+    const trimmedBrand = selectedBrand.trim() || null;
+    const trimmedType = equipmentType.trim() || null;
+
+    if (trimmedName) {
+      const existsInCatalog = catalogRows.some(
+        (r) =>
+          r.category_value === equipmentCategory &&
+          r.equipment_name === trimmedName &&
+          (r.brand || null) === trimmedBrand &&
+          (r.type || null) === trimmedType
+      );
+      if (!existsInCatalog) {
+        await supabase.from("equipment_catalog").insert({
+          category_value: equipmentCategory,
+          category_label: catLabel,
+          equipment_name: trimmedName,
+          brand: trimmedBrand,
+          type: trimmedType,
+        });
+      }
+    }
+
     const record = {
       employee_id: employeeId!,
-      equipment_name: equipmentName.trim(),
+      equipment_name: trimmedName,
       equipment_type: fullType,
       equipment_category: equipmentCategory,
       noise_level_db: noiseLevel.trim() || null,
@@ -220,7 +262,7 @@ const TrainingForm = () => {
         <section className="rounded-xl border border-border bg-card p-5 space-y-4">
           <h2 className="font-display text-sm font-bold text-foreground">Kategori</h2>
           <div className="flex flex-wrap gap-2">
-            {CATEGORIES.map((cat) => (
+            {categories.map((cat) => (
               <button
                 key={cat.value}
                 onClick={() => {
