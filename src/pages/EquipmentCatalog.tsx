@@ -7,15 +7,17 @@ import {
 } from "lucide-react";
 
 const LOCATIONS = [
-  "Bjerka (oppmøtested)",
-  "Stasjon Nedre Røssåga",
-  "Stasjon Øvre Røssåga",
-  "Stasjon Langvatn",
-  "Stasjon Bjerka",
-  "Stasjon Bleikvassli",
-  "Stasjon Sjøfossen",
-  "Stasjon Sundsfjord",
-  "Stasjon Haukvik",
+  "Bjerka",
+  "Fauske",
+  "KBV, Stasjon: Kobbvatnet",
+  "KOL, Stasjon: Kolsvik",
+  "MAR, Stasjon: Marka",
+  "NMS, Stasjon: Namsskogan",
+  "NRØ, Stasjon: Nedre Røssåga",
+  "RAA, Stasjon: Rana",
+  "SAL, Stasjon: Salten",
+  "SVN, Stasjon: Svartisen",
+  "TRO, Stasjon: Trofors",
   "Annet",
 ];
 
