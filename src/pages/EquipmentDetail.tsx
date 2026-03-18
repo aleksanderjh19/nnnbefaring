@@ -104,6 +104,8 @@ const EquipmentDetail = () => {
       category: item.category_value,
       equipment: item.equipment_name,
     });
+    if (item.brand) params.set("brand", item.brand);
+    if (item.type) params.set("type", item.type);
     navigate(`/dokumentert-opplaering/ansatt/${employeeId}/ny?${params.toString()}`);
   };
 
