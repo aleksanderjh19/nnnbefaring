@@ -6,6 +6,19 @@ import {
   Wrench, Car, HardHat, Cpu, Package, Fuel, Search, X, Tractor
 } from "lucide-react";
 
+const LOCATIONS = [
+  "Bjerka (oppmøtested)",
+  "Stasjon Nedre Røssåga",
+  "Stasjon Øvre Røssåga",
+  "Stasjon Langvatn",
+  "Stasjon Bjerka",
+  "Stasjon Bleikvassli",
+  "Stasjon Sjøfossen",
+  "Stasjon Sundsfjord",
+  "Stasjon Haukvik",
+  "Annet",
+];
+
 const CATEGORY_META = [
   { value: "bensinverktoy", label: "Bensin-/motorverktøy", icon: Fuel },
   { value: "el_verktoy", label: "El.verktøy", icon: Wrench },
@@ -45,6 +58,8 @@ const EquipmentCatalog = () => {
   const [addEquipment, setAddEquipment] = useState("");
   const [addBrand, setAddBrand] = useState("");
   const [addType, setAddType] = useState("");
+  const [addLocation, setAddLocation] = useState("");
+  const [addCustomLocation, setAddCustomLocation] = useState("");
 
   const fetchCatalog = async () => {
     setLoading(true);
@@ -91,16 +106,20 @@ const EquipmentCatalog = () => {
   const handleAdd = async () => {
     if (!addEquipment.trim()) return;
     const catLabel = CATEGORY_META.find((c) => c.value === addCategory)?.label || addCategory;
+    const resolvedLocation = addLocation === "Annet" ? addCustomLocation.trim() : addLocation;
     await supabase.from("equipment_catalog").insert({
       category_value: addCategory,
       category_label: catLabel,
       equipment_name: addEquipment.trim(),
       brand: addBrand.trim() || null,
       type: addType.trim() || null,
+      location: resolvedLocation || null,
     });
     setAddEquipment("");
     setAddBrand("");
     setAddType("");
+    setAddLocation("");
+    setAddCustomLocation("");
     setShowAdd(false);
     fetchCatalog();
   };
@@ -211,6 +230,27 @@ const EquipmentCatalog = () => {
                   className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
+              <div className="col-span-2">
+                <label className="mb-1 block font-body text-xs text-muted-foreground">Plassering</label>
+                <select
+                  value={addLocation}
+                  onChange={(e) => setAddLocation(e.target.value)}
+                  className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="">Ingen plassering</option>
+                  {LOCATIONS.map((loc) => (
+                    <option key={loc} value={loc}>{loc}</option>
+                  ))}
+                </select>
+                {addLocation === "Annet" && (
+                  <input
+                    value={addCustomLocation}
+                    onChange={(e) => setAddCustomLocation(e.target.value)}
+                    placeholder="Skriv inn plassering"
+                    className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                )}
+              </div>
             </div>
             <div className="flex justify-end">
               <button
@@ -309,12 +349,16 @@ const EquipmentCatalog = () => {
                                   </thead>
                                   <tbody>
                                     {eq.rows.map((row) => (
-                                      <tr key={row.id} className="border-t border-border">
+                                      <tr
+                                        key={row.id}
+                                        className="border-t border-border cursor-pointer hover:bg-secondary/50"
+                                        onClick={() => navigate(`/dokumentert-opplaering/katalog/${row.id}`)}
+                                      >
                                         <td className="px-4 py-2 font-body text-sm text-foreground">{row.brand || "–"}</td>
                                         <td className="px-4 py-2 font-body text-sm text-foreground">{row.type || "–"}</td>
                                         <td className="px-4 py-2 text-right">
                                           <button
-                                            onClick={() => handleDelete(row.id)}
+                                            onClick={(e) => { e.stopPropagation(); handleDelete(row.id); }}
                                             className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                                             title="Slett"
                                           >

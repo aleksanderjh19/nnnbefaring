@@ -44,30 +44,42 @@ export type Database = {
           category_label: string
           category_value: string
           created_at: string
+          description: string | null
           equipment_name: string
           id: string
           image_url: string | null
+          location: string | null
+          noise_level_db: string | null
           type: string | null
+          vibration_ms2: string | null
         }
         Insert: {
           brand?: string | null
           category_label: string
           category_value: string
           created_at?: string
+          description?: string | null
           equipment_name: string
           id?: string
           image_url?: string | null
+          location?: string | null
+          noise_level_db?: string | null
           type?: string | null
+          vibration_ms2?: string | null
         }
         Update: {
           brand?: string | null
           category_label?: string
           category_value?: string
           created_at?: string
+          description?: string | null
           equipment_name?: string
           id?: string
           image_url?: string | null
+          location?: string | null
+          noise_level_db?: string | null
           type?: string | null
+          vibration_ms2?: string | null
         }
         Relationships: []
       }

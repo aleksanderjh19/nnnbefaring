@@ -13,6 +13,7 @@ import EmployeeTraining from "./pages/EmployeeTraining.tsx";
 import TrainingForm from "./pages/TrainingForm.tsx";
 import TrainingPrint from "./pages/TrainingPrint.tsx";
 import EquipmentCatalog from "./pages/EquipmentCatalog.tsx";
+import EquipmentDetail from "./pages/EquipmentDetail.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="/dokumentert-opplaering/ansatt/:employeeId/skjema/:recordId" element={<TrainingForm />} />
             <Route path="/dokumentert-opplaering/ansatt/:employeeId/print" element={<TrainingPrint />} />
             <Route path="/dokumentert-opplaering/katalog" element={<EquipmentCatalog />} />
+            <Route path="/dokumentert-opplaering/katalog/:itemId" element={<EquipmentDetail />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
