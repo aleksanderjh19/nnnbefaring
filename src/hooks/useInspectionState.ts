@@ -38,6 +38,16 @@ export function useInspectionState() {
     });
   }, []);
 
+  const bulkSet = useCallback((lineId: string, mastNumbers: number[], value: boolean) => {
+    setState((prev) => {
+      const lineState = { ...(prev[lineId] ?? {}) };
+      for (const m of mastNumbers) {
+        lineState[m] = value;
+      }
+      return { ...prev, [lineId]: lineState };
+    });
+  }, []);
+
   const getLineStats = useCallback(
     (lineId: string, totalMasts: number) => {
       const lineState = state[lineId] ?? {};
@@ -61,5 +71,5 @@ export function useInspectionState() {
     [state]
   );
 
-  return { isChecked, toggle, getLineStats, getTotalStats };
+  return { isChecked, toggle, bulkSet, getLineStats, getTotalStats };
 }

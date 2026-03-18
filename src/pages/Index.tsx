@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useCallback } from "react";
 import { Search, ChevronDown, ChevronRight } from "lucide-react";
 import { lines, getMastNumbers } from "@/data/lines";
 import { useInspectionState } from "@/hooks/useInspectionState";
@@ -12,7 +12,13 @@ const Index = () => {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterMode>("alle");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { isChecked, toggle, getLineStats, getTotalStats } = useInspectionState();
+  const { isChecked, toggle, bulkSet, getLineStats, getTotalStats } = useInspectionState();
+
+  // Drag-to-select state
+  const isDragging = useRef(false);
+  const dragTargetValue = useRef<boolean>(true);
+  const draggedMasts = useRef<Set<number>>(new Set());
+  const listRef = useRef<HTMLDivElement>(null);
 
   const currentLine = lines.find((l) => l.id === selectedLine)!;
   const mastNumbers = useMemo(() => getMastNumbers(currentLine), [currentLine]);
@@ -41,6 +47,82 @@ const Index = () => {
     return result;
   }, [mastNumbers, search, filter, isChecked, currentLine.id]);
 
+  const getMastFromPoint = useCallback((x: number, y: number): number | null => {
+    const el = document.elementFromPoint(x, y);
+    if (!el) return null;
+    const row = el.closest("[data-mast]");
+    if (!row) return null;
+    return Number(row.getAttribute("data-mast"));
+  }, []);
+
+  const handleDragStart = useCallback(
+    (mastNumber: number) => {
+      isDragging.current = true;
+      const currentlyChecked = isChecked(currentLine.id, mastNumber);
+      dragTargetValue.current = !currentlyChecked;
+      draggedMasts.current = new Set([mastNumber]);
+      bulkSet(currentLine.id, [mastNumber], !currentlyChecked);
+    },
+    [isChecked, currentLine.id, bulkSet]
+  );
+
+  const handleDragMove = useCallback(
+    (x: number, y: number) => {
+      if (!isDragging.current) return;
+      const mast = getMastFromPoint(x, y);
+      if (mast === null || draggedMasts.current.has(mast)) return;
+      draggedMasts.current.add(mast);
+      bulkSet(currentLine.id, [mast], dragTargetValue.current);
+    },
+    [getMastFromPoint, currentLine.id, bulkSet]
+  );
+
+  const handleDragEnd = useCallback(() => {
+    isDragging.current = false;
+    draggedMasts.current.clear();
+  }, []);
+
+  // Mouse events
+  const onMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      const mast = getMastFromPoint(e.clientX, e.clientY);
+      if (mast !== null) {
+        e.preventDefault();
+        handleDragStart(mast);
+      }
+    },
+    [getMastFromPoint, handleDragStart]
+  );
+
+  const onMouseMove = useCallback(
+    (e: React.MouseEvent) => {
+      handleDragMove(e.clientX, e.clientY);
+    },
+    [handleDragMove]
+  );
+
+  // Touch events
+  const onTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      const touch = e.touches[0];
+      const mast = getMastFromPoint(touch.clientX, touch.clientY);
+      if (mast !== null) {
+        handleDragStart(mast);
+      }
+    },
+    [getMastFromPoint, handleDragStart]
+  );
+
+  const onTouchMove = useCallback(
+    (e: React.TouchEvent) => {
+      if (!isDragging.current) return;
+      e.preventDefault();
+      const touch = e.touches[0];
+      handleDragMove(touch.clientX, touch.clientY);
+    },
+    [handleDragMove]
+  );
+
   return (
     <div className="flex min-h-screen bg-background">
       {/* Mobile overlay */}
@@ -62,12 +144,10 @@ const Index = () => {
             <p className="mt-0.5 font-body text-xs text-muted-foreground">NNN · 2026</p>
           </div>
 
-          {/* Total progress */}
           <div className="border-b border-border px-5 py-3">
             <ProgressBar done={totalStats.done} total={totalStats.total} percent={totalStats.percent} />
           </div>
 
-          {/* Line list */}
           <nav className="flex-1 overflow-y-auto py-2">
             {lines.map((line) => {
               const masts = getMastNumbers(line);
@@ -109,7 +189,6 @@ const Index = () => {
 
       {/* Main content */}
       <main className="flex min-w-0 flex-1 flex-col">
-        {/* Top bar */}
         <header className="sticky top-0 z-20 border-b border-border bg-card/95 backdrop-blur-sm">
           <div className="flex items-center gap-3 px-4 py-3 lg:px-6">
             <button
@@ -124,12 +203,11 @@ const Index = () => {
                 {currentLine.name}
               </h2>
               <p className="font-body text-xs text-muted-foreground">
-                {lineStats.done} av {lineStats.total} master utført
+                {lineStats.done} av {lineStats.total} master utført · Dra for å markere flere
               </p>
             </div>
           </div>
 
-          {/* Search and filter */}
           <div className="flex items-center gap-2 border-t border-border px-4 py-2 lg:px-6">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -156,15 +234,25 @@ const Index = () => {
             </div>
           </div>
 
-          {/* Line progress */}
           <div className="px-4 pb-3 lg:px-6">
             <ProgressBar done={lineStats.done} total={lineStats.total} percent={lineStats.percent} />
           </div>
         </header>
 
-        {/* Mast list */}
-        <div className="flex-1 px-4 py-3 lg:px-6">
-          <div className="mx-auto grid max-w-3xl gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Mast list - single column, vertical */}
+        <div
+          ref={listRef}
+          className="flex-1 select-none px-4 py-3 lg:px-6"
+          onMouseDown={onMouseDown}
+          onMouseMove={onMouseMove}
+          onMouseUp={handleDragEnd}
+          onMouseLeave={handleDragEnd}
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={handleDragEnd}
+          onTouchCancel={handleDragEnd}
+        >
+          <div className="mx-auto flex max-w-lg flex-col gap-1.5">
             {filteredMasts.map((mastNumber) => (
               <MastRow
                 key={mastNumber}
