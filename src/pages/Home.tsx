@@ -228,7 +228,7 @@ const Home = () => {
 
             return (
               <section key={group.name}>
-                <h2 className="mb-2 font-display text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                <h2 className="mb-2 font-display text-xs font-bold uppercase tracking-widest text-primary">
                   {group.label}
                 </h2>
                 <div className="space-y-2">
