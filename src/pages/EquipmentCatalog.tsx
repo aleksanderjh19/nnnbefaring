@@ -6,6 +6,19 @@ import {
   Wrench, Car, HardHat, Cpu, Package, Fuel, Search, X, Tractor
 } from "lucide-react";
 
+const LOCATIONS = [
+  "Bjerka (oppmøtested)",
+  "Stasjon Nedre Røssåga",
+  "Stasjon Øvre Røssåga",
+  "Stasjon Langvatn",
+  "Stasjon Bjerka",
+  "Stasjon Bleikvassli",
+  "Stasjon Sjøfossen",
+  "Stasjon Sundsfjord",
+  "Stasjon Haukvik",
+  "Annet",
+];
+
 const CATEGORY_META = [
   { value: "bensinverktoy", label: "Bensin-/motorverktøy", icon: Fuel },
   { value: "el_verktoy", label: "El.verktøy", icon: Wrench },
