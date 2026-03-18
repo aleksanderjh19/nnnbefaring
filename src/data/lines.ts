@@ -6,18 +6,18 @@ export interface LineData {
 }
 
 export const lines: LineData[] = [
-  { id: "linje-1", name: "Linje 1", mastStart: 2, mastEnd: 160 },
-  { id: "linje-2", name: "Linje 2", mastStart: 1, mastEnd: 105 },
-  { id: "linje-3", name: "Linje 3", mastStart: 1, mastEnd: 105 },
-  { id: "linje-4", name: "Linje 4", mastStart: 1, mastEnd: 179 },
-  { id: "linje-5", name: "Linje 5", mastStart: 1, mastEnd: 101 },
-  { id: "linje-6", name: "Linje 6", mastStart: 1, mastEnd: 109 },
-  { id: "linje-7", name: "Linje 7", mastStart: 1, mastEnd: 123 },
-  { id: "linje-8", name: "Linje 8", mastStart: 1, mastEnd: 191 },
-  { id: "linje-9", name: "Linje 9", mastStart: 1, mastEnd: 307 },
-  { id: "linje-10", name: "Linje 10", mastStart: 1, mastEnd: 449 },
-  { id: "linje-11", name: "Linje 11", mastStart: 1, mastEnd: 96 },
-  { id: "linje-12", name: "Linje 12", mastStart: 1, mastEnd: 7 },
+  { id: "L0199", name: "L0199", mastStart: 2, mastEnd: 160 },
+  { id: "L0550", name: "L0550", mastStart: 1, mastEnd: 105 },
+  { id: "L0552", name: "L0552", mastStart: 1, mastEnd: 105 },
+  { id: "L0554", name: "L0554", mastStart: 1, mastEnd: 179 },
+  { id: "L0555", name: "L0555", mastStart: 1, mastEnd: 101 },
+  { id: "L0559", name: "L0559", mastStart: 1, mastEnd: 109 },
+  { id: "L0801", name: "L0801", mastStart: 1, mastEnd: 123 },
+  { id: "L0803", name: "L0803", mastStart: 1, mastEnd: 191 },
+  { id: "L0805", name: "L0805", mastStart: 1, mastEnd: 307 },
+  { id: "L0861", name: "L0861", mastStart: 1, mastEnd: 449 },
+  { id: "L0901", name: "L0901", mastStart: 1, mastEnd: 96 },
+  { id: "L0902", name: "L0902", mastStart: 1, mastEnd: 7 },
 ];
 
 export function getMastNumbers(line: LineData): number[] {
