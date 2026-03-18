@@ -71,7 +71,7 @@ const Home = () => {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
         <div className="mx-auto max-w-2xl px-5 py-6 space-y-4">
-          <div className="relative w-full overflow-hidden rounded-xl shadow-lg" style={{ aspectRatio: "21/9" }}>
+          <div className="relative w-full overflow-hidden rounded-xl shadow-lg" style={{ aspectRatio: "3/1" }}>
             <video
               src={heroVideo}
               autoPlay
