@@ -38,6 +38,36 @@ export type Database = {
         }
         Relationships: []
       }
+      equipment_catalog: {
+        Row: {
+          brand: string | null
+          category_label: string
+          category_value: string
+          created_at: string
+          equipment_name: string
+          id: string
+          type: string | null
+        }
+        Insert: {
+          brand?: string | null
+          category_label: string
+          category_value: string
+          created_at?: string
+          equipment_name: string
+          id?: string
+          type?: string | null
+        }
+        Update: {
+          brand?: string | null
+          category_label?: string
+          category_value?: string
+          created_at?: string
+          equipment_name?: string
+          id?: string
+          type?: string | null
+        }
+        Relationships: []
+      }
       inspection_checks: {
         Row: {
           checked: boolean

@@ -3,9 +3,22 @@ import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Camera, Save, X, ChevronDown } from "lucide-react";
 import SignaturePad from "@/components/SignaturePad";
-import { EQUIPMENT_CATALOG, getEquipmentForCategory, getBrandsForEquipment, getTypesForBrand } from "@/data/equipmentCatalog";
 
-const CATEGORIES = EQUIPMENT_CATALOG.map((c) => ({ value: c.value, label: c.label }));
+const CATEGORIES = [
+  { value: "bensinverktoy", label: "Bensin-/motorverktøy" },
+  { value: "el_verktoy", label: "El.verktøy" },
+  { value: "kjøretøy", label: "Kjøretøy" },
+  { value: "maskin", label: "Maskin" },
+  { value: "utstyr", label: "Utstyr" },
+  { value: "annet", label: "Annet" },
+];
+
+interface CatalogRow {
+  category_value: string;
+  equipment_name: string;
+  brand: string | null;
+  type: string | null;
+}
 
 const COMPANIES = ["Statnett SF", "Annet"];
 
@@ -39,6 +52,27 @@ const TrainingForm = () => {
   const [loading, setLoading] = useState(true);
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [catalogRows, setCatalogRows] = useState<CatalogRow[]>([]);
+
+  useEffect(() => {
+    supabase.from("equipment_catalog").select("category_value, equipment_name, brand, type").then(({ data }) => {
+      if (data) setCatalogRows(data as CatalogRow[]);
+    });
+  }, []);
+
+  const getEquipmentForCategory = (cat: string) => {
+    const names = [...new Set(catalogRows.filter((r) => r.category_value === cat).map((r) => r.equipment_name))];
+    return names.map((name) => ({ name }));
+  };
+
+  const getBrandsForEquipment = (cat: string, eqName: string) => {
+    const brands = [...new Set(catalogRows.filter((r) => r.category_value === cat && r.equipment_name === eqName && r.brand).map((r) => r.brand!))];
+    return brands.map((brand) => ({ brand }));
+  };
+
+  const getTypesForBrand = (cat: string, eqName: string, brand: string) => {
+    return catalogRows.filter((r) => r.category_value === cat && r.equipment_name === eqName && r.brand === brand && r.type).map((r) => r.type!);
+  };
 
   useEffect(() => {
     const load = async () => {
