@@ -622,39 +622,7 @@ const TrainingForm = () => {
           </div>
         </section>
 
-        {/* Photos */}
-        <section className="rounded-xl border border-border bg-card p-5 space-y-4">
-          <h2 className="font-display text-sm font-bold text-foreground">Bilder av utstyr</h2>
-          <div className="flex flex-wrap gap-3">
-            {photos.map((url, i) => (
-              <div key={i} className="relative h-24 w-24 overflow-hidden rounded-lg border border-border">
-                <img src={url} alt={`Bilde ${i + 1}`} className="h-full w-full object-cover" />
-                <button
-                  onClick={() => removePhoto(i)}
-                  className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            ))}
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="flex h-24 w-24 flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-border text-muted-foreground hover:border-primary hover:text-primary"
-            >
-              <Camera className="h-5 w-5" />
-              <span className="font-body text-[10px]">Ta bilde</span>
-            </button>
-          </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            multiple
-            onChange={handlePhotoCapture}
-            className="hidden"
-          />
-        </section>
+
 
         {/* Signatures */}
         <section className="rounded-xl border border-border bg-card p-5 space-y-4">
