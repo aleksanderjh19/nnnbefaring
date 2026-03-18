@@ -14,8 +14,12 @@ const LinePage = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterMode>("alle");
-  const { isChecked, toggle, bulkSet, getLineStats } = useInspectionState();
+  const { isChecked, toggle, bulkSet, getLineStats, isViewingPrevious } = useInspectionState();
   const { lines, editMode, addMasts, removeMasts, updateLine } = useLines();
+
+  // Pending selection state (two-step confirm)
+  const [pendingSelection, setPendingSelection] = useState<Set<number>>(new Set());
+  const pendingAction = useRef<"check" | "uncheck">("check");
 
   // Edit mode state
   const [addInput, setAddInput] = useState("");
