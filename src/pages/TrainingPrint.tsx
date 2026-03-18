@@ -117,6 +117,12 @@ const TrainingPrint = () => {
               key={rec.id}
               className="print-page mb-8 rounded-xl border border-border bg-white p-8 shadow-sm print:mb-0 print:rounded-none print:border-0 print:shadow-none"
             >
+              {/* Statnett header */}
+              <div className="mb-6 flex items-center justify-between rounded-lg bg-[hsl(155,100%,15%)] px-6 py-4 print:rounded-none print:-mx-8 print:-mt-8 print:mb-6 print:px-8 print:py-5">
+                <img src={statnettLogo} alt="Statnett" className="h-6 print:h-7" />
+                <span className="font-display text-xs font-bold uppercase tracking-widest text-white/80">Dokumentert opplæring</span>
+              </div>
+
               {/* Title */}
               <div className="mb-6 border-b-2 border-foreground/20 pb-4 print:border-foreground">
                 <h2 className="text-xl font-bold text-foreground" style={{ fontFamily: "Inter, sans-serif" }}>
