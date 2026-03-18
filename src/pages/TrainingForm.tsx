@@ -15,10 +15,12 @@ const FALLBACK_CATEGORIES = [
 ];
 
 interface CatalogRow {
+  id: string;
   category_value: string;
   equipment_name: string;
   brand: string | null;
   type: string | null;
+  image_url: string | null;
 }
 
 const COMPANIES = ["Statnett SF", "Annet"];
@@ -53,10 +55,11 @@ const TrainingForm = () => {
   const [loading, setLoading] = useState(true);
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const equipmentPhotoRef = useRef<HTMLInputElement>(null);
   const [catalogRows, setCatalogRows] = useState<CatalogRow[]>([]);
 
   useEffect(() => {
-    supabase.from("equipment_catalog").select("category_value, category_label, equipment_name, brand, type").then(({ data }) => {
+    supabase.from("equipment_catalog").select("id, category_value, category_label, equipment_name, brand, type, image_url").then(({ data }) => {
       if (data) setCatalogRows(data as (CatalogRow & { category_label: string })[]);
     });
   }, []);
@@ -89,6 +92,34 @@ const TrainingForm = () => {
 
   const getTypesForBrand = (cat: string, eqName: string, brand: string) => {
     return catalogRows.filter((r) => r.category_value === cat && r.equipment_name === eqName && r.brand === brand && r.type).map((r) => r.type!);
+  };
+
+  // Find the matching catalog row for current selection
+  const matchingCatalogRow = useMemo(() => {
+    return catalogRows.find(
+      (r) =>
+        r.category_value === equipmentCategory &&
+        r.equipment_name === equipmentName &&
+        (r.brand || "") === selectedBrand &&
+        (r.type || "") === equipmentType
+    ) || null;
+  }, [catalogRows, equipmentCategory, equipmentName, selectedBrand, equipmentType]);
+
+  const catalogImageUrl = matchingCatalogRow?.image_url || null;
+
+  const handleEquipmentPhotoCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const file = files[0];
+    const url = await uploadFile(file, "equipment-photos");
+    if (url && matchingCatalogRow) {
+      // Update existing catalog row with image
+      await supabase.from("equipment_catalog").update({ image_url: url }).eq("id", matchingCatalogRow.id);
+      setCatalogRows((prev) => prev.map((r) => r.id === matchingCatalogRow.id ? { ...r, image_url: url } : r));
+    } else if (url) {
+      // No matching row yet - save photo to training record photos
+      setPhotos((prev) => [...prev, url]);
+    }
   };
 
   // Auto-select type when brand has only one type
@@ -411,6 +442,79 @@ const TrainingForm = () => {
               />
             </div>
           </div>
+
+          {/* Equipment photo - from catalog or capture new */}
+          <div className="space-y-2">
+            <label className="block font-body text-xs font-medium text-muted-foreground">Bilde av utstyr</label>
+            {catalogImageUrl ? (
+              <div className="relative inline-block">
+                <img
+                  src={catalogImageUrl}
+                  alt={equipmentName}
+                  className="h-32 w-32 rounded-lg border border-border object-cover"
+                />
+                <button
+                  onClick={() => equipmentPhotoRef.current?.click()}
+                  className="absolute bottom-1 right-1 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground shadow"
+                  title="Bytt bilde"
+                >
+                  <Camera className="h-3 w-3" />
+                </button>
+              </div>
+            ) : photos.length > 0 ? (
+              <div className="flex flex-wrap gap-3">
+                {photos.map((url, i) => (
+                  <div key={i} className="relative h-24 w-24 overflow-hidden rounded-lg border border-border">
+                    <img src={url} alt={`Bilde ${i + 1}`} className="h-full w-full object-cover" />
+                    <button
+                      onClick={() => removePhoto(i)}
+                      className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex h-24 w-24 flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-border text-muted-foreground hover:border-primary hover:text-primary"
+                >
+                  <Camera className="h-5 w-5" />
+                  <span className="font-body text-[10px]">Legg til</span>
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  if (matchingCatalogRow) {
+                    equipmentPhotoRef.current?.click();
+                  } else {
+                    fileInputRef.current?.click();
+                  }
+                }}
+                className="flex h-24 w-32 flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-border text-muted-foreground hover:border-primary hover:text-primary"
+              >
+                <Camera className="h-5 w-5" />
+                <span className="font-body text-[10px]">Ta bilde</span>
+              </button>
+            )}
+            <input
+              ref={equipmentPhotoRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleEquipmentPhotoCapture}
+              className="hidden"
+            />
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              multiple
+              onChange={handlePhotoCapture}
+              className="hidden"
+            />
+          </div>
         </section>
 
         {/* Trainer info */}
@@ -518,39 +622,7 @@ const TrainingForm = () => {
           </div>
         </section>
 
-        {/* Photos */}
-        <section className="rounded-xl border border-border bg-card p-5 space-y-4">
-          <h2 className="font-display text-sm font-bold text-foreground">Bilder av utstyr</h2>
-          <div className="flex flex-wrap gap-3">
-            {photos.map((url, i) => (
-              <div key={i} className="relative h-24 w-24 overflow-hidden rounded-lg border border-border">
-                <img src={url} alt={`Bilde ${i + 1}`} className="h-full w-full object-cover" />
-                <button
-                  onClick={() => removePhoto(i)}
-                  className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            ))}
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="flex h-24 w-24 flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-border text-muted-foreground hover:border-primary hover:text-primary"
-            >
-              <Camera className="h-5 w-5" />
-              <span className="font-body text-[10px]">Ta bilde</span>
-            </button>
-          </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            multiple
-            onChange={handlePhotoCapture}
-            className="hidden"
-          />
-        </section>
+
 
         {/* Signatures */}
         <section className="rounded-xl border border-border bg-card p-5 space-y-4">
