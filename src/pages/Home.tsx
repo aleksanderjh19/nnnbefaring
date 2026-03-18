@@ -15,6 +15,9 @@ const Home = () => {
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [renameField, setRenameField] = useState<"name" | "description">("name");
+  const [showCodePrompt, setShowCodePrompt] = useState(false);
+  const [codeInput, setCodeInput] = useState("");
+  const [codeError, setCodeError] = useState(false);
 
   // Add line dialog
   const [showAddLine, setShowAddLine] = useState(false);
