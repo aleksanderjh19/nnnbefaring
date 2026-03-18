@@ -5,6 +5,7 @@ import {
   ArrowLeft, Plus, FileText, Trash2, ChevronRight, ChevronDown, Printer,
   Wrench, Car, HardHat, Cpu, Package, Pencil, X, Calendar, User, Building2
 } from "lucide-react";
+import statnettLogo from "@/assets/statnett-logo.png";
 
 const CATEGORIES = [
   { value: "el_verktoy", label: "El.verktøy", icon: Wrench },
@@ -239,7 +240,13 @@ const EmployeeTraining = () => {
 
                   {/* Expanded preview */}
                   {isExpanded && (
-                    <div className="border-t border-border bg-secondary/30 px-5 py-4 space-y-4">
+                    <div className="border-t border-border bg-secondary/30 space-y-4">
+                      {/* Statnett header */}
+                      <div className="flex items-center justify-between bg-[hsl(155,100%,15%)] px-5 py-3">
+                        <img src={statnettLogo} alt="Statnett" className="h-5" />
+                        <span className="font-display text-xs font-bold text-white/80 tracking-wider uppercase">Dokumentert opplæring</span>
+                      </div>
+                      <div className="px-5 pb-4 space-y-4">
                       {/* Action buttons */}
                       <div className="flex gap-2">
                         <button
@@ -293,6 +300,7 @@ const EmployeeTraining = () => {
                       <div className="grid grid-cols-2 gap-3">
                         <SignaturePreview label={`Signatur – ${employee.name}`} url={rec.trainee_signature_url} />
                         <SignaturePreview label={`Signatur – ${rec.trainer_name}`} url={rec.trainer_signature_url} />
+                      </div>
                       </div>
                     </div>
                   )}
