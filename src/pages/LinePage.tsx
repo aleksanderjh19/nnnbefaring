@@ -31,6 +31,10 @@ const LinePage = () => {
   const currentLine = lines.find((l) => l.id === lineId);
   const safeLineId = currentLine?.id ?? "";
 
+  useEffect(() => {
+    document.title = currentLine ? `${currentLine.name} – Befaring` : "Linje – Befaring";
+  }, [currentLine]);
+
   const isDragging = useRef(false);
   const dragTargetValue = useRef<boolean>(true);
   const draggedMasts = useRef<Set<number>>(new Set());

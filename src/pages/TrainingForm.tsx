@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Camera, Save, X, ChevronDown } from "lucide-react";
@@ -35,6 +35,8 @@ const TrainingForm = () => {
   const { employeeId, recordId } = useParams<{ employeeId: string; recordId?: string }>();
   const [searchParams] = useSearchParams();
   const isEdit = !!recordId;
+
+  useEffect(() => { document.title = isEdit ? "Rediger opplæring – Statnett" : "Ny opplæring – Statnett"; }, [isEdit]);
 
   const [employeeName, setEmployeeName] = useState("");
   const [equipmentCategory, setEquipmentCategory] = useState(searchParams.get("category") || "el_verktoy");

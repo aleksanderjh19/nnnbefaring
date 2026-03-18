@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Cable, Landmark, Zap, ChevronRight, GraduationCap } from "lucide-react";
 import heroVideo from "@/assets/hero-video.mp4";
@@ -38,6 +39,7 @@ const tools = [
 ];
 
 const Dashboard = () => {
+  useEffect(() => { document.title = "Statnett Verktøy"; }, []);
   const navigate = useNavigate();
 
   return (
