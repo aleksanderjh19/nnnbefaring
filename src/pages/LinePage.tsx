@@ -88,9 +88,13 @@ const LinePage = () => {
       const mast = getMastFromPoint(x, y);
       if (mast === null || draggedMasts.current.has(mast)) return;
       draggedMasts.current.add(mast);
-      bulkSet(safeLineId, [mast], dragTargetValue.current);
+      if (dragTargetValue.current) {
+        setPendingSelection(prev => new Set(prev).add(mast));
+      } else {
+        setPendingSelection(prev => { const next = new Set(prev); next.delete(mast); return next; });
+      }
     },
-    [getMastFromPoint, safeLineId, bulkSet]
+    [getMastFromPoint]
   );
 
   const handleDragEnd = useCallback(() => {
