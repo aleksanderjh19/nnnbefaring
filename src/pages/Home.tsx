@@ -15,6 +15,9 @@ const Home = () => {
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [renameField, setRenameField] = useState<"name" | "description">("name");
+  const [showCodePrompt, setShowCodePrompt] = useState(false);
+  const [codeInput, setCodeInput] = useState("");
+  const [codeError, setCodeError] = useState(false);
 
   // Add line dialog
   const [showAddLine, setShowAddLine] = useState(false);
@@ -80,7 +83,15 @@ const Home = () => {
 
             {/* Edit mode toggle */}
             <button
-              onClick={() => setEditMode(!editMode)}
+              onClick={() => {
+                if (editMode) {
+                  setEditMode(false);
+                } else {
+                  setShowCodePrompt(true);
+                  setCodeInput("");
+                  setCodeError(false);
+                }
+              }}
               className={`flex h-10 items-center gap-2 rounded-lg border px-3 font-body text-sm font-medium transition-colors ${
                 editMode
                   ? "border-accent bg-accent/10 text-accent"
@@ -90,6 +101,58 @@ const Home = () => {
               <Settings className="h-4 w-4" />
               <span className="hidden sm:inline">{editMode ? "Avslutt redigering" : "Rediger"}</span>
             </button>
+
+            {/* Code prompt dialog */}
+            {showCodePrompt && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                <div className="mx-4 w-full max-w-xs rounded-xl border border-border bg-card p-5 shadow-lg">
+                  <h3 className="mb-1 font-display text-sm font-bold text-foreground">Skriv inn kode</h3>
+                  <p className="mb-3 font-body text-xs text-muted-foreground">Kode kreves for redigeringsmodus.</p>
+                  <input
+                    autoFocus
+                    type="password"
+                    inputMode="numeric"
+                    value={codeInput}
+                    onChange={(e) => { setCodeInput(e.target.value); setCodeError(false); }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        if (codeInput === "1257") {
+                          setEditMode(true);
+                          setShowCodePrompt(false);
+                        } else {
+                          setCodeError(true);
+                        }
+                      }
+                      if (e.key === "Escape") setShowCodePrompt(false);
+                    }}
+                    className={`h-10 w-full rounded-lg border bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring ${codeError ? "border-destructive" : "border-input"}`}
+                    placeholder="••••"
+                  />
+                  {codeError && <p className="mt-1 font-body text-xs text-destructive">Feil kode</p>}
+                  <div className="mt-3 flex gap-2">
+                    <button
+                      onClick={() => setShowCodePrompt(false)}
+                      className="flex-1 rounded-lg border border-border py-2 font-body text-sm text-muted-foreground hover:bg-secondary"
+                    >
+                      Avbryt
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (codeInput === "1257") {
+                          setEditMode(true);
+                          setShowCodePrompt(false);
+                        } else {
+                          setCodeError(true);
+                        }
+                      }}
+                      className="flex-1 rounded-lg bg-primary py-2 font-body text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                    >
+                      Bekreft
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
           <div className="mt-4">
             <ProgressBar done={totalStats.done} total={totalStats.total} percent={totalStats.percent} />
