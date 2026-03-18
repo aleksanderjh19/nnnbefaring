@@ -11,7 +11,6 @@ import LinePage from "./pages/LinePage.tsx";
 import Auth from "./pages/Auth.tsx";
 import ResetPassword from "./pages/ResetPassword.tsx";
 import AdminPanel from "./pages/AdminPanel.tsx";
-import AdminSetup from "./pages/AdminSetup.tsx";
 import TrainingHome from "./pages/TrainingHome.tsx";
 import EmployeeTraining from "./pages/EmployeeTraining.tsx";
 import TrainingForm from "./pages/TrainingForm.tsx";
@@ -33,7 +32,7 @@ const App = () => (
             {/* Public routes */}
             <Route path="/auth" element={<Auth />} />
             <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/admin-setup" element={<AdminSetup />} />
+            
 
             {/* Protected routes */}
             <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
