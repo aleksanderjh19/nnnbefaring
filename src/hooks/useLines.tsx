@@ -20,17 +20,30 @@ interface LinesContextType {
   updateLine: (id: string, updates: Partial<LineData>) => void;
   addGroup: (group: LineGroup) => void;
   removeGroup: (name: string) => void;
-  addMast: (lineId: string) => void;
-  removeMast: (lineId: string) => void;
+  addMasts: (lineId: string, mastNumbers: number[]) => void;
+  removeMasts: (lineId: string, mastNumbers: number[]) => void;
 }
 
 const LinesContext = createContext<LinesContextType | null>(null);
+
+// Migration: convert old mastStart/mastEnd format to masts array
+function migrateLineData(line: any): LineData {
+  if (line.masts && Array.isArray(line.masts)) return line as LineData;
+  // Old format with mastStart/mastEnd
+  const masts: number[] = [];
+  for (let i = line.mastStart ?? 1; i <= (line.mastEnd ?? 1); i++) masts.push(i);
+  return { id: line.id, name: line.name, description: line.description, group: line.group, masts };
+}
 
 export function LinesProvider({ children }: { children: ReactNode }) {
   const [lines, setLines] = useState<LineData[]>(() => {
     try {
       const saved = localStorage.getItem(LINES_STORAGE_KEY);
-      return saved ? JSON.parse(saved) : defaultLines;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.map(migrateLineData);
+      }
+      return defaultLines;
     } catch {
       return defaultLines;
     }
@@ -77,21 +90,25 @@ export function LinesProvider({ children }: { children: ReactNode }) {
     setLineGroups((prev) => prev.filter((g) => g.name !== name));
   }, []);
 
-  const addMast = useCallback((lineId: string) => {
+  const addMasts = useCallback((lineId: string, mastNumbers: number[]) => {
     setLines((prev) =>
-      prev.map((l) =>
-        l.id === lineId ? { ...l, mastEnd: l.mastEnd + 1 } : l
-      )
+      prev.map((l) => {
+        if (l.id !== lineId) return l;
+        const existing = new Set(l.masts);
+        const newMasts = mastNumbers.filter((m) => !existing.has(m));
+        if (newMasts.length === 0) return l;
+        return { ...l, masts: [...l.masts, ...newMasts].sort((a, b) => a - b) };
+      })
     );
   }, []);
 
-  const removeMast = useCallback((lineId: string) => {
+  const removeMasts = useCallback((lineId: string, mastNumbers: number[]) => {
     setLines((prev) =>
-      prev.map((l) =>
-        l.id === lineId && l.mastEnd > l.mastStart
-          ? { ...l, mastEnd: l.mastEnd - 1 }
-          : l
-      )
+      prev.map((l) => {
+        if (l.id !== lineId) return l;
+        const toRemove = new Set(mastNumbers);
+        return { ...l, masts: l.masts.filter((m) => !toRemove.has(m)) };
+      })
     );
   }, []);
 
@@ -107,8 +124,8 @@ export function LinesProvider({ children }: { children: ReactNode }) {
         updateLine,
         addGroup,
         removeGroup,
-        addMast,
-        removeMast,
+        addMasts,
+        removeMasts,
       }}
     >
       {children}
