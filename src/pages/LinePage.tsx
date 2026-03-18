@@ -82,9 +82,44 @@ const LinePage = () => {
     [isChecked, safeLineId, editMode, isViewingPrevious, pendingSelection]
   );
 
+  const scrollAnimationRef = useRef<number | null>(null);
+  const lastDragPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  const autoScrollLoop = useCallback(() => {
+    if (!isDragging.current) return;
+    const y = lastDragPos.current.y;
+    const edgeZone = 80;
+    const maxSpeed = 18;
+    const vh = window.innerHeight;
+
+    let speed = 0;
+    if (y > vh - edgeZone) {
+      speed = maxSpeed * Math.min(1, (y - (vh - edgeZone)) / edgeZone);
+    } else if (y < edgeZone) {
+      speed = -maxSpeed * Math.min(1, (edgeZone - y) / edgeZone);
+    }
+
+    if (speed !== 0) {
+      window.scrollBy(0, speed);
+      // Re-check element under pointer after scroll
+      const mast = getMastFromPoint(lastDragPos.current.x, lastDragPos.current.y);
+      if (mast !== null && !draggedMasts.current.has(mast)) {
+        draggedMasts.current.add(mast);
+        if (dragTargetValue.current) {
+          setPendingSelection(prev => new Set(prev).add(mast));
+        } else {
+          setPendingSelection(prev => { const next = new Set(prev); next.delete(mast); return next; });
+        }
+      }
+    }
+
+    scrollAnimationRef.current = requestAnimationFrame(autoScrollLoop);
+  }, [getMastFromPoint]);
+
   const handleDragMove = useCallback(
     (x: number, y: number) => {
       if (!isDragging.current) return;
+      lastDragPos.current = { x, y };
       const mast = getMastFromPoint(x, y);
       if (mast === null || draggedMasts.current.has(mast)) return;
       draggedMasts.current.add(mast);
@@ -100,6 +135,10 @@ const LinePage = () => {
   const handleDragEnd = useCallback(() => {
     isDragging.current = false;
     draggedMasts.current.clear();
+    if (scrollAnimationRef.current) {
+      cancelAnimationFrame(scrollAnimationRef.current);
+      scrollAnimationRef.current = null;
+    }
   }, []);
 
   const onMouseDown = useCallback(
