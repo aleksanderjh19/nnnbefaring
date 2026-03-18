@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ArrowLeft, Plus, Trash2, ChevronDown, ChevronRight,
-  Wrench, Car, HardHat, Cpu, Package, Fuel, Search, X, Tractor, GraduationCap, MapPin, Volume2, Activity
+  Wrench, Car, HardHat, Cpu, Package, Fuel, Search, X, Tractor, GraduationCap, MapPin, Volume2, Activity, ImagePlus
 } from "lucide-react";
 import {
   Dialog,
