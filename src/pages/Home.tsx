@@ -75,7 +75,7 @@ const Home = () => {
               <h1 className="font-display text-xl font-extrabold tracking-tight text-foreground">
                 Ledningsbefaringer
               </h1>
-              <p className="font-body text-xs text-muted-foreground">NNN · 2026</p>
+              <p className="font-body text-xs text-muted-foreground">NNN · {year}</p>
             </div>
 
             {/* Edit mode toggle */}
