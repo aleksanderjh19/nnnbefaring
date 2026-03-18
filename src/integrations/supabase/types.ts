@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       employees: {
         Row: {
+          active: boolean
           created_at: string
           created_by: string | null
           department: string | null
@@ -23,6 +24,7 @@ export type Database = {
           name: string
         }
         Insert: {
+          active?: boolean
           created_at?: string
           created_by?: string | null
           department?: string | null
@@ -30,6 +32,7 @@ export type Database = {
           name: string
         }
         Update: {
+          active?: boolean
           created_at?: string
           created_by?: string | null
           department?: string | null
