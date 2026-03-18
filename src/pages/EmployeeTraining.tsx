@@ -293,14 +293,12 @@ const EmployeeTraining = () => {
                               />
                             ))}
                       </div>
-                      </div>
-                    </div>
-                  )}
 
                       {/* Signatures */}
                       <div className="grid grid-cols-2 gap-3">
                         <SignaturePreview label={`Signatur – ${employee.name}`} url={rec.trainee_signature_url} />
                         <SignaturePreview label={`Signatur – ${rec.trainer_name}`} url={rec.trainer_signature_url} />
+                      </div>
                       </div>
                     </div>
                   )}
