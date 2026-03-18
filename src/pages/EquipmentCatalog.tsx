@@ -122,6 +122,7 @@ const EquipmentCatalog = () => {
     setAddEquipment("");
     setAddEquipmentCustom(false);
     setAddBrand("");
+    setAddBrandCustom(false);
     setAddType("");
     setAddLocation("");
     setAddCustomLocation("");
