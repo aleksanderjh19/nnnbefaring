@@ -309,12 +309,16 @@ const EquipmentCatalog = () => {
                                   </thead>
                                   <tbody>
                                     {eq.rows.map((row) => (
-                                      <tr key={row.id} className="border-t border-border">
+                                      <tr
+                                        key={row.id}
+                                        className="border-t border-border cursor-pointer hover:bg-secondary/50"
+                                        onClick={() => navigate(`/dokumentert-opplaering/katalog/${row.id}`)}
+                                      >
                                         <td className="px-4 py-2 font-body text-sm text-foreground">{row.brand || "–"}</td>
                                         <td className="px-4 py-2 font-body text-sm text-foreground">{row.type || "–"}</td>
                                         <td className="px-4 py-2 text-right">
                                           <button
-                                            onClick={() => handleDelete(row.id)}
+                                            onClick={(e) => { e.stopPropagation(); handleDelete(row.id); }}
                                             className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                                             title="Slett"
                                           >
