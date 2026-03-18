@@ -360,6 +360,40 @@ const LinePage = () => {
         </div>
       </header>
 
+      {/* Pending confirmation bar */}
+      {pendingSelection.size > 0 && !editMode && (
+        <div className="sticky bottom-0 z-20 border-t border-border bg-card/95 backdrop-blur-sm">
+          <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-3">
+            <p className="font-body text-sm text-muted-foreground">
+              {pendingSelection.size} mast{pendingSelection.size > 1 ? "er" : ""} valgt
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPendingSelection(new Set())}
+                className="flex h-10 items-center gap-1.5 rounded-lg border border-border bg-card px-4 font-body text-sm text-muted-foreground hover:bg-secondary"
+              >
+                <X className="h-4 w-4" />
+                Avbryt
+              </button>
+              <button
+                onClick={() => {
+                  const mastsArr = Array.from(pendingSelection);
+                  // Determine action: if first selected mast was checked, uncheck all; otherwise check all
+                  const firstMast = mastsArr[0];
+                  const shouldCheck = !isChecked(safeLineId, firstMast);
+                  bulkSet(safeLineId, mastsArr, shouldCheck);
+                  setPendingSelection(new Set());
+                }}
+                className="flex h-10 items-center gap-1.5 rounded-lg bg-primary px-4 font-body text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                <Check className="h-4 w-4" />
+                Bekreft
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div
         className="flex-1 select-none px-4 py-3"
         onMouseDown={editMode ? undefined : onMouseDown}
@@ -385,6 +419,7 @@ const LinePage = () => {
                 key={mastNumber}
                 mastNumber={mastNumber}
                 checked={isChecked(currentLine.id, mastNumber)}
+                pending={pendingSelection.has(mastNumber)}
                 onToggle={() => toggle(currentLine.id, mastNumber)}
               />
             )
