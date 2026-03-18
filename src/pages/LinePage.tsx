@@ -460,7 +460,7 @@ const LinePage = () => {
 
       {/* Pending confirmation bar - fixed at bottom */}
       {pendingSelection.size > 0 && !editMode && (
-        <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-card/95 backdrop-blur-sm">
+        <div className="fixed bottom-0 left-0 right-0 z-[9999] border-t border-border bg-card/95 backdrop-blur-sm">
           <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-3">
             <p className="font-body text-sm text-muted-foreground">
               {pendingSelection.size} mast{pendingSelection.size > 1 ? "er" : ""} valgt
@@ -493,7 +493,7 @@ const LinePage = () => {
 
       <div
         ref={dragContainerRef}
-        className="flex-1 select-none px-4 py-3"
+        className={`flex-1 select-none px-4 py-3 ${pendingSelection.size > 0 && !editMode ? "pb-24" : "pb-3"}`}
         onMouseDown={editMode ? undefined : onMouseDown}
         onMouseMove={editMode ? undefined : onMouseMove}
         onMouseUp={editMode ? undefined : handleDragEnd}
