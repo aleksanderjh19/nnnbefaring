@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import statnettLogo from "@/assets/statnett-logo.png";
 
-import { Fuel } from "lucide-react";
+
 
 const CATEGORIES = [
   { value: "bensinverktoy", label: "Bensin-/motorverktøy", icon: Fuel },
