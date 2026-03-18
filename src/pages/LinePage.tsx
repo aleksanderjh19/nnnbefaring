@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Search, ChevronDown, ArrowLeft, Plus, Trash2, X, Pencil } from "lucide-react";
+import { Search, ChevronDown, ArrowLeft, Plus, Trash2, X, Pencil, Check } from "lucide-react";
 import { getMastNumbers } from "@/data/lines";
 import { useInspectionState } from "@/hooks/useInspectionState";
 import { useLines } from "@/hooks/useLines.tsx";
@@ -14,8 +14,12 @@ const LinePage = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterMode>("alle");
-  const { isChecked, toggle, bulkSet, getLineStats } = useInspectionState();
+  const { isChecked, toggle, bulkSet, getLineStats, isViewingPrevious } = useInspectionState();
   const { lines, editMode, addMasts, removeMasts, updateLine } = useLines();
+
+  // Pending selection state (two-step confirm)
+  const [pendingSelection, setPendingSelection] = useState<Set<number>>(new Set());
+  const pendingAction = useRef<"check" | "uncheck">("check");
 
   // Edit mode state
   const [addInput, setAddInput] = useState("");
@@ -57,14 +61,25 @@ const LinePage = () => {
 
   const handleDragStart = useCallback(
     (mastNumber: number) => {
-      if (editMode) return;
+      if (editMode || isViewingPrevious) return;
       isDragging.current = true;
       const currentlyChecked = isChecked(safeLineId, mastNumber);
-      dragTargetValue.current = !currentlyChecked;
-      draggedMasts.current = new Set([mastNumber]);
-      bulkSet(safeLineId, [mastNumber], !currentlyChecked);
+      const isPending = pendingSelection.has(mastNumber);
+      
+      if (isPending) {
+        // Deselect from pending
+        dragTargetValue.current = false; // false = remove from pending
+        draggedMasts.current = new Set([mastNumber]);
+        setPendingSelection(prev => { const next = new Set(prev); next.delete(mastNumber); return next; });
+      } else {
+        // Add to pending
+        dragTargetValue.current = true; // true = add to pending
+        pendingAction.current = currentlyChecked ? "uncheck" : "check";
+        draggedMasts.current = new Set([mastNumber]);
+        setPendingSelection(prev => new Set(prev).add(mastNumber));
+      }
     },
-    [isChecked, safeLineId, bulkSet, editMode]
+    [isChecked, safeLineId, editMode, isViewingPrevious, pendingSelection]
   );
 
   const handleDragMove = useCallback(
@@ -73,9 +88,13 @@ const LinePage = () => {
       const mast = getMastFromPoint(x, y);
       if (mast === null || draggedMasts.current.has(mast)) return;
       draggedMasts.current.add(mast);
-      bulkSet(safeLineId, [mast], dragTargetValue.current);
+      if (dragTargetValue.current) {
+        setPendingSelection(prev => new Set(prev).add(mast));
+      } else {
+        setPendingSelection(prev => { const next = new Set(prev); next.delete(mast); return next; });
+      }
     },
-    [getMastFromPoint, safeLineId, bulkSet]
+    [getMastFromPoint]
   );
 
   const handleDragEnd = useCallback(() => {
@@ -341,6 +360,40 @@ const LinePage = () => {
         </div>
       </header>
 
+      {/* Pending confirmation bar */}
+      {pendingSelection.size > 0 && !editMode && (
+        <div className="sticky bottom-0 z-20 border-t border-border bg-card/95 backdrop-blur-sm">
+          <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-3">
+            <p className="font-body text-sm text-muted-foreground">
+              {pendingSelection.size} mast{pendingSelection.size > 1 ? "er" : ""} valgt
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPendingSelection(new Set())}
+                className="flex h-10 items-center gap-1.5 rounded-lg border border-border bg-card px-4 font-body text-sm text-muted-foreground hover:bg-secondary"
+              >
+                <X className="h-4 w-4" />
+                Avbryt
+              </button>
+              <button
+                onClick={() => {
+                  const mastsArr = Array.from(pendingSelection);
+                  // Determine action: if first selected mast was checked, uncheck all; otherwise check all
+                  const firstMast = mastsArr[0];
+                  const shouldCheck = !isChecked(safeLineId, firstMast);
+                  bulkSet(safeLineId, mastsArr, shouldCheck);
+                  setPendingSelection(new Set());
+                }}
+                className="flex h-10 items-center gap-1.5 rounded-lg bg-primary px-4 font-body text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                <Check className="h-4 w-4" />
+                Bekreft
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div
         className="flex-1 select-none px-4 py-3"
         onMouseDown={editMode ? undefined : onMouseDown}
@@ -366,6 +419,7 @@ const LinePage = () => {
                 key={mastNumber}
                 mastNumber={mastNumber}
                 checked={isChecked(currentLine.id, mastNumber)}
+                pending={pendingSelection.has(mastNumber)}
                 onToggle={() => toggle(currentLine.id, mastNumber)}
               />
             )
