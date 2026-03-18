@@ -70,18 +70,18 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
-        <div className="mx-auto max-w-2xl px-5 py-6">
+        <div className="mx-auto max-w-2xl px-5 py-6 space-y-4">
+          <div className="relative w-full overflow-hidden rounded-xl shadow-lg aspect-video">
+            <video
+              src={heroVideo}
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="h-full w-full object-cover"
+            />
+          </div>
           <div className="flex items-center gap-3">
-            <div className="relative w-full overflow-hidden rounded-xl shadow-lg aspect-video">
-              <video
-                src={heroVideo}
-                autoPlay
-                loop
-                muted
-                playsInline
-                className="h-full w-full object-cover"
-              />
-            </div>
             <div className="min-w-0 flex-1">
               <h1 className="font-display text-xl font-extrabold tracking-tight text-foreground">
                 Ledningsbefaringer
