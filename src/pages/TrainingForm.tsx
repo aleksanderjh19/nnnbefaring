@@ -1,16 +1,11 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Camera, Save, X, ChevronDown } from "lucide-react";
 import SignaturePad from "@/components/SignaturePad";
+import { EQUIPMENT_CATALOG, getEquipmentForCategory, getBrandsForEquipment, getTypesForBrand } from "@/data/equipmentCatalog";
 
-const CATEGORIES = [
-  { value: "el_verktoy", label: "El.verktøy" },
-  { value: "kjøretøy", label: "Kjøretøy" },
-  { value: "utstyr", label: "Utstyr" },
-  { value: "maskin", label: "Maskin" },
-  { value: "annet", label: "Annet" },
-];
+const CATEGORIES = EQUIPMENT_CATALOG.map((c) => ({ value: c.value, label: c.label }));
 
 const COMPANIES = ["Statnett SF", "Annet"];
 
