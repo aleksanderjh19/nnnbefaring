@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Search, ChevronDown, ArrowLeft, Plus, Trash2, X, Pencil } from "lucide-react";
+import { Search, ChevronDown, ArrowLeft, Plus, Trash2, X, Pencil, Check } from "lucide-react";
 import { getMastNumbers } from "@/data/lines";
 import { useInspectionState } from "@/hooks/useInspectionState";
 import { useLines } from "@/hooks/useLines.tsx";
