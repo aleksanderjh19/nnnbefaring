@@ -17,12 +17,6 @@ const LinePage = () => {
   const { isChecked, toggle, bulkSet, getLineStats, isViewingPrevious } = useInspectionState();
   const { lines, editMode, addMasts, removeMasts, updateLine } = useLines();
 
-  const currentLine = lines.find((l) => l.id === lineId);
-
-  useEffect(() => {
-    document.title = currentLine ? `${currentLine.name} – Befaring` : "Linje – Befaring";
-  }, [currentLine]);
-
   // Pending selection state (two-step confirm)
   const [pendingSelection, setPendingSelection] = useState<Set<number>>(new Set());
   const pendingAction = useRef<"check" | "uncheck">("check");
