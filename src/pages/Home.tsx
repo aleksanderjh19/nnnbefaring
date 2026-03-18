@@ -197,7 +197,6 @@ const Home = () => {
                             <button
                               onClick={() => removeLine(line.id)}
                               title="Slett linje"
-                              title="Slett linje"
                               className="flex h-9 w-9 items-center justify-center rounded-lg text-destructive/70 hover:bg-destructive/10 hover:text-destructive"
                             >
                               <Trash2 className="h-4 w-4" />
