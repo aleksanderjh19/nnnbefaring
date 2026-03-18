@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ArrowLeft, Plus, Trash2, ChevronDown, ChevronRight,
-  Wrench, Car, HardHat, Cpu, Package, Fuel, Search, X
+  Wrench, Car, HardHat, Cpu, Package, Fuel, Search, X, Tractor
 } from "lucide-react";
 
 const CATEGORY_META = [
@@ -11,6 +11,7 @@ const CATEGORY_META = [
   { value: "el_verktoy", label: "El.verktøy", icon: Wrench },
   { value: "kjøretøy", label: "Kjøretøy", icon: Car },
   { value: "maskin", label: "Maskin", icon: Cpu },
+  { value: "traktor_utstyr", label: "Traktor m/utstyr", icon: Tractor },
   { value: "utstyr", label: "Utstyr", icon: HardHat },
   { value: "annet", label: "Annet", icon: Package },
 ];
