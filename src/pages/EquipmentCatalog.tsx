@@ -129,8 +129,21 @@ const EquipmentCatalog = () => {
 
   const handleAdd = async () => {
     if (!addEquipment.trim()) return;
+    setUploading(true);
     const catLabel = CATEGORY_META.find((c) => c.value === addCategory)?.label || addCategory;
     const resolvedLocation = addLocation === "Annet" ? addCustomLocation.trim() : addLocation;
+
+    let imageUrl: string | null = null;
+    if (addImageFile) {
+      const ext = addImageFile.name.split(".").pop() || "jpg";
+      const path = `equipment/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error } = await supabase.storage.from("training-files").upload(path, addImageFile);
+      if (!error) {
+        const { data: urlData } = supabase.storage.from("training-files").getPublicUrl(path);
+        imageUrl = urlData.publicUrl;
+      }
+    }
+
     await supabase.from("equipment_catalog").insert({
       category_value: addCategory,
       category_label: catLabel,
@@ -138,6 +151,7 @@ const EquipmentCatalog = () => {
       brand: addBrand.trim() || null,
       type: addType.trim() || null,
       location: resolvedLocation || null,
+      image_url: imageUrl,
     });
     setAddEquipment("");
     setAddEquipmentCustom(false);
@@ -146,7 +160,10 @@ const EquipmentCatalog = () => {
     setAddType("");
     setAddLocation("");
     setAddCustomLocation("");
+    setAddImageFile(null);
+    setAddImagePreview(null);
     setShowAdd(false);
+    setUploading(false);
     fetchCatalog();
   };
 
