@@ -91,6 +91,16 @@ const TrainingForm = () => {
     return catalogRows.filter((r) => r.category_value === cat && r.equipment_name === eqName && r.brand === brand && r.type).map((r) => r.type!);
   };
 
+  // Auto-select type when brand has only one type
+  useEffect(() => {
+    if (selectedBrand) {
+      const types = getTypesForBrand(equipmentCategory, equipmentName, selectedBrand);
+      if (types.length === 1) {
+        setEquipmentType(types[0]);
+      }
+    }
+  }, [selectedBrand, equipmentCategory, equipmentName, catalogRows]);
+
   useEffect(() => {
     const load = async () => {
       const [empRes, allEmpRes] = await Promise.all([
