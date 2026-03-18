@@ -97,6 +97,7 @@ const Home = () => {
         </div>
       </header>
 
+      <main className="mx-auto max-w-2xl px-5 py-5">
         {/* Viewing previous year banner */}
         {isViewingPrevious && (
           <div className="mb-4 rounded-lg border border-muted bg-muted/30 px-4 py-3">
