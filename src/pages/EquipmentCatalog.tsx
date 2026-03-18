@@ -58,6 +58,7 @@ const EquipmentCatalog = () => {
   const [showAdd, setShowAdd] = useState(false);
   const [addCategory, setAddCategory] = useState("bensinverktoy");
   const [addEquipment, setAddEquipment] = useState("");
+  const [addEquipmentCustom, setAddEquipmentCustom] = useState(false);
   const [addBrand, setAddBrand] = useState("");
   const [addType, setAddType] = useState("");
   const [addLocation, setAddLocation] = useState("");
