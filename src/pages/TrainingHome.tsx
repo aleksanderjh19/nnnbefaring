@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Plus, Users, ChevronRight, LogOut, RefreshCw, Search } from "lucide-react";
+import { ArrowLeft, Plus, Users, ChevronRight, RefreshCw, Search } from "lucide-react";
 
 interface Employee {
   id: string;
@@ -38,11 +38,8 @@ const TrainingHome = () => {
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) navigate("/auth", { replace: true });
-      else fetchEmployees();
-    });
-  }, [navigate]);
+    fetchEmployees();
+  }, []);
 
   const handleAdd = async () => {
     if (!newName.trim()) return;
@@ -58,10 +55,6 @@ const TrainingHome = () => {
     fetchEmployees();
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/auth", { replace: true });
-  };
 
   const filtered = employees.filter(
     (e) =>
@@ -90,13 +83,6 @@ const TrainingHome = () => {
               title="Oppdater"
             >
               <RefreshCw className="h-4 w-4" />
-            </button>
-            <button
-              onClick={handleLogout}
-              className="flex h-9 items-center gap-2 rounded-lg border border-border px-3 font-body text-xs font-medium text-muted-foreground hover:bg-secondary"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Logg ut</span>
             </button>
           </div>
         </div>
