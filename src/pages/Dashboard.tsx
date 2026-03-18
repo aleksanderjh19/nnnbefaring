@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Cable, Landmark, Zap, ChevronRight } from "lucide-react";
+import { Cable, Landmark, Zap, ChevronRight, GraduationCap } from "lucide-react";
 import heroVideo from "@/assets/hero-video.mp4";
 
 const tools = [
@@ -25,6 +25,14 @@ const tools = [
     description: "Spenningsrunde og kontroll av anlegg",
     icon: Zap,
     path: "/spenningsrunde",
+    ready: false,
+  },
+  {
+    id: "dokumentert-opplaering",
+    name: "Dokumentert opplæring",
+    description: "Registrering og oppfølging av opplæring",
+    icon: GraduationCap,
+    path: "/dokumentert-opplaering",
     ready: false,
   },
 ];
