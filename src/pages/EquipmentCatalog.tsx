@@ -625,6 +625,7 @@ const EquipmentCatalog = () => {
         </DialogContent>
       </Dialog>
     </div>
+  );
 };
 
 function QuickAdd({
