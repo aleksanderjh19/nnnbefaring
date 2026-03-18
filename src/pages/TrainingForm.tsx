@@ -55,6 +55,7 @@ const TrainingForm = () => {
   const [loading, setLoading] = useState(true);
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const equipmentPhotoRef = useRef<HTMLInputElement>(null);
   const [catalogRows, setCatalogRows] = useState<CatalogRow[]>([]);
 
   useEffect(() => {
