@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Mail, Lock, ArrowLeft } from "lucide-react";
-import statnettLogo from "@/assets/statnett-logo.png";
+import heroVideo from "@/assets/hero-video.mp4";
 
 const Auth = () => {
   const navigate = useNavigate();
