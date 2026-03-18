@@ -492,15 +492,13 @@ const LinePage = () => {
       )}
 
       <div
+        ref={dragContainerRef}
         className="flex-1 select-none px-4 py-3"
         onMouseDown={editMode ? undefined : onMouseDown}
         onMouseMove={editMode ? undefined : onMouseMove}
         onMouseUp={editMode ? undefined : handleDragEnd}
         onMouseLeave={editMode ? undefined : handleDragEnd}
-        onTouchStart={editMode ? undefined : onTouchStart}
-        onTouchMove={editMode ? undefined : onTouchMove}
-        onTouchEnd={editMode ? undefined : onTouchEnd}
-        onTouchCancel={editMode ? undefined : onTouchEnd}
+      >
       >
         <div className="mx-auto flex max-w-lg flex-col gap-1.5">
           {filteredMasts.map((mastNumber) => (
