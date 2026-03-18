@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ChevronRight, Zap, Settings, Pencil, Trash2, Plus, X } from "lucide-react";
 import { getMastNumbers } from "@/data/lines";
 import { useInspectionState } from "@/hooks/useInspectionState";
-import { useLines } from "../../hooks/useLines";
+import { useLines } from "@/hooks/useLines.tsx";
 import { ProgressBar } from "@/components/ProgressBar";
 import { useMemo } from "react";
 
