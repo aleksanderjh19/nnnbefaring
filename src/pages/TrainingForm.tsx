@@ -33,10 +33,11 @@ interface Employee {
 const TrainingForm = () => {
   const navigate = useNavigate();
   const { employeeId, recordId } = useParams<{ employeeId: string; recordId?: string }>();
+  const [searchParams] = useSearchParams();
   const isEdit = !!recordId;
 
   const [employeeName, setEmployeeName] = useState("");
-  const [equipmentCategory, setEquipmentCategory] = useState("el_verktoy");
+  const [equipmentCategory, setEquipmentCategory] = useState(searchParams.get("category") || "el_verktoy");
   const [equipmentName, setEquipmentName] = useState("");
   const [selectedBrand, setSelectedBrand] = useState("");
   const [equipmentType, setEquipmentType] = useState("");
