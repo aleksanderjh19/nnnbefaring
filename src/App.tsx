@@ -28,6 +28,7 @@ const App = () => (
       <LinesProvider>
         <Toaster />
         <Sonner />
+        <DevAdminToggle />
         <BrowserRouter>
           <Routes>
             {/* Public routes */}
