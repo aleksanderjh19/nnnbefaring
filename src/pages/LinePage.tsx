@@ -480,8 +480,8 @@ const LinePage = () => {
         onMouseLeave={editMode ? undefined : handleDragEnd}
         onTouchStart={editMode ? undefined : onTouchStart}
         onTouchMove={editMode ? undefined : onTouchMove}
-        onTouchEnd={editMode ? undefined : handleDragEnd}
-        onTouchCancel={editMode ? undefined : handleDragEnd}
+        onTouchEnd={editMode ? undefined : onTouchEnd}
+        onTouchCancel={editMode ? undefined : onTouchEnd}
       >
         <div className="mx-auto flex max-w-lg flex-col gap-1.5">
           {filteredMasts.map((mastNumber) => (
