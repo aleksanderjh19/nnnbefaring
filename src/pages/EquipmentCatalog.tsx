@@ -58,6 +58,8 @@ const EquipmentCatalog = () => {
   const [addEquipment, setAddEquipment] = useState("");
   const [addBrand, setAddBrand] = useState("");
   const [addType, setAddType] = useState("");
+  const [addLocation, setAddLocation] = useState("");
+  const [addCustomLocation, setAddCustomLocation] = useState("");
 
   const fetchCatalog = async () => {
     setLoading(true);
