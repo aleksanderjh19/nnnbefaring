@@ -52,6 +52,27 @@ const TrainingForm = () => {
   const [loading, setLoading] = useState(true);
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [catalogRows, setCatalogRows] = useState<CatalogRow[]>([]);
+
+  useEffect(() => {
+    supabase.from("equipment_catalog").select("category_value, equipment_name, brand, type").then(({ data }) => {
+      if (data) setCatalogRows(data as CatalogRow[]);
+    });
+  }, []);
+
+  const getEquipmentForCategory = (cat: string) => {
+    const names = [...new Set(catalogRows.filter((r) => r.category_value === cat).map((r) => r.equipment_name))];
+    return names.map((name) => ({ name }));
+  };
+
+  const getBrandsForEquipment = (cat: string, eqName: string) => {
+    const brands = [...new Set(catalogRows.filter((r) => r.category_value === cat && r.equipment_name === eqName && r.brand).map((r) => r.brand!))];
+    return brands.map((brand) => ({ brand }));
+  };
+
+  const getTypesForBrand = (cat: string, eqName: string, brand: string) => {
+    return catalogRows.filter((r) => r.category_value === cat && r.equipment_name === eqName && r.brand === brand && r.type).map((r) => r.type!);
+  };
 
   useEffect(() => {
     const load = async () => {
