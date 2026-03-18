@@ -57,6 +57,26 @@ const TrainingForm = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const equipmentPhotoRef = useRef<HTMLInputElement>(null);
   const [catalogRows, setCatalogRows] = useState<CatalogRow[]>([]);
+  const [selectedTractorTypes, setSelectedTractorTypes] = useState<string[]>([]);
+
+  const isTractorCategory = equipmentCategory === "traktor_utstyr";
+
+  // Get all types for current tractor equipment selection
+  const tractorTypes = useMemo(() => {
+    if (!isTractorCategory || !equipmentName) return [];
+    return catalogRows
+      .filter((r) => r.category_value === "traktor_utstyr" && r.equipment_name === equipmentName && r.type)
+      .map((r) => r.type!);
+  }, [isTractorCategory, equipmentName, catalogRows]);
+
+  // Auto-select all tractor types when equipment name changes
+  useEffect(() => {
+    if (isTractorCategory && equipmentName && tractorTypes.length > 0) {
+      setSelectedTractorTypes(tractorTypes);
+    } else {
+      setSelectedTractorTypes([]);
+    }
+  }, [isTractorCategory, equipmentName, tractorTypes]);
 
   useEffect(() => {
     supabase.from("equipment_catalog").select("id, category_value, category_label, equipment_name, brand, type, image_url").then(({ data }) => {
