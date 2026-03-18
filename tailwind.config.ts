@@ -59,6 +59,7 @@ export default {
           DEFAULT: "hsl(var(--pending))",
           foreground: "hsl(var(--pending-foreground))",
         },
+        statnett: "hsl(var(--statnett))",
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
