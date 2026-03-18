@@ -1,13 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ArrowLeft, Plus, FileText, Trash2, ChevronRight, ChevronDown, Printer,
-  Wrench, Car, HardHat, Cpu, Package, Pencil, X, Calendar, User, Building2, Fuel
+  Wrench, Car, HardHat, Cpu, Package, Pencil, Calendar, User, Building2, Fuel
 } from "lucide-react";
 import statnettLogo from "@/assets/statnett-logo.png";
-
-
 
 const CATEGORIES = [
   { value: "bensinverktoy", label: "Bensin-/motorverktøy", icon: Fuel },
@@ -46,6 +44,30 @@ interface TrainingRecord {
   trainer_signature_url: string | null;
 }
 
+interface GroupedEquipment {
+  key: string;
+  equipment_name: string;
+  equipment_category: string | null;
+  records: TrainingRecord[];
+}
+
+function groupRecords(records: TrainingRecord[]): GroupedEquipment[] {
+  const map = new Map<string, GroupedEquipment>();
+  for (const rec of records) {
+    const key = `${rec.equipment_category || "annet"}::${rec.equipment_name}`;
+    if (!map.has(key)) {
+      map.set(key, {
+        key,
+        equipment_name: rec.equipment_name,
+        equipment_category: rec.equipment_category,
+        records: [],
+      });
+    }
+    map.get(key)!.records.push(rec);
+  }
+  return Array.from(map.values());
+}
+
 const EmployeeTraining = () => {
   const navigate = useNavigate();
   const { employeeId } = useParams<{ employeeId: string }>();
@@ -53,7 +75,7 @@ const EmployeeTraining = () => {
   const [records, setRecords] = useState<TrainingRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -73,7 +95,6 @@ const EmployeeTraining = () => {
   const deleteRecord = async (id: string) => {
     if (!confirm("Er du sikker på at du vil slette denne opplæringen?")) return;
     await supabase.from("training_records").delete().eq("id", id);
-    if (expandedId === id) setExpandedId(null);
     fetchData();
   };
 
@@ -81,21 +102,19 @@ const EmployeeTraining = () => {
     navigate(`/dokumentert-opplaering/ansatt/${employeeId}/print`);
   };
 
-  const toggleExpand = (id: string) => {
-    setExpandedId(expandedId === id ? null : id);
-  };
+  const grouped = useMemo(() => groupRecords(records), [records]);
 
-  const filteredRecords = activeFilter
-    ? records.filter((r) => r.equipment_category === activeFilter)
-    : records;
+  const filteredGroups = activeFilter
+    ? grouped.filter((g) => (g.equipment_category || "annet") === activeFilter)
+    : grouped;
 
   const getCategoryInfo = (value: string | null) => {
-    return CATEGORIES.find((c) => c.value === value) || CATEGORIES[4];
+    return CATEGORIES.find((c) => c.value === value) || CATEGORIES[5];
   };
 
   const categoryCounts = CATEGORIES.map((cat) => ({
     ...cat,
-    count: records.filter((r) => (r.equipment_category || "annet") === cat.value).length,
+    count: grouped.filter((g) => (g.equipment_category || "annet") === cat.value).length,
   })).filter((c) => c.count > 0);
 
   if (loading) {
@@ -136,7 +155,7 @@ const EmployeeTraining = () => {
       <main className="mx-auto max-w-2xl px-5 py-5">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-display text-xs font-bold uppercase tracking-widest text-statnett">
-            Opplæringer ({records.length})
+            Skjemaer ({grouped.length})
           </h2>
           <div className="flex gap-2">
             {records.length > 0 && (
@@ -169,7 +188,7 @@ const EmployeeTraining = () => {
                   : "border border-border text-muted-foreground hover:bg-secondary"
               }`}
             >
-              Alle ({records.length})
+              Alle ({grouped.length})
             </button>
             {categoryCounts.map((cat) => (
               <button
@@ -187,61 +206,67 @@ const EmployeeTraining = () => {
           </div>
         )}
 
-        {records.length === 0 ? (
+        {grouped.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-12 text-center">
             <FileText className="h-10 w-10 text-muted" />
             <p className="font-body text-sm text-muted-foreground">Ingen opplæringer registrert ennå</p>
           </div>
-        ) : filteredRecords.length === 0 ? (
+        ) : filteredGroups.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-12 text-center">
             <p className="font-body text-sm text-muted-foreground">Ingen opplæringer i denne kategorien</p>
           </div>
         ) : (
           <div className="space-y-2">
-            {filteredRecords.map((rec) => {
-              const catInfo = getCategoryInfo(rec.equipment_category);
+            {filteredGroups.map((group) => {
+              const catInfo = getCategoryInfo(group.equipment_category);
               const CatIcon = catInfo.icon;
-              const isExpanded = expandedId === rec.id;
+              const isExpanded = expandedKey === group.key;
+              const typeCount = group.records.length;
+              const latestDate = group.records
+                .map((r) => r.training_date)
+                .sort()
+                .reverse()[0];
+              const uniqueTrainers = [...new Set(group.records.map((r) => r.trainer_name))];
+              const allSigned = group.records.every((r) => r.trainee_signature_url);
 
               return (
                 <div
-                  key={rec.id}
+                  key={group.key}
                   className="overflow-hidden rounded-xl border border-border bg-card"
                 >
-                  {/* Row header – clickable to expand/collapse */}
-                  <div className="flex items-center">
-                    <button
-                      onClick={() => toggleExpand(rec.id)}
-                      className="flex min-w-0 flex-1 items-center gap-4 px-5 py-4 text-left hover:bg-secondary"
-                    >
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">
-                        <CatIcon className="h-5 w-5" />
+                  {/* Row header */}
+                  <button
+                    onClick={() => setExpandedKey(isExpanded ? null : group.key)}
+                    className="flex w-full min-w-0 items-center gap-4 px-5 py-4 text-left hover:bg-secondary"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">
+                      <CatIcon className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-display text-sm font-bold text-foreground">{group.equipment_name}</p>
+                      <p className="font-body text-xs text-muted-foreground">
+                        <span className="font-medium text-foreground/70">{catInfo.label}</span>
+                        {" · "}
+                        {typeCount} {typeCount === 1 ? "type" : "typer"}
+                        {" · Sist "}
+                        {new Date(latestDate).toLocaleDateString("nb-NO")}
+                      </p>
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        {allSigned ? (
+                          <span className="rounded-full bg-success/10 px-2 py-0.5 font-body text-[10px] font-medium text-success">Alle signert</span>
+                        ) : (
+                          <span className="rounded-full bg-muted px-2 py-0.5 font-body text-[10px] font-medium text-muted-foreground">Mangler signaturer</span>
+                        )}
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="font-display text-sm font-bold text-foreground">{rec.equipment_name}</p>
-                        <p className="font-body text-xs text-muted-foreground">
-                          <span className="font-medium text-foreground/70">{catInfo.label}</span>
-                          {rec.equipment_type && ` · ${rec.equipment_type}`}
-                          {" · "}
-                          {new Date(rec.training_date).toLocaleDateString("nb-NO")} · {rec.trainer_name}
-                        </p>
-                        <div className="mt-1 flex gap-1.5">
-                          {rec.trainee_signature_url ? (
-                            <span className="rounded-full bg-success/10 px-2 py-0.5 font-body text-[10px] font-medium text-success">Signert av mottaker</span>
-                          ) : (
-                            <span className="rounded-full bg-muted px-2 py-0.5 font-body text-[10px] font-medium text-muted-foreground">Mangler signatur</span>
-                          )}
-                        </div>
-                      </div>
-                      {isExpanded ? (
-                        <ChevronDown className="h-5 w-5 shrink-0 text-muted-foreground" />
-                      ) : (
-                        <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
-                      )}
-                    </button>
-                  </div>
+                    </div>
+                    {isExpanded ? (
+                      <ChevronDown className="h-5 w-5 shrink-0 text-muted-foreground" />
+                    ) : (
+                      <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+                    )}
+                  </button>
 
-                  {/* Expanded preview */}
+                  {/* Expanded grouped preview */}
                   {isExpanded && (
                     <div className="border-t border-border bg-secondary/30 space-y-4">
                       {/* Statnett header */}
@@ -249,61 +274,128 @@ const EmployeeTraining = () => {
                         <img src={statnettLogo} alt="Statnett" className="h-5" />
                         <span className="font-display text-xs font-bold text-white/80 tracking-wider uppercase">Dokumentert opplæring</span>
                       </div>
+
                       <div className="px-5 pb-4 space-y-4">
-                      {/* Action buttons */}
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => navigate(`/dokumentert-opplaering/ansatt/${employeeId}/skjema/${rec.id}`)}
-                          className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 font-body text-xs font-semibold text-primary-foreground hover:bg-primary/90"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                          Rediger
-                        </button>
-                        <button
-                          onClick={() => deleteRecord(rec.id)}
-                          className="flex items-center gap-1.5 rounded-lg border border-destructive/30 px-3 py-2 font-body text-xs font-medium text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                          Slett
-                        </button>
-                      </div>
+                        {/* Action: add new type for this equipment */}
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => navigate(`/dokumentert-opplaering/ansatt/${employeeId}/ny?equipment=${encodeURIComponent(group.equipment_name)}&category=${encodeURIComponent(group.equipment_category || "annet")}`)}
+                            className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 font-body text-xs font-semibold text-primary-foreground hover:bg-primary/90"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                            Legg til ny type
+                          </button>
+                        </div>
 
-                      {/* Details grid */}
-                      <div className="grid grid-cols-2 gap-3">
-                        <DetailItem icon={Calendar} label="Opplæringsdato" value={new Date(rec.training_date).toLocaleDateString("nb-NO")} />
-                        <DetailItem icon={Package} label="Kategori" value={catInfo.label} />
-                        <DetailItem label="Maskin/utstyr" value={rec.equipment_name} />
-                        <DetailItem label="Type" value={rec.equipment_type || "–"} />
-                        {rec.noise_level_db && <DetailItem label="Lydnivå" value={`${rec.noise_level_db} dB`} />}
-                        {rec.vibration_ms2 && <DetailItem label="Vibrasjon" value={`${rec.vibration_ms2} m/s²`} />}
-                        <DetailItem icon={User} label="Opplæringsansvarlig" value={rec.trainer_name} />
-                        <DetailItem icon={Building2} label="Virksomhet" value={rec.trainer_company || "–"} />
-                        <DetailItem label="Bekreftelsestype" value={CONFIRMATION_LABELS[rec.confirmation_type] || rec.confirmation_type} className="col-span-2" />
-                        {rec.notes && <DetailItem label="Notater" value={rec.notes} className="col-span-2" />}
-                      </div>
+                        {/* Category & equipment info */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <DetailItem icon={Package} label="Kategori" value={catInfo.label} />
+                          <DetailItem label="Maskin/utstyr" value={group.equipment_name} />
+                        </div>
 
-                      {/* Photos */}
-                      {rec.photo_urls && rec.photo_urls.length > 0 && (
+                        {/* Equipment types table */}
                         <div>
-                          <p className="mb-2 font-body text-xs font-medium text-muted-foreground">Bilder</p>
-                          <div className="flex flex-wrap gap-2">
-                            {rec.photo_urls.map((url, i) => (
-                              <img
-                                key={i}
-                                src={url}
-                                alt={`Bilde ${i + 1}`}
-                                className="h-20 w-20 rounded-lg border border-border object-cover"
-                              />
-                            ))}
+                          <p className="mb-2 font-body text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                            Opplærte typer ({group.records.length})
+                          </p>
+                          <div className="overflow-hidden rounded-lg border border-border">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="bg-muted/50">
+                                  <th className="px-3 py-2 text-left font-body text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Type</th>
+                                  <th className="px-3 py-2 text-left font-body text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Dato</th>
+                                  <th className="px-3 py-2 text-left font-body text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Lydnivå</th>
+                                  <th className="px-3 py-2 text-left font-body text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Vibrasjon</th>
+                                  <th className="px-3 py-2 text-left font-body text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Instruktør</th>
+                                  <th className="px-3 py-2 text-right font-body text-[10px] font-medium uppercase tracking-wider text-muted-foreground"></th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {group.records.map((rec) => (
+                                  <tr key={rec.id} className="border-t border-border">
+                                    <td className="px-3 py-2 font-body text-sm font-medium text-foreground">{rec.equipment_type || "–"}</td>
+                                    <td className="px-3 py-2 font-body text-xs text-muted-foreground">{new Date(rec.training_date).toLocaleDateString("nb-NO")}</td>
+                                    <td className="px-3 py-2 font-body text-xs text-muted-foreground">{rec.noise_level_db ? `${rec.noise_level_db} dB` : "–"}</td>
+                                    <td className="px-3 py-2 font-body text-xs text-muted-foreground">{rec.vibration_ms2 ? `${rec.vibration_ms2} m/s²` : "–"}</td>
+                                    <td className="px-3 py-2 font-body text-xs text-muted-foreground">{rec.trainer_name}</td>
+                                    <td className="px-3 py-2 text-right">
+                                      <div className="flex items-center justify-end gap-1">
+                                        <button
+                                          onClick={() => navigate(`/dokumentert-opplaering/ansatt/${employeeId}/skjema/${rec.id}`)}
+                                          className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                                          title="Rediger"
+                                        >
+                                          <Pencil className="h-3.5 w-3.5" />
+                                        </button>
+                                        <button
+                                          onClick={() => deleteRecord(rec.id)}
+                                          className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                                          title="Slett"
+                                        >
+                                          <Trash2 className="h-3.5 w-3.5" />
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
                           </div>
                         </div>
-                      )}
 
-                      {/* Signatures */}
-                      <div className="grid grid-cols-2 gap-3">
-                        <SignaturePreview label={`Signatur – ${employee.name}`} url={rec.trainee_signature_url} />
-                        <SignaturePreview label={`Signatur – ${rec.trainer_name}`} url={rec.trainer_signature_url} />
-                      </div>
+                        {/* Confirmation type (use most common) */}
+                        <DetailItem
+                          label="Bekreftelsestype"
+                          value={CONFIRMATION_LABELS[group.records[0].confirmation_type] || group.records[0].confirmation_type}
+                          className="col-span-2"
+                        />
+
+                        {/* Notes from all records */}
+                        {group.records.some((r) => r.notes) && (
+                          <div>
+                            <p className="mb-1 font-body text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Notater</p>
+                            {group.records.filter((r) => r.notes).map((r) => (
+                              <p key={r.id} className="font-body text-sm text-foreground">
+                                <span className="text-muted-foreground">{r.equipment_type || "Generelt"}:</span> {r.notes}
+                              </p>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Photos from all records */}
+                        {group.records.some((r) => r.photo_urls && r.photo_urls.length > 0) && (
+                          <div>
+                            <p className="mb-2 font-body text-xs font-medium text-muted-foreground">Bilder</p>
+                            <div className="flex flex-wrap gap-2">
+                              {group.records.flatMap((r) => r.photo_urls || []).map((url, i) => (
+                                <img key={i} src={url} alt={`Bilde ${i + 1}`} className="h-20 w-20 rounded-lg border border-border object-cover" />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Signatures – show all unique trainers + trainee */}
+                        <div>
+                          <p className="mb-2 font-body text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Signaturer</p>
+                          <div className="grid grid-cols-2 gap-3">
+                            {/* Trainee signature (use first available) */}
+                            <SignaturePreview
+                              label={`Signatur – ${employee.name}`}
+                              url={group.records.find((r) => r.trainee_signature_url)?.trainee_signature_url || null}
+                            />
+                            {/* Each unique trainer gets their own signature block */}
+                            {uniqueTrainers.map((trainerName) => {
+                              const trainerRec = group.records.find((r) => r.trainer_name === trainerName && r.trainer_signature_url);
+                              return (
+                                <SignaturePreview
+                                  key={trainerName}
+                                  label={`Signatur – ${trainerName}`}
+                                  url={trainerRec?.trainer_signature_url || null}
+                                />
+                              );
+                            })}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   )}
