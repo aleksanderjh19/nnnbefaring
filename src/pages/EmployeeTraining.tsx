@@ -240,7 +240,13 @@ const EmployeeTraining = () => {
 
                   {/* Expanded preview */}
                   {isExpanded && (
-                    <div className="border-t border-border bg-secondary/30 px-5 py-4 space-y-4">
+                    <div className="border-t border-border bg-secondary/30 space-y-4">
+                      {/* Statnett header */}
+                      <div className="flex items-center justify-between bg-[hsl(155,100%,15%)] px-5 py-3">
+                        <img src={statnettLogo} alt="Statnett" className="h-5" />
+                        <span className="font-display text-xs font-bold text-white/80 tracking-wider uppercase">Dokumentert opplæring</span>
+                      </div>
+                      <div className="px-5 pb-4 space-y-4">
                       {/* Action buttons */}
                       <div className="flex gap-2">
                         <button
