@@ -3,9 +3,22 @@ import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Camera, Save, X, ChevronDown } from "lucide-react";
 import SignaturePad from "@/components/SignaturePad";
-import { EQUIPMENT_CATALOG, getEquipmentForCategory, getBrandsForEquipment, getTypesForBrand } from "@/data/equipmentCatalog";
 
-const CATEGORIES = EQUIPMENT_CATALOG.map((c) => ({ value: c.value, label: c.label }));
+const CATEGORIES = [
+  { value: "bensinverktoy", label: "Bensin-/motorverktøy" },
+  { value: "el_verktoy", label: "El.verktøy" },
+  { value: "kjøretøy", label: "Kjøretøy" },
+  { value: "maskin", label: "Maskin" },
+  { value: "utstyr", label: "Utstyr" },
+  { value: "annet", label: "Annet" },
+];
+
+interface CatalogRow {
+  category_value: string;
+  equipment_name: string;
+  brand: string | null;
+  type: string | null;
+}
 
 const COMPANIES = ["Statnett SF", "Annet"];
 
