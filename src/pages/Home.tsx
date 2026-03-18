@@ -97,24 +97,51 @@ const Home = () => {
         </div>
       </header>
 
-      <main className="mx-auto max-w-2xl px-5 py-5">
-        {editMode && (
+        {/* Viewing previous year banner */}
+        {isViewingPrevious && (
+          <div className="mb-4 rounded-lg border border-muted bg-muted/30 px-4 py-3">
+            <div className="flex items-center justify-between">
+              <p className="font-body text-sm font-medium text-muted-foreground">
+                Viser data fra {year} (skrivebeskyttet)
+              </p>
+              <button
+                onClick={viewCurrentYear}
+                className="flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 font-body text-xs font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                Tilbake til {activeYear}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {editMode && !isViewingPrevious && (
           <div className="mb-4 space-y-3">
             <div className="rounded-lg border border-accent/30 bg-accent/5 px-4 py-3">
               <p className="font-body text-sm font-medium text-accent">
                 Redigeringsmodus aktiv — du kan endre navn, slette og legge til linjer.
               </p>
             </div>
-            <button
-              onClick={() => {
-                advanceYear();
-                setEditMode(false);
-              }}
-              className="flex w-full items-center justify-center gap-2 rounded-lg border border-primary/30 bg-primary/5 py-3 font-body text-sm font-medium text-primary transition-colors hover:bg-primary/10"
-            >
-              <CalendarArrowUp className="h-4 w-4" />
-              Gå videre til {year + 1} (nullstill alle avhukinger)
-            </button>
+            <div className="flex gap-2">
+              {hasPreviousYear() && (
+                <button
+                  onClick={viewPreviousYear}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-border bg-card py-3 font-body text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Se {activeYear - 1}
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  advanceYear();
+                  setEditMode(false);
+                }}
+                className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-primary/30 bg-primary/5 py-3 font-body text-sm font-medium text-primary transition-colors hover:bg-primary/10"
+              >
+                <CalendarArrowUp className="h-4 w-4" />
+                Gå til {activeYear + 1}
+              </button>
+            </div>
           </div>
         )}
 
