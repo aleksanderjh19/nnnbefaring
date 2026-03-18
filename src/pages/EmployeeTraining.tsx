@@ -5,6 +5,7 @@ import {
   ArrowLeft, Plus, FileText, Trash2, ChevronRight, ChevronDown, Printer,
   Wrench, Car, HardHat, Cpu, Package, Pencil, X, Calendar, User, Building2
 } from "lucide-react";
+import statnettLogo from "@/assets/statnett-logo.png";
 
 const CATEGORIES = [
   { value: "el_verktoy", label: "El.verktøy", icon: Wrench },
