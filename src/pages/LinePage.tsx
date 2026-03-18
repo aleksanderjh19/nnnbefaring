@@ -59,30 +59,6 @@ const LinePage = () => {
     return Number(row.getAttribute("data-mast"));
   }, []);
 
-  const handleDragStart = useCallback(
-    (mastNumber: number) => {
-      if (editMode || isViewingPrevious) return;
-      isDragging.current = true;
-      const currentlyChecked = isChecked(safeLineId, mastNumber);
-      const isPending = pendingSelection.has(mastNumber);
-      
-      if (isPending) {
-        dragTargetValue.current = false;
-        draggedMasts.current = new Set([mastNumber]);
-        setPendingSelection(prev => { const next = new Set(prev); next.delete(mastNumber); return next; });
-      } else {
-        dragTargetValue.current = true;
-        pendingAction.current = currentlyChecked ? "uncheck" : "check";
-        draggedMasts.current = new Set([mastNumber]);
-        setPendingSelection(prev => new Set(prev).add(mastNumber));
-      }
-      // Start auto-scroll loop
-      if (scrollAnimationRef.current) cancelAnimationFrame(scrollAnimationRef.current);
-      scrollAnimationRef.current = requestAnimationFrame(autoScrollLoop);
-    },
-    [isChecked, safeLineId, editMode, isViewingPrevious, pendingSelection, autoScrollLoop]
-  );
-
   const scrollAnimationRef = useRef<number | null>(null);
   const lastDragPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
@@ -102,7 +78,6 @@ const LinePage = () => {
 
     if (speed !== 0) {
       window.scrollBy(0, speed);
-      // Re-check element under pointer after scroll
       const mast = getMastFromPoint(lastDragPos.current.x, lastDragPos.current.y);
       if (mast !== null && !draggedMasts.current.has(mast)) {
         draggedMasts.current.add(mast);
@@ -116,6 +91,29 @@ const LinePage = () => {
 
     scrollAnimationRef.current = requestAnimationFrame(autoScrollLoop);
   }, [getMastFromPoint]);
+
+  const handleDragStart = useCallback(
+    (mastNumber: number) => {
+      if (editMode || isViewingPrevious) return;
+      isDragging.current = true;
+      const currentlyChecked = isChecked(safeLineId, mastNumber);
+      const isPending = pendingSelection.has(mastNumber);
+      
+      if (isPending) {
+        dragTargetValue.current = false;
+        draggedMasts.current = new Set([mastNumber]);
+        setPendingSelection(prev => { const next = new Set(prev); next.delete(mastNumber); return next; });
+      } else {
+        dragTargetValue.current = true;
+        pendingAction.current = currentlyChecked ? "uncheck" : "check";
+        draggedMasts.current = new Set([mastNumber]);
+        setPendingSelection(prev => new Set(prev).add(mastNumber));
+      }
+      if (scrollAnimationRef.current) cancelAnimationFrame(scrollAnimationRef.current);
+      scrollAnimationRef.current = requestAnimationFrame(autoScrollLoop);
+    },
+    [isChecked, safeLineId, editMode, isViewingPrevious, pendingSelection, autoScrollLoop]
+  );
 
   const handleDragMove = useCallback(
     (x: number, y: number) => {
