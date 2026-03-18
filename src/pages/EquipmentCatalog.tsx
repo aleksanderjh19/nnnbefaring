@@ -158,6 +158,74 @@ const EquipmentCatalog = () => {
     return false;
   };
 
+  const toggleRowSelection = (id: string) => {
+    setSelectedRowIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAllInEquipment = (eqRows: CatalogRow[]) => {
+    const allSelected = eqRows.every((r) => selectedRowIds.has(r.id));
+    setSelectedRowIds((prev) => {
+      const next = new Set(prev);
+      eqRows.forEach((r) => {
+        if (allSelected) next.delete(r.id);
+        else next.add(r.id);
+      });
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    if (showEmployeePicker && employees.length === 0) {
+      supabase.from("employees").select("id, name").order("name").then(({ data }) => {
+        if (data) setEmployees(data);
+      });
+    }
+  }, [showEmployeePicker]);
+
+  const filteredEmployees = employees.filter((e) =>
+    e.name.toLowerCase().includes(employeeSearch.toLowerCase())
+  );
+
+  const selectedRows = rows.filter((r) => selectedRowIds.has(r.id));
+
+  const handleAddTraining = (employeeId: string) => {
+    if (selectedRows.length === 0) return;
+    // If only one selected, navigate directly with full info
+    if (selectedRows.length === 1) {
+      const row = selectedRows[0];
+      const params = new URLSearchParams({
+        category: row.category_value,
+        equipment: row.equipment_name,
+      });
+      if (row.brand) params.set("brand", row.brand);
+      if (row.type) params.set("type", row.type);
+      navigate(`/dokumentert-opplaering/ansatt/${employeeId}/ny?${params.toString()}`);
+      return;
+    }
+    // Multiple selected - navigate with first item and store rest in sessionStorage
+    const items = selectedRows.map((r) => ({
+      category: r.category_value,
+      equipment: r.equipment_name,
+      brand: r.brand || "",
+      type: r.type || "",
+    }));
+    sessionStorage.setItem("bulk_training_items", JSON.stringify(items));
+    const first = items[0];
+    const params = new URLSearchParams({
+      category: first.category,
+      equipment: first.equipment,
+      bulk: "true",
+    });
+    if (first.brand) params.set("brand", first.brand);
+    if (first.type) params.set("type", first.type);
+    navigate(`/dokumentert-opplaering/ansatt/${employeeId}/ny?${params.toString()}`);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
