@@ -90,6 +90,27 @@ const EquipmentDetail = () => {
     fetchItem();
   }, [itemId]);
 
+  useEffect(() => {
+    if (showEmployeePicker && employees.length === 0) {
+      supabase.from("employees").select("id, name").order("name").then(({ data }) => {
+        if (data) setEmployees(data);
+      });
+    }
+  }, [showEmployeePicker]);
+
+  const handleAddTraining = (employeeId: string) => {
+    if (!item) return;
+    const params = new URLSearchParams({
+      category: item.category_value,
+      equipment: item.equipment_name,
+    });
+    navigate(`/dokumentert-opplaering/ansatt/${employeeId}/ny?${params.toString()}`);
+  };
+
+  const filteredEmployees = employees.filter((e) =>
+    e.name.toLowerCase().includes(employeeSearch.toLowerCase())
+  );
+
   const handleSave = async () => {
     if (!item) return;
     setSaving(true);
