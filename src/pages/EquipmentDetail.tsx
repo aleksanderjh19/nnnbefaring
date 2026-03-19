@@ -383,16 +383,18 @@ const EquipmentDetail = () => {
   );
 };
 
-function InfoField({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <div className="flex items-start gap-2">
-      <div className="mt-0.5 text-muted-foreground">{icon}</div>
-      <div>
-        <p className="font-body text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
-        <p className="font-body text-sm font-medium text-foreground">{value}</p>
+const InfoField = forwardRef<HTMLDivElement, { icon: React.ReactNode; label: string; value: string }>(
+  ({ icon, label, value }, ref) => {
+    return (
+      <div ref={ref} className="flex items-start gap-2">
+        <div className="mt-0.5 text-muted-foreground">{icon}</div>
+        <div>
+          <p className="font-body text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
+          <p className="font-body text-sm font-medium text-foreground">{value}</p>
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
+);
 
 export default EquipmentDetail;
