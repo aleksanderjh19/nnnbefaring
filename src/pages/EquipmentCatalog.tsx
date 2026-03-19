@@ -1,153 +1,25 @@
-import { useState, useEffect, useMemo, useRef } from "react";
-import { createPortal } from "react-dom";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors,
   type DragEndEvent,
 } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import {
-  SortableContext, verticalListSortingStrategy, useSortable, arrayMove,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import {
-  ArrowLeft, Plus, Trash2, ChevronDown, ChevronRight,
-  Wrench, Car, HardHat, Cpu, Package, Fuel, Search, X, Tractor, GraduationCap, MapPin, Volume2, Activity, ImagePlus, GripVertical
+  ArrowLeft, Plus, ChevronDown, ChevronRight, Search, X, GraduationCap, ImagePlus,
 } from "lucide-react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useSortOrders } from "@/hooks/useSortOrders";
-
-const LOCATIONS = [
-  "Bjerka",
-  "Fauske",
-  "KBV, Stasjon: Kobbvatnet",
-  "KOL, Stasjon: Kolsvik",
-  "MAR, Stasjon: Marka",
-  "NMS, Stasjon: Namsskogan",
-  "NRØ, Stasjon: Nedre Røssåga",
-  "RAA, Stasjon: Rana",
-  "SAL, Stasjon: Salten",
-  "SVN, Stasjon: Svartisen",
-  "TRO, Stasjon: Trofors",
-  "Annet",
-];
-
-const CATEGORY_META = [
-  { value: "bensinverktoy", label: "Bensin-/motorverktøy", icon: Fuel },
-  { value: "el_verktoy", label: "El.verktøy", icon: Wrench },
-  { value: "kjøretøy", label: "Kjøretøy", icon: Car },
-  { value: "maskin", label: "Maskin", icon: Cpu },
-  { value: "traktor_utstyr", label: "Traktor m/utstyr", icon: Tractor },
-  { value: "maleinstrument", label: "Måleinstrument", icon: Activity },
-  { value: "utstyr", label: "Utstyr", icon: HardHat },
-  { value: "annet", label: "Annet", icon: Package },
-];
-
-interface CatalogRow {
-  id: string;
-  category_value: string;
-  category_label: string;
-  equipment_name: string;
-  brand: string | null;
-  type: string | null;
-  image_url: string | null;
-  location: string | null;
-  noise_level_db: string | null;
-  vibration_ms2: string | null;
-  description: string | null;
-}
-
-interface GroupedEquipment {
-  equipment_name: string;
-  brands: Map<string, string[]>; // brand -> types
-  rows: CatalogRow[];
-}
-
-function SortableCategoryChip({
-  cat,
-  isActive,
-  onClick,
-  isAdmin,
-}: {
-  cat: { value: string; label: string; icon: any; count: number };
-  isActive: boolean;
-  onClick: () => void;
-  isAdmin: boolean;
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: cat.value,
-    disabled: !isAdmin,
-  });
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-  const CatIcon = cat.icon;
-  return (
-    <button
-      ref={setNodeRef}
-      style={style}
-      onClick={onClick}
-      className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-body text-xs font-medium transition-colors ${
-        isActive
-          ? "bg-primary text-primary-foreground"
-          : "border border-border text-muted-foreground hover:bg-secondary"
-      }`}
-    >
-      {isAdmin && (
-        <span {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing touch-none">
-          <GripVertical className="h-3 w-3 opacity-40" />
-        </span>
-      )}
-      <CatIcon className="h-3 w-3" />
-      {cat.label} ({cat.count})
-    </button>
-  );
-}
-
-function SortableEquipmentCard({
-  id,
-  isAdmin,
-  children,
-}: {
-  id: string;
-  isAdmin: boolean;
-  children: React.ReactNode;
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id,
-    disabled: !isAdmin,
-  });
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-  return (
-    <div ref={setNodeRef} style={style} className="overflow-hidden rounded-xl border border-border bg-card">
-      <div className="flex items-stretch">
-        {isAdmin && (
-          <div
-            {...attributes}
-            {...listeners}
-            className="flex w-8 shrink-0 cursor-grab items-center justify-center border-r border-border text-muted-foreground hover:bg-secondary active:cursor-grabbing touch-none"
-          >
-            <GripVertical className="h-4 w-4 opacity-40" />
-          </div>
-        )}
-        <div className="min-w-0 flex-1">{children}</div>
-      </div>
-    </div>
-  );
-}
+import { LOCATIONS, CATEGORY_META } from "@/components/catalog/constants";
+import type { CatalogRow, GroupedEquipment } from "@/components/catalog/types";
+import SortableCategoryChip from "@/components/catalog/SortableCategoryChip";
+import SortableEquipmentCard from "@/components/catalog/SortableEquipmentCard";
+import EquipmentRowWithPreview from "@/components/catalog/EquipmentRowWithPreview";
+import QuickAdd from "@/components/catalog/QuickAdd";
 
 const EquipmentCatalog = () => {
   const navigate = useNavigate();
@@ -279,17 +151,11 @@ const EquipmentCatalog = () => {
       location: resolvedLocation || null,
       image_url: imageUrl,
     });
-    setAddEquipment("");
-    setAddEquipmentCustom(false);
-    setAddBrand("");
-    setAddBrandCustom(false);
-    setAddType("");
-    setAddLocation("");
-    setAddCustomLocation("");
-    setAddImageFile(null);
-    setAddImagePreview(null);
-    setShowAdd(false);
-    setUploading(false);
+    setAddEquipment(""); setAddEquipmentCustom(false);
+    setAddBrand(""); setAddBrandCustom(false);
+    setAddType(""); setAddLocation(""); setAddCustomLocation("");
+    setAddImageFile(null); setAddImagePreview(null);
+    setShowAdd(false); setUploading(false);
     fetchCatalog();
   };
 
@@ -313,8 +179,7 @@ const EquipmentCatalog = () => {
   const toggleRowSelection = (id: string) => {
     setSelectedRowIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
   };
@@ -323,10 +188,7 @@ const EquipmentCatalog = () => {
     const allSelected = eqRows.every((r) => selectedRowIds.has(r.id));
     setSelectedRowIds((prev) => {
       const next = new Set(prev);
-      eqRows.forEach((r) => {
-        if (allSelected) next.delete(r.id);
-        else next.add(r.id);
-      });
+      eqRows.forEach((r) => { if (allSelected) next.delete(r.id); else next.add(r.id); });
       return next;
     });
   };
@@ -347,35 +209,35 @@ const EquipmentCatalog = () => {
 
   const handleAddTraining = (employeeId: string) => {
     if (selectedRows.length === 0) return;
-    // If only one selected, navigate directly with full info
     if (selectedRows.length === 1) {
       const row = selectedRows[0];
-      const params = new URLSearchParams({
-        category: row.category_value,
-        equipment: row.equipment_name,
-      });
+      const params = new URLSearchParams({ category: row.category_value, equipment: row.equipment_name });
       if (row.brand) params.set("brand", row.brand);
       if (row.type) params.set("type", row.type);
       navigate(`/dokumentert-opplaering/ansatt/${employeeId}/ny?${params.toString()}`);
       return;
     }
-    // Multiple selected - navigate with first item and store rest in sessionStorage
     const items = selectedRows.map((r) => ({
-      category: r.category_value,
-      equipment: r.equipment_name,
-      brand: r.brand || "",
-      type: r.type || "",
+      category: r.category_value, equipment: r.equipment_name,
+      brand: r.brand || "", type: r.type || "",
     }));
     sessionStorage.setItem("bulk_training_items", JSON.stringify(items));
     const first = items[0];
-    const params = new URLSearchParams({
-      category: first.category,
-      equipment: first.equipment,
-      bulk: "true",
-    });
+    const params = new URLSearchParams({ category: first.category, equipment: first.equipment, bulk: "true" });
     if (first.brand) params.set("brand", first.brand);
     if (first.type) params.set("type", first.type);
     navigate(`/dokumentert-opplaering/ansatt/${employeeId}/ny?${params.toString()}`);
+  };
+
+  const handleImageSelect = (file: File | null) => {
+    setAddImageFile(file);
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => setAddImagePreview(ev.target?.result as string);
+      reader.readAsDataURL(file);
+    } else {
+      setAddImagePreview(null);
+    }
   };
 
   return (
@@ -420,226 +282,30 @@ const EquipmentCatalog = () => {
 
         {/* Add form */}
         {showAdd && (
-          <div className="mb-4 rounded-xl border border-border bg-card p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-display text-sm font-bold text-foreground">Legg til i katalog</h3>
-              <button onClick={() => setShowAdd(false)} className="text-muted-foreground hover:text-foreground">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block font-body text-xs text-muted-foreground">Kategori *</label>
-                <select
-                  value={addCategory}
-                  onChange={(e) => { setAddCategory(e.target.value); setAddEquipment(""); setAddEquipmentCustom(false); setAddBrand(""); setAddBrandCustom(false); }}
-                  className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  {CATEGORY_META.map((c) => (
-                    <option key={c.value} value={c.value}>{c.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="mb-1 block font-body text-xs text-muted-foreground">Maskin/utstyr *</label>
-                {(() => {
-                  const existingNames = Array.from(
-                    new Set(rows.filter((r) => r.category_value === addCategory).map((r) => r.equipment_name))
-                  ).sort();
-                  if (addEquipmentCustom || existingNames.length === 0) {
-                    return (
-                      <div className="flex gap-1">
-                        <input
-                          value={addEquipment}
-                          onChange={(e) => setAddEquipment(e.target.value)}
-                          placeholder="F.eks. Motorsag"
-                          className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                        />
-                        {existingNames.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => { setAddEquipmentCustom(false); setAddEquipment(""); }}
-                            className="shrink-0 rounded-lg border border-input px-2 text-muted-foreground hover:bg-secondary"
-                            title="Velg fra liste"
-                          >
-                            <ChevronDown className="h-4 w-4" />
-                          </button>
-                        )}
-                      </div>
-                    );
-                  }
-                  return (
-                    <select
-                      value={addEquipment}
-                      onChange={(e) => {
-                        if (e.target.value === "__custom__") {
-                          setAddEquipmentCustom(true);
-                          setAddEquipment("");
-                        } else {
-                          setAddEquipment(e.target.value);
-                        }
-                      }}
-                      className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                    >
-                      <option value="">Velg maskin/utstyr...</option>
-                      <option value="__custom__">✏️ Skriv eget...</option>
-                      {existingNames.map((name) => (
-                        <option key={name} value={name}>{name}</option>
-                      ))}
-                    </select>
-                  );
-                })()}
-              </div>
-              <div>
-                <label className="mb-1 block font-body text-xs text-muted-foreground">Merke</label>
-                {(() => {
-                  const existingBrands = Array.from(
-                    new Set(
-                      rows
-                        .filter((r) => r.category_value === addCategory && (!addEquipment || r.equipment_name === addEquipment))
-                        .map((r) => r.brand)
-                        .filter(Boolean) as string[]
-                    )
-                  ).sort();
-                  if (addBrandCustom || existingBrands.length === 0) {
-                    return (
-                      <div className="flex gap-1">
-                        <input
-                          value={addBrand}
-                          onChange={(e) => setAddBrand(e.target.value)}
-                          placeholder="F.eks. Stihl"
-                          className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                        />
-                        {existingBrands.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => { setAddBrandCustom(false); setAddBrand(""); }}
-                            className="shrink-0 rounded-lg border border-input px-2 text-muted-foreground hover:bg-secondary"
-                            title="Velg fra liste"
-                          >
-                            <ChevronDown className="h-4 w-4" />
-                          </button>
-                        )}
-                      </div>
-                    );
-                  }
-                  return (
-                    <select
-                      value={addBrand}
-                      onChange={(e) => {
-                        if (e.target.value === "__custom__") {
-                          setAddBrandCustom(true);
-                          setAddBrand("");
-                        } else {
-                          setAddBrand(e.target.value);
-                        }
-                      }}
-                      className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                    >
-                      <option value="">Velg merke...</option>
-                      <option value="__custom__">✏️ Skriv eget...</option>
-                      {existingBrands.map((brand) => (
-                        <option key={brand} value={brand}>{brand}</option>
-                      ))}
-                    </select>
-                  );
-                })()}
-              </div>
-              <div>
-                <label className="mb-1 block font-body text-xs text-muted-foreground">Type/modell</label>
-                <input
-                  value={addType}
-                  onChange={(e) => setAddType(e.target.value)}
-                  placeholder="F.eks. MS 261"
-                  className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-              <div className="col-span-2">
-                <label className="mb-1 block font-body text-xs text-muted-foreground">Plassering</label>
-                <select
-                  value={addLocation}
-                  onChange={(e) => setAddLocation(e.target.value)}
-                  className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  <option value="">Ingen plassering</option>
-                  {LOCATIONS.map((loc) => (
-                    <option key={loc} value={loc}>{loc}</option>
-                  ))}
-                </select>
-                {addLocation === "Annet" && (
-                  <input
-                    value={addCustomLocation}
-                    onChange={(e) => setAddCustomLocation(e.target.value)}
-                    placeholder="Skriv inn plassering"
-                    className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                  />
-                )}
-              </div>
-              <div className="col-span-2">
-                <label className="mb-1 block font-body text-xs text-muted-foreground">Bilde</label>
-                {addImagePreview ? (
-                  <div className="flex items-center gap-3">
-                    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-border">
-                      <img src={addImagePreview} alt="Forhåndsvisning" className="h-full w-full object-contain" />
-                      <button
-                        type="button"
-                        onClick={() => { setAddImageFile(null); setAddImagePreview(null); }}
-                        className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      const file = e.dataTransfer.files?.[0];
-                      if (file && file.type.startsWith("image/")) {
-                        setAddImageFile(file);
-                        const reader = new FileReader();
-                        reader.onload = (ev) => setAddImagePreview(ev.target?.result as string);
-                        reader.readAsDataURL(file);
-                      }
-                    }}
-                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                    className="group"
-                  >
-                    <label className="flex w-full cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed border-input px-4 py-6 text-muted-foreground transition-colors hover:border-primary hover:text-foreground group-[.dragging]:border-primary">
-                      <ImagePlus className="h-6 w-6" />
-                      <span className="font-body text-xs">Klikk eller dra og slipp bilde</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0] || null;
-                          setAddImageFile(file);
-                          if (file) {
-                            const reader = new FileReader();
-                            reader.onload = (ev) => setAddImagePreview(ev.target?.result as string);
-                            reader.readAsDataURL(file);
-                          } else {
-                            setAddImagePreview(null);
-                          }
-                        }}
-                      />
-                    </label>
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="flex justify-end">
-              <button
-                onClick={handleAdd}
-                disabled={!addEquipment.trim() || uploading}
-                className="rounded-lg bg-primary px-4 py-2 font-body text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-              >
-                {uploading ? "Laster opp..." : "Legg til"}
-              </button>
-            </div>
-          </div>
+          <AddEquipmentForm
+            rows={rows}
+            addCategory={addCategory}
+            setAddCategory={(v) => { setAddCategory(v); setAddEquipment(""); setAddEquipmentCustom(false); setAddBrand(""); setAddBrandCustom(false); }}
+            addEquipment={addEquipment}
+            setAddEquipment={setAddEquipment}
+            addEquipmentCustom={addEquipmentCustom}
+            setAddEquipmentCustom={setAddEquipmentCustom}
+            addBrand={addBrand}
+            setAddBrand={setAddBrand}
+            addBrandCustom={addBrandCustom}
+            setAddBrandCustom={setAddBrandCustom}
+            addType={addType}
+            setAddType={setAddType}
+            addLocation={addLocation}
+            setAddLocation={setAddLocation}
+            addCustomLocation={addCustomLocation}
+            setAddCustomLocation={setAddCustomLocation}
+            addImagePreview={addImagePreview}
+            onImageSelect={handleImageSelect}
+            uploading={uploading}
+            onClose={() => setShowAdd(false)}
+            onSubmit={handleAdd}
+          />
         )}
 
         {/* Category filter chips */}
@@ -698,11 +364,7 @@ const EquipmentCatalog = () => {
                           const eqKey = `${cat.value}::${eq.equipment_name}`;
                           const isExpanded = expandedEquipment === eqKey;
                           return (
-                            <SortableEquipmentCard
-                              key={eq.equipment_name}
-                              id={eq.equipment_name}
-                              isAdmin={isAdmin}
-                            >
+                            <SortableEquipmentCard key={eq.equipment_name} id={eq.equipment_name} isAdmin={isAdmin}>
                               <button
                                 onClick={() => setExpandedEquipment(isExpanded ? null : eqKey)}
                                 className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-secondary"
@@ -713,15 +375,10 @@ const EquipmentCatalog = () => {
                                     {eq.brands.size} merke{eq.brands.size !== 1 ? "r" : ""} · {eq.rows.length} type{eq.rows.length !== 1 ? "r" : ""}
                                   </p>
                                 </div>
-                                {isExpanded ? (
-                                  <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                ) : (
-                                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                )}
+                                {isExpanded ? <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />}
                               </button>
                               {isExpanded && (
                                 <div className="border-t border-border bg-secondary/30">
-                                  {/* Select all + training button */}
                                   <div className="flex items-center justify-between px-4 py-2 border-b border-border">
                                     <label className="flex items-center gap-2 cursor-pointer">
                                       <input
@@ -766,7 +423,6 @@ const EquipmentCatalog = () => {
                                       </tbody>
                                     </table>
                                   </div>
-                                  {/* Quick add for this equipment */}
                                   <QuickAdd
                                     categoryValue={cat.value}
                                     categoryLabel={cat.label}
@@ -788,6 +444,7 @@ const EquipmentCatalog = () => {
         )}
       </main>
 
+      {/* Employee picker dialog */}
       <Dialog open={showEmployeePicker} onOpenChange={setShowEmployeePicker}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
@@ -823,187 +480,191 @@ const EquipmentCatalog = () => {
   );
 };
 
-function EquipmentRowWithPreview({
-  row,
-  selected,
-  onToggle,
-  onDelete,
-  onClick,
+/** Inline add-equipment form (extracted for readability) */
+function AddEquipmentForm({
+  rows, addCategory, setAddCategory, addEquipment, setAddEquipment,
+  addEquipmentCustom, setAddEquipmentCustom, addBrand, setAddBrand,
+  addBrandCustom, setAddBrandCustom, addType, setAddType,
+  addLocation, setAddLocation, addCustomLocation, setAddCustomLocation,
+  addImagePreview, onImageSelect, uploading, onClose, onSubmit,
 }: {
-  row: CatalogRow;
-  selected: boolean;
-  onToggle: () => void;
-  onDelete: () => void;
-  onClick: () => void;
+  rows: CatalogRow[];
+  addCategory: string; setAddCategory: (v: string) => void;
+  addEquipment: string; setAddEquipment: (v: string) => void;
+  addEquipmentCustom: boolean; setAddEquipmentCustom: (v: boolean) => void;
+  addBrand: string; setAddBrand: (v: string) => void;
+  addBrandCustom: boolean; setAddBrandCustom: (v: boolean) => void;
+  addType: string; setAddType: (v: string) => void;
+  addLocation: string; setAddLocation: (v: string) => void;
+  addCustomLocation: string; setAddCustomLocation: (v: string) => void;
+  addImagePreview: string | null; onImageSelect: (f: File | null) => void;
+  uploading: boolean; onClose: () => void; onSubmit: () => void;
 }) {
-  const [hovered, setHovered] = useState(false);
-  const [hoverTimeout, setHoverTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
-  const [cardStyle, setCardStyle] = useState<React.CSSProperties>({});
-  const rowRef = useRef<HTMLTableRowElement>(null);
+  const existingNames = Array.from(
+    new Set(rows.filter((r) => r.category_value === addCategory).map((r) => r.equipment_name))
+  ).sort();
 
-  const handleMouseEnter = () => {
-    const t = setTimeout(() => {
-      if (rowRef.current) {
-        const rect = rowRef.current.getBoundingClientRect();
-        const cardHeight = 280;
-        const spaceBelow = window.innerHeight - rect.bottom;
-        const showAbove = spaceBelow < cardHeight;
-        setCardStyle({
-          position: "fixed",
-          right: window.innerWidth - rect.right,
-          top: showAbove ? rect.top - cardHeight - 4 : rect.bottom + 4,
-          zIndex: 9999,
-        });
-      }
-      setHovered(true);
-    }, 300);
-    setHoverTimeout(t);
-  };
-  const handleMouseLeave = () => {
-    if (hoverTimeout) clearTimeout(hoverTimeout);
-    setHovered(false);
-  };
+  const existingBrands = Array.from(
+    new Set(
+      rows
+        .filter((r) => r.category_value === addCategory && (!addEquipment || r.equipment_name === addEquipment))
+        .map((r) => r.brand)
+        .filter(Boolean) as string[]
+    )
+  ).sort();
 
   return (
-    <>
-      <tr
-        ref={rowRef}
-        className={`border-t border-border cursor-pointer hover:bg-secondary/50 ${selected ? "bg-primary/5" : ""}`}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-      >
-        <td
-          className="w-12 px-4 py-2 cursor-default"
-          onClick={(e) => { e.stopPropagation(); onToggle(); }}
-        >
-          <input
-            type="checkbox"
-            checked={selected}
-            onChange={() => {}}
-            className="h-4 w-4 rounded border-input accent-primary pointer-events-none"
-          />
-        </td>
-        <td className="px-4 py-2 font-body text-sm text-foreground" onClick={onClick}>{row.brand || "–"}</td>
-        <td className="px-4 py-2 font-body text-sm text-foreground" onClick={onClick}>{row.type || "–"}</td>
-        <td className="px-4 py-2 text-right">
-          <div className="flex items-center justify-end gap-1">
-            <button
-              onClick={(e) => { e.stopPropagation(); onDelete(); }}
-              className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-              title="Slett"
+    <div className="mb-4 rounded-xl border border-border bg-card p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="font-display text-sm font-bold text-foreground">Legg til i katalog</h3>
+        <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        {/* Category */}
+        <div>
+          <label className="mb-1 block font-body text-xs text-muted-foreground">Kategori *</label>
+          <select
+            value={addCategory}
+            onChange={(e) => setAddCategory(e.target.value)}
+            className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            {CATEGORY_META.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+          </select>
+        </div>
+
+        {/* Equipment name */}
+        <div>
+          <label className="mb-1 block font-body text-xs text-muted-foreground">Maskin/utstyr *</label>
+          {addEquipmentCustom || existingNames.length === 0 ? (
+            <div className="flex gap-1">
+              <input
+                value={addEquipment}
+                onChange={(e) => setAddEquipment(e.target.value)}
+                placeholder="F.eks. Motorsag"
+                className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+              {existingNames.length > 0 && (
+                <button type="button" onClick={() => { setAddEquipmentCustom(false); setAddEquipment(""); }}
+                  className="shrink-0 rounded-lg border border-input px-2 text-muted-foreground hover:bg-secondary" title="Velg fra liste">
+                  <ChevronDown className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          ) : (
+            <select
+              value={addEquipment}
+              onChange={(e) => { if (e.target.value === "__custom__") { setAddEquipmentCustom(true); setAddEquipment(""); } else setAddEquipment(e.target.value); }}
+              className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        </td>
-      </tr>
-      {hovered && createPortal(
-        <div
-          style={cardStyle}
-          className="w-72 overflow-hidden rounded-xl border border-border bg-card shadow-lg"
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={handleMouseLeave}
-        >
-          {row.image_url && (
-            <img
-              src={row.image_url}
-              alt={row.equipment_name}
-              className="h-36 w-full object-contain bg-muted/30"
+              <option value="">Velg maskin/utstyr...</option>
+              <option value="__custom__">✏️ Skriv eget...</option>
+              {existingNames.map((name) => <option key={name} value={name}>{name}</option>)}
+            </select>
+          )}
+        </div>
+
+        {/* Brand */}
+        <div>
+          <label className="mb-1 block font-body text-xs text-muted-foreground">Merke</label>
+          {addBrandCustom || existingBrands.length === 0 ? (
+            <div className="flex gap-1">
+              <input
+                value={addBrand}
+                onChange={(e) => setAddBrand(e.target.value)}
+                placeholder="F.eks. Stihl"
+                className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+              {existingBrands.length > 0 && (
+                <button type="button" onClick={() => { setAddBrandCustom(false); setAddBrand(""); }}
+                  className="shrink-0 rounded-lg border border-input px-2 text-muted-foreground hover:bg-secondary" title="Velg fra liste">
+                  <ChevronDown className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          ) : (
+            <select
+              value={addBrand}
+              onChange={(e) => { if (e.target.value === "__custom__") { setAddBrandCustom(true); setAddBrand(""); } else setAddBrand(e.target.value); }}
+              className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="">Velg merke...</option>
+              <option value="__custom__">✏️ Skriv eget...</option>
+              {existingBrands.map((brand) => <option key={brand} value={brand}>{brand}</option>)}
+            </select>
+          )}
+        </div>
+
+        {/* Type */}
+        <div>
+          <label className="mb-1 block font-body text-xs text-muted-foreground">Type/modell</label>
+          <input
+            value={addType}
+            onChange={(e) => setAddType(e.target.value)}
+            placeholder="F.eks. MS 261"
+            className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+
+        {/* Location */}
+        <div className="col-span-2">
+          <label className="mb-1 block font-body text-xs text-muted-foreground">Plassering</label>
+          <select
+            value={addLocation}
+            onChange={(e) => setAddLocation(e.target.value)}
+            className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <option value="">Ingen plassering</option>
+            {LOCATIONS.map((loc) => <option key={loc} value={loc}>{loc}</option>)}
+          </select>
+          {addLocation === "Annet" && (
+            <input
+              value={addCustomLocation}
+              onChange={(e) => setAddCustomLocation(e.target.value)}
+              placeholder="Skriv inn plassering"
+              className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           )}
-          <div className="p-3 space-y-2">
-            <div>
-              <p className="font-display text-sm font-bold text-foreground">{row.equipment_name}</p>
-              <p className="font-body text-xs text-muted-foreground">
-                {[row.brand, row.type].filter(Boolean).join(" · ") || row.category_label}
-              </p>
+        </div>
+
+        {/* Image */}
+        <div className="col-span-2">
+          <label className="mb-1 block font-body text-xs text-muted-foreground">Bilde</label>
+          {addImagePreview ? (
+            <div className="flex items-center gap-3">
+              <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-border">
+                <img src={addImagePreview} alt="Forhåndsvisning" className="h-full w-full object-contain" />
+                <button type="button" onClick={() => onImageSelect(null)}
+                  className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground">
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              {row.location && (
-                <div className="flex items-center gap-1.5 text-muted-foreground">
-                  <MapPin className="h-3 w-3 shrink-0" />
-                  <span className="font-body text-xs truncate">{row.location}</span>
-                </div>
-              )}
-              {row.noise_level_db && (
-                <div className="flex items-center gap-1.5 text-muted-foreground">
-                  <Volume2 className="h-3 w-3 shrink-0" />
-                  <span className="font-body text-xs">{row.noise_level_db} dB</span>
-                </div>
-              )}
-              {row.vibration_ms2 && (
-                <div className="flex items-center gap-1.5 text-muted-foreground">
-                  <Activity className="h-3 w-3 shrink-0" />
-                  <span className="font-body text-xs">{row.vibration_ms2} m/s²</span>
-                </div>
-              )}
+          ) : (
+            <div
+              onDrop={(e) => { e.preventDefault(); e.stopPropagation(); const file = e.dataTransfer.files?.[0]; if (file?.type.startsWith("image/")) onImageSelect(file); }}
+              onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+              className="group"
+            >
+              <label className="flex w-full cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed border-input px-4 py-6 text-muted-foreground transition-colors hover:border-primary hover:text-foreground">
+                <ImagePlus className="h-6 w-6" />
+                <span className="font-body text-xs">Klikk eller dra og slipp bilde</span>
+                <input type="file" accept="image/*" className="hidden" onChange={(e) => onImageSelect(e.target.files?.[0] || null)} />
+              </label>
             </div>
-            {row.description && (
-              <p className="font-body text-xs text-muted-foreground line-clamp-2">{row.description}</p>
-            )}
-            {!row.image_url && !row.location && !row.noise_level_db && !row.vibration_ms2 && !row.description && (
-              <p className="font-body text-xs italic text-muted-foreground">Ingen detaljer lagt til ennå</p>
-            )}
-          </div>
-        </div>,
-        document.body
-      )}
-    </>
-  );
-}
-
-function QuickAdd({
-  categoryValue,
-  categoryLabel,
-  equipmentName,
-  onAdded,
-}: {
-  categoryValue: string;
-  categoryLabel: string;
-  equipmentName: string;
-  onAdded: () => void;
-}) {
-  const [brand, setBrand] = useState("");
-  const [type, setType] = useState("");
-  const [adding, setAdding] = useState(false);
-
-  const handleAdd = async () => {
-    if (!brand.trim() && !type.trim()) return;
-    setAdding(true);
-    await supabase.from("equipment_catalog").insert({
-      category_value: categoryValue,
-      category_label: categoryLabel,
-      equipment_name: equipmentName,
-      brand: brand.trim() || null,
-      type: type.trim() || null,
-    });
-    setBrand("");
-    setType("");
-    setAdding(false);
-    onAdded();
-  };
-
-  return (
-    <div className="flex items-center gap-2 border-t border-border px-4 py-2">
-      <input
-        value={brand}
-        onChange={(e) => setBrand(e.target.value)}
-        placeholder="Merke"
-        className="h-8 flex-1 rounded-lg border border-input bg-background px-2 font-body text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-      />
-      <input
-        value={type}
-        onChange={(e) => setType(e.target.value)}
-        placeholder="Type/modell"
-        className="h-8 flex-1 rounded-lg border border-input bg-background px-2 font-body text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-      />
-      <button
-        onClick={handleAdd}
-        disabled={adding || (!brand.trim() && !type.trim())}
-        className="flex h-8 items-center gap-1 rounded-lg bg-primary px-2.5 font-body text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-      >
-        <Plus className="h-3 w-3" />
-      </button>
+          )}
+        </div>
+      </div>
+      <div className="flex justify-end">
+        <button
+          onClick={onSubmit}
+          disabled={!addEquipment.trim() || uploading}
+          className="rounded-lg bg-primary px-4 py-2 font-body text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+        >
+          {uploading ? "Laster opp..." : "Legg til"}
+        </button>
+      </div>
     </div>
   );
 }
