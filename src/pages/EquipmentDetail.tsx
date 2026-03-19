@@ -87,6 +87,9 @@ const EquipmentDetail = () => {
       setEditNoise(d.noise_level_db || "");
       setEditVibration(d.vibration_ms2 || "");
       setEditDescription(d.description || "");
+      setEditEquipmentName(d.equipment_name || "");
+      setEditBrand(d.brand || "");
+      setEditType(d.type || "");
     }
     setLoading(false);
   };
