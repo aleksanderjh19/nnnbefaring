@@ -126,6 +126,9 @@ const EquipmentDetail = () => {
     setSaving(true);
     const resolvedLocation = editLocation === "Annet" ? editCustomLocation.trim() : editLocation;
     await supabase.from("equipment_catalog").update({
+      equipment_name: editEquipmentName.trim() || item.equipment_name,
+      brand: editBrand.trim() || null,
+      type: editType.trim() || null,
       location: resolvedLocation || null,
       noise_level_db: editNoise.trim() || null,
       vibration_ms2: editVibration.trim() || null,
