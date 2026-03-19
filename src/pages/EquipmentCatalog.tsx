@@ -72,6 +72,8 @@ interface GroupedEquipment {
 
 const EquipmentCatalog = () => {
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
+  const { saveSortOrders, sortItems } = useSortOrders();
   const [rows, setRows] = useState<CatalogRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
