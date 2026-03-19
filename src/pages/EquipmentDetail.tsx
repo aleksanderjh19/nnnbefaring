@@ -249,12 +249,45 @@ const EquipmentDetail = () => {
         <section className="rounded-xl border border-border bg-card p-5 space-y-4">
           <h2 className="font-display text-sm font-bold text-foreground">Utstyrsinformasjon</h2>
 
-          <div className="grid grid-cols-2 gap-4">
-            <InfoField icon={<FileText className="h-4 w-4" />} label="Maskin/utstyr" value={item.equipment_name} />
-            <InfoField icon={<FileText className="h-4 w-4" />} label="Merke" value={item.brand || "–"} />
-            <InfoField icon={<FileText className="h-4 w-4" />} label="Type/modell" value={item.type || "–"} />
-            <InfoField icon={<FileText className="h-4 w-4" />} label="Kategori" value={item.category_label} />
-          </div>
+        <section className={`rounded-xl border bg-card p-5 space-y-4 ${editing ? "border-primary/30" : "border-border"}`}>
+          <h2 className="font-display text-sm font-bold text-foreground">Utstyrsinformasjon</h2>
+
+          {editing ? (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Maskin/utstyr</label>
+                <input
+                  value={editEquipmentName}
+                  onChange={(e) => setEditEquipmentName(e.target.value)}
+                  className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Merke</label>
+                <input
+                  value={editBrand}
+                  onChange={(e) => setEditBrand(e.target.value)}
+                  className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Type/modell</label>
+                <input
+                  value={editType}
+                  onChange={(e) => setEditType(e.target.value)}
+                  className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <InfoField icon={<FileText className="h-4 w-4" />} label="Kategori" value={item.category_label} />
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-4">
+              <InfoField icon={<FileText className="h-4 w-4" />} label="Maskin/utstyr" value={item.equipment_name} />
+              <InfoField icon={<FileText className="h-4 w-4" />} label="Merke" value={item.brand || "–"} />
+              <InfoField icon={<FileText className="h-4 w-4" />} label="Type/modell" value={item.type || "–"} />
+              <InfoField icon={<FileText className="h-4 w-4" />} label="Kategori" value={item.category_label} />
+            </div>
+          )}
         </section>
 
         {/* Editable details */}
