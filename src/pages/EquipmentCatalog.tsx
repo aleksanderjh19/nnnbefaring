@@ -70,7 +70,86 @@ interface GroupedEquipment {
   rows: CatalogRow[];
 }
 
-const EquipmentCatalog = () => {
+function SortableCategoryChip({
+  cat,
+  isActive,
+  onClick,
+  isAdmin,
+}: {
+  cat: { value: string; label: string; icon: any; count: number };
+  isActive: boolean;
+  onClick: () => void;
+  isAdmin: boolean;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: cat.value,
+    disabled: !isAdmin,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  const CatIcon = cat.icon;
+  return (
+    <button
+      ref={setNodeRef}
+      style={style}
+      onClick={onClick}
+      className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-body text-xs font-medium transition-colors ${
+        isActive
+          ? "bg-primary text-primary-foreground"
+          : "border border-border text-muted-foreground hover:bg-secondary"
+      }`}
+    >
+      {isAdmin && (
+        <span {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing touch-none">
+          <GripVertical className="h-3 w-3 opacity-40" />
+        </span>
+      )}
+      <CatIcon className="h-3 w-3" />
+      {cat.label} ({cat.count})
+    </button>
+  );
+}
+
+function SortableEquipmentCard({
+  id,
+  isAdmin,
+  children,
+}: {
+  id: string;
+  isAdmin: boolean;
+  children: React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+    disabled: !isAdmin,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  return (
+    <div ref={setNodeRef} style={style} className="overflow-hidden rounded-xl border border-border bg-card">
+      <div className="flex items-stretch">
+        {isAdmin && (
+          <div
+            {...attributes}
+            {...listeners}
+            className="flex w-8 shrink-0 cursor-grab items-center justify-center border-r border-border text-muted-foreground hover:bg-secondary active:cursor-grabbing touch-none"
+          >
+            <GripVertical className="h-4 w-4 opacity-40" />
+          </div>
+        )}
+        <div className="min-w-0 flex-1">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
   const { saveSortOrders, sortItems } = useSortOrders();
