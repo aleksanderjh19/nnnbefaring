@@ -13,10 +13,10 @@ export function useSortOrders() {
 
   const fetchSortOrders = useCallback(async () => {
     const { data } = await supabase
-      .from("catalog_sort_orders" as any)
+      .from("catalog_sort_orders")
       .select("entity_type, category_value, entity_key, sort_order")
       .order("sort_order");
-    if (data) setSortOrders(data as unknown as SortOrder[]);
+    if (data) setSortOrders(data);
   }, []);
 
   useEffect(() => {
