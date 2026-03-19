@@ -57,6 +57,9 @@ const EquipmentDetail = () => {
   const [editNoise, setEditNoise] = useState("");
   const [editVibration, setEditVibration] = useState("");
   const [editDescription, setEditDescription] = useState("");
+  const [editEquipmentName, setEditEquipmentName] = useState("");
+  const [editBrand, setEditBrand] = useState("");
+  const [editType, setEditType] = useState("");
 
   useEffect(() => { document.title = "Utstyr – Statnett"; }, []);
 
@@ -84,6 +87,9 @@ const EquipmentDetail = () => {
       setEditNoise(d.noise_level_db || "");
       setEditVibration(d.vibration_ms2 || "");
       setEditDescription(d.description || "");
+      setEditEquipmentName(d.equipment_name || "");
+      setEditBrand(d.brand || "");
+      setEditType(d.type || "");
     }
     setLoading(false);
   };
@@ -120,6 +126,9 @@ const EquipmentDetail = () => {
     setSaving(true);
     const resolvedLocation = editLocation === "Annet" ? editCustomLocation.trim() : editLocation;
     await supabase.from("equipment_catalog").update({
+      equipment_name: editEquipmentName.trim() || item.equipment_name,
+      brand: editBrand.trim() || null,
+      type: editType.trim() || null,
       location: resolvedLocation || null,
       noise_level_db: editNoise.trim() || null,
       vibration_ms2: editVibration.trim() || null,
@@ -237,15 +246,45 @@ const EquipmentDetail = () => {
         </section>
 
         {/* Info */}
-        <section className="rounded-xl border border-border bg-card p-5 space-y-4">
+        <section className={`rounded-xl border bg-card p-5 space-y-4 ${editing ? "border-primary/30" : "border-border"}`}>
           <h2 className="font-display text-sm font-bold text-foreground">Utstyrsinformasjon</h2>
 
-          <div className="grid grid-cols-2 gap-4">
-            <InfoField icon={<FileText className="h-4 w-4" />} label="Maskin/utstyr" value={item.equipment_name} />
-            <InfoField icon={<FileText className="h-4 w-4" />} label="Merke" value={item.brand || "–"} />
-            <InfoField icon={<FileText className="h-4 w-4" />} label="Type/modell" value={item.type || "–"} />
-            <InfoField icon={<FileText className="h-4 w-4" />} label="Kategori" value={item.category_label} />
-          </div>
+          {editing ? (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Maskin/utstyr</label>
+                <input
+                  value={editEquipmentName}
+                  onChange={(e) => setEditEquipmentName(e.target.value)}
+                  className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Merke</label>
+                <input
+                  value={editBrand}
+                  onChange={(e) => setEditBrand(e.target.value)}
+                  className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Type/modell</label>
+                <input
+                  value={editType}
+                  onChange={(e) => setEditType(e.target.value)}
+                  className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <InfoField icon={<FileText className="h-4 w-4" />} label="Kategori" value={item.category_label} />
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-4">
+              <InfoField icon={<FileText className="h-4 w-4" />} label="Maskin/utstyr" value={item.equipment_name} />
+              <InfoField icon={<FileText className="h-4 w-4" />} label="Merke" value={item.brand || "–"} />
+              <InfoField icon={<FileText className="h-4 w-4" />} label="Type/modell" value={item.type || "–"} />
+              <InfoField icon={<FileText className="h-4 w-4" />} label="Kategori" value={item.category_label} />
+            </div>
+          )}
         </section>
 
         {/* Editable details */}
