@@ -3,9 +3,26 @@ import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
+  DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext, verticalListSortingStrategy, useSortable, arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
   ArrowLeft, Plus, Trash2, ChevronDown, ChevronRight,
-  Wrench, Car, HardHat, Cpu, Package, Fuel, Search, X, Tractor, GraduationCap, MapPin, Volume2, Activity, ImagePlus
+  Wrench, Car, HardHat, Cpu, Package, Fuel, Search, X, Tractor, GraduationCap, MapPin, Volume2, Activity, ImagePlus, GripVertical
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { useAuth } from "@/hooks/useAuth";
+import { useSortOrders } from "@/hooks/useSortOrders";
 import {
   Dialog,
   DialogContent,
