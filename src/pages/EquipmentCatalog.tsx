@@ -3,8 +3,16 @@ import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
+  DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext, verticalListSortingStrategy, useSortable, arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
   ArrowLeft, Plus, Trash2, ChevronDown, ChevronRight,
-  Wrench, Car, HardHat, Cpu, Package, Fuel, Search, X, Tractor, GraduationCap, MapPin, Volume2, Activity, ImagePlus
+  Wrench, Car, HardHat, Cpu, Package, Fuel, Search, X, Tractor, GraduationCap, MapPin, Volume2, Activity, ImagePlus, GripVertical
 } from "lucide-react";
 import {
   Dialog,
@@ -13,6 +21,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { useAuth } from "@/hooks/useAuth";
+import { useSortOrders } from "@/hooks/useSortOrders";
 
 const LOCATIONS = [
   "Bjerka",
@@ -60,8 +70,89 @@ interface GroupedEquipment {
   rows: CatalogRow[];
 }
 
+function SortableCategoryChip({
+  cat,
+  isActive,
+  onClick,
+  isAdmin,
+}: {
+  cat: { value: string; label: string; icon: any; count: number };
+  isActive: boolean;
+  onClick: () => void;
+  isAdmin: boolean;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: cat.value,
+    disabled: !isAdmin,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  const CatIcon = cat.icon;
+  return (
+    <button
+      ref={setNodeRef}
+      style={style}
+      onClick={onClick}
+      className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-body text-xs font-medium transition-colors ${
+        isActive
+          ? "bg-primary text-primary-foreground"
+          : "border border-border text-muted-foreground hover:bg-secondary"
+      }`}
+    >
+      {isAdmin && (
+        <span {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing touch-none">
+          <GripVertical className="h-3 w-3 opacity-40" />
+        </span>
+      )}
+      <CatIcon className="h-3 w-3" />
+      {cat.label} ({cat.count})
+    </button>
+  );
+}
+
+function SortableEquipmentCard({
+  id,
+  isAdmin,
+  children,
+}: {
+  id: string;
+  isAdmin: boolean;
+  children: React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+    disabled: !isAdmin,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  return (
+    <div ref={setNodeRef} style={style} className="overflow-hidden rounded-xl border border-border bg-card">
+      <div className="flex items-stretch">
+        {isAdmin && (
+          <div
+            {...attributes}
+            {...listeners}
+            className="flex w-8 shrink-0 cursor-grab items-center justify-center border-r border-border text-muted-foreground hover:bg-secondary active:cursor-grabbing touch-none"
+          >
+            <GripVertical className="h-4 w-4 opacity-40" />
+          </div>
+        )}
+        <div className="min-w-0 flex-1">{children}</div>
+      </div>
+    </div>
+  );
+}
+
 const EquipmentCatalog = () => {
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
+  const { saveSortOrders, sortItems } = useSortOrders();
   const [rows, setRows] = useState<CatalogRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -119,14 +210,48 @@ const EquipmentCatalog = () => {
     return map;
   }, [rows]);
 
-  const categories = CATEGORY_META.map((cat) => ({
-    ...cat,
-    count: grouped.get(cat.value)?.size || 0,
-  }));
+  const categories = useMemo(() => {
+    const cats = CATEGORY_META.map((cat) => ({
+      ...cat,
+      count: grouped.get(cat.value)?.size || 0,
+    }));
+    return sortItems(cats, "category", "_all_", (c) => c.value);
+  }, [grouped, sortItems]);
 
   const filteredCategories = activeCategory
     ? categories.filter((c) => c.value === activeCategory)
     : categories.filter((c) => c.count > 0);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor)
+  );
+
+  const handleCategoryDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = categories.findIndex((c) => c.value === active.id);
+    const newIndex = categories.findIndex((c) => c.value === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const reordered = arrayMove(categories, oldIndex, newIndex);
+    await saveSortOrders("category", "_all_", reordered.map((c) => c.value));
+  };
+
+  const handleEquipmentDragEnd = async (catValue: string, event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const catEquipment = grouped.get(catValue);
+    if (!catEquipment) return;
+    const equipmentList = sortItems(
+      Array.from(catEquipment.values()).filter(matchesSearch),
+      "equipment", catValue, (eq) => eq.equipment_name
+    );
+    const oldIndex = equipmentList.findIndex((eq) => eq.equipment_name === active.id);
+    const newIndex = equipmentList.findIndex((eq) => eq.equipment_name === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const reordered = arrayMove(equipmentList, oldIndex, newIndex);
+    await saveSortOrders("equipment", catValue, reordered.map((eq) => eq.equipment_name));
+  };
 
   const handleAdd = async () => {
     if (!addEquipment.trim()) return;
@@ -518,35 +643,31 @@ const EquipmentCatalog = () => {
         )}
 
         {/* Category filter chips */}
-        <div className="mb-4 flex flex-wrap gap-2">
-          <button
-            onClick={() => setActiveCategory(null)}
-            className={`rounded-lg px-3 py-1.5 font-body text-xs font-medium transition-colors ${
-              activeCategory === null
-                ? "bg-primary text-primary-foreground"
-                : "border border-border text-muted-foreground hover:bg-secondary"
-            }`}
-          >
-            Alle
-          </button>
-          {categories.filter((c) => c.count > 0).map((cat) => {
-            const CatIcon = cat.icon;
-            return (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleCategoryDragEnd}>
+          <SortableContext items={categories.filter((c) => c.count > 0).map((c) => c.value)} strategy={verticalListSortingStrategy}>
+            <div className="mb-4 flex flex-wrap gap-2">
               <button
-                key={cat.value}
-                onClick={() => setActiveCategory(activeCategory === cat.value ? null : cat.value)}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-body text-xs font-medium transition-colors ${
-                  activeCategory === cat.value
+                onClick={() => setActiveCategory(null)}
+                className={`rounded-lg px-3 py-1.5 font-body text-xs font-medium transition-colors ${
+                  activeCategory === null
                     ? "bg-primary text-primary-foreground"
                     : "border border-border text-muted-foreground hover:bg-secondary"
                 }`}
               >
-                <CatIcon className="h-3 w-3" />
-                {cat.label} ({cat.count})
+                Alle
               </button>
-            );
-          })}
-        </div>
+              {categories.filter((c) => c.count > 0).map((cat) => (
+                <SortableCategoryChip
+                  key={cat.value}
+                  cat={cat}
+                  isActive={activeCategory === cat.value}
+                  onClick={() => setActiveCategory(activeCategory === cat.value ? null : cat.value)}
+                  isAdmin={isAdmin}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
 
         {loading ? (
           <p className="py-8 text-center font-body text-sm text-muted-foreground">Laster...</p>
@@ -556,7 +677,10 @@ const EquipmentCatalog = () => {
               const catEquipment = grouped.get(cat.value);
               if (!catEquipment) return null;
               const CatIcon = cat.icon;
-              const equipmentList = Array.from(catEquipment.values()).filter(matchesSearch);
+              const equipmentList = sortItems(
+                Array.from(catEquipment.values()).filter(matchesSearch),
+                "equipment", cat.value, (eq) => eq.equipment_name
+              );
               if (equipmentList.length === 0) return null;
 
               return (
@@ -567,88 +691,96 @@ const EquipmentCatalog = () => {
                       {cat.label}
                     </h2>
                   </div>
-                  <div className="space-y-1">
-                    {equipmentList.map((eq) => {
-                      const eqKey = `${cat.value}::${eq.equipment_name}`;
-                      const isExpanded = expandedEquipment === eqKey;
-                      return (
-                        <div key={eqKey} className="overflow-hidden rounded-xl border border-border bg-card">
-                          <button
-                            onClick={() => setExpandedEquipment(isExpanded ? null : eqKey)}
-                            className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-secondary"
-                          >
-                            <div className="min-w-0 flex-1">
-                              <p className="font-display text-sm font-bold text-foreground">{eq.equipment_name}</p>
-                              <p className="font-body text-xs text-muted-foreground">
-                                {eq.brands.size} merke{eq.brands.size !== 1 ? "r" : ""} · {eq.rows.length} type{eq.rows.length !== 1 ? "r" : ""}
-                              </p>
-                            </div>
-                            {isExpanded ? (
-                              <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
-                            ) : (
-                              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                            )}
-                          </button>
-                          {isExpanded && (
-                            <div className="border-t border-border bg-secondary/30">
-                              {/* Select all + training button */}
-                              <div className="flex items-center justify-between px-4 py-2 border-b border-border">
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                  <input
-                                    type="checkbox"
-                                    checked={eq.rows.every((r) => selectedRowIds.has(r.id))}
-                                    onChange={() => toggleAllInEquipment(eq.rows)}
-                                    className="h-4 w-4 rounded border-input accent-primary"
-                                  />
-                                  <span className="font-body text-xs font-medium text-muted-foreground">Velg alle</span>
-                                </label>
-                                {eq.rows.some((r) => selectedRowIds.has(r.id)) && (
-                                  <button
-                                    onClick={() => { setEmployeeSearch(""); setShowEmployeePicker(true); }}
-                                    className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 font-body text-xs font-semibold text-primary-foreground hover:bg-primary/90"
-                                  >
-                                    <GraduationCap className="h-3.5 w-3.5" />
-                                    Legg til opplæring ({eq.rows.filter((r) => selectedRowIds.has(r.id)).length})
-                                  </button>
+                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => handleEquipmentDragEnd(cat.value, e)}>
+                    <SortableContext items={equipmentList.map((eq) => eq.equipment_name)} strategy={verticalListSortingStrategy}>
+                      <div className="space-y-1">
+                        {equipmentList.map((eq) => {
+                          const eqKey = `${cat.value}::${eq.equipment_name}`;
+                          const isExpanded = expandedEquipment === eqKey;
+                          return (
+                            <SortableEquipmentCard
+                              key={eq.equipment_name}
+                              id={eq.equipment_name}
+                              isAdmin={isAdmin}
+                            >
+                              <button
+                                onClick={() => setExpandedEquipment(isExpanded ? null : eqKey)}
+                                className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-secondary"
+                              >
+                                <div className="min-w-0 flex-1">
+                                  <p className="font-display text-sm font-bold text-foreground">{eq.equipment_name}</p>
+                                  <p className="font-body text-xs text-muted-foreground">
+                                    {eq.brands.size} merke{eq.brands.size !== 1 ? "r" : ""} · {eq.rows.length} type{eq.rows.length !== 1 ? "r" : ""}
+                                  </p>
+                                </div>
+                                {isExpanded ? (
+                                  <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
                                 )}
-                              </div>
-                              <div className="overflow-hidden">
-                                <table className="w-full text-sm">
-                                  <thead>
-                                    <tr className="bg-muted/50">
-                                      <th className="w-10 px-4 py-2"></th>
-                                      <th className="px-4 py-2 text-left font-body text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Merke</th>
-                                      <th className="px-4 py-2 text-left font-body text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Type/modell</th>
-                                      <th className="px-4 py-2 text-right font-body text-[10px] font-medium uppercase tracking-wider text-muted-foreground"></th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {eq.rows.map((row) => (
-                                      <EquipmentRowWithPreview
-                                        key={row.id}
-                                        row={row}
-                                        selected={selectedRowIds.has(row.id)}
-                                        onToggle={() => toggleRowSelection(row.id)}
-                                        onDelete={() => handleDelete(row.id)}
-                                        onClick={() => navigate(`/dokumentert-opplaering/katalog/${row.id}`)}
+                              </button>
+                              {isExpanded && (
+                                <div className="border-t border-border bg-secondary/30">
+                                  {/* Select all + training button */}
+                                  <div className="flex items-center justify-between px-4 py-2 border-b border-border">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                      <input
+                                        type="checkbox"
+                                        checked={eq.rows.every((r) => selectedRowIds.has(r.id))}
+                                        onChange={() => toggleAllInEquipment(eq.rows)}
+                                        className="h-4 w-4 rounded border-input accent-primary"
                                       />
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
-                              {/* Quick add for this equipment */}
-                              <QuickAdd
-                                categoryValue={cat.value}
-                                categoryLabel={cat.label}
-                                equipmentName={eq.equipment_name}
-                                onAdded={fetchCatalog}
-                              />
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+                                      <span className="font-body text-xs font-medium text-muted-foreground">Velg alle</span>
+                                    </label>
+                                    {eq.rows.some((r) => selectedRowIds.has(r.id)) && (
+                                      <button
+                                        onClick={() => { setEmployeeSearch(""); setShowEmployeePicker(true); }}
+                                        className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 font-body text-xs font-semibold text-primary-foreground hover:bg-primary/90"
+                                      >
+                                        <GraduationCap className="h-3.5 w-3.5" />
+                                        Legg til opplæring ({eq.rows.filter((r) => selectedRowIds.has(r.id)).length})
+                                      </button>
+                                    )}
+                                  </div>
+                                  <div className="overflow-hidden">
+                                    <table className="w-full text-sm">
+                                      <thead>
+                                        <tr className="bg-muted/50">
+                                          <th className="w-10 px-4 py-2"></th>
+                                          <th className="px-4 py-2 text-left font-body text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Merke</th>
+                                          <th className="px-4 py-2 text-left font-body text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Type/modell</th>
+                                          <th className="px-4 py-2 text-right font-body text-[10px] font-medium uppercase tracking-wider text-muted-foreground"></th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {eq.rows.map((row) => (
+                                          <EquipmentRowWithPreview
+                                            key={row.id}
+                                            row={row}
+                                            selected={selectedRowIds.has(row.id)}
+                                            onToggle={() => toggleRowSelection(row.id)}
+                                            onDelete={() => handleDelete(row.id)}
+                                            onClick={() => navigate(`/dokumentert-opplaering/katalog/${row.id}`)}
+                                          />
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                  {/* Quick add for this equipment */}
+                                  <QuickAdd
+                                    categoryValue={cat.value}
+                                    categoryLabel={cat.label}
+                                    equipmentName={eq.equipment_name}
+                                    onAdded={fetchCatalog}
+                                  />
+                                </div>
+                              )}
+                            </SortableEquipmentCard>
+                          );
+                        })}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
                 </div>
               );
             })}
