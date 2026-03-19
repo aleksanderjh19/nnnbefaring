@@ -58,8 +58,8 @@ export function useSortOrders() {
       await Promise.all(
         rows.map((row) =>
           supabase
-            .from("catalog_sort_orders" as any)
-            .upsert(row, { onConflict: "entity_type,category_value,entity_key" })
+            .from("catalog_sort_orders")
+            .upsert(row as any, { onConflict: "entity_type,category_value,entity_key" })
         )
       );
     },
