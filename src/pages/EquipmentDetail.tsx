@@ -57,6 +57,9 @@ const EquipmentDetail = () => {
   const [editNoise, setEditNoise] = useState("");
   const [editVibration, setEditVibration] = useState("");
   const [editDescription, setEditDescription] = useState("");
+  const [editEquipmentName, setEditEquipmentName] = useState("");
+  const [editBrand, setEditBrand] = useState("");
+  const [editType, setEditType] = useState("");
 
   useEffect(() => { document.title = "Utstyr – Statnett"; }, []);
 
