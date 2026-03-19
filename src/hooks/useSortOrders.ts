@@ -38,7 +38,6 @@ export function useSortOrders() {
 
   const saveSortOrders = useCallback(
     async (entityType: string, categoryValue: string, orderedKeys: string[]) => {
-      // Upsert all sort orders
       const rows = orderedKeys.map((key, i) => ({
         entity_type: entityType,
         category_value: categoryValue,
@@ -47,19 +46,22 @@ export function useSortOrders() {
         updated_at: new Date().toISOString(),
       }));
 
-      for (const row of rows) {
-        await supabase
-          .from("catalog_sort_orders" as any)
-          .upsert(row, { onConflict: "entity_type,category_value,entity_key" });
-      }
-
-      // Optimistic update
+      // Optimistic update FIRST — before any async work
       setSortOrders((prev) => {
         const filtered = prev.filter(
           (s) => !(s.entity_type === entityType && s.category_value === categoryValue)
         );
         return [...filtered, ...rows];
       });
+
+      // Persist in background (parallel upserts)
+      await Promise.all(
+        rows.map((row) =>
+          supabase
+            .from("catalog_sort_orders" as any)
+            .upsert(row, { onConflict: "entity_type,category_value,entity_key" })
+        )
+      );
     },
     []
   );
