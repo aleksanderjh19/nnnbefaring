@@ -25,7 +25,7 @@ const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps)
       // Check admin role if needed
       if (requireAdmin) {
         supabase
-          .from("user_roles" as any)
+          .from("user_roles")
           .select("role")
           .eq("user_id", session.user.id)
           .eq("role", "admin")
@@ -48,7 +48,7 @@ const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps)
       }
       if (requireAdmin) {
         supabase
-          .from("user_roles" as any)
+          .from("user_roles")
           .select("role")
           .eq("user_id", session.user.id)
           .eq("role", "admin")
