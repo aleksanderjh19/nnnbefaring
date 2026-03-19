@@ -131,14 +131,48 @@ const EquipmentCatalog = () => {
     return map;
   }, [rows]);
 
-  const categories = CATEGORY_META.map((cat) => ({
-    ...cat,
-    count: grouped.get(cat.value)?.size || 0,
-  }));
+  const categories = useMemo(() => {
+    const cats = CATEGORY_META.map((cat) => ({
+      ...cat,
+      count: grouped.get(cat.value)?.size || 0,
+    }));
+    return sortItems(cats, "category", "_all_", (c) => c.value);
+  }, [grouped, sortItems]);
 
   const filteredCategories = activeCategory
     ? categories.filter((c) => c.value === activeCategory)
     : categories.filter((c) => c.count > 0);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor)
+  );
+
+  const handleCategoryDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = categories.findIndex((c) => c.value === active.id);
+    const newIndex = categories.findIndex((c) => c.value === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const reordered = arrayMove(categories, oldIndex, newIndex);
+    await saveSortOrders("category", "_all_", reordered.map((c) => c.value));
+  };
+
+  const handleEquipmentDragEnd = async (catValue: string, event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const catEquipment = grouped.get(catValue);
+    if (!catEquipment) return;
+    const equipmentList = sortItems(
+      Array.from(catEquipment.values()).filter(matchesSearch),
+      "equipment", catValue, (eq) => eq.equipment_name
+    );
+    const oldIndex = equipmentList.findIndex((eq) => eq.equipment_name === active.id);
+    const newIndex = equipmentList.findIndex((eq) => eq.equipment_name === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const reordered = arrayMove(equipmentList, oldIndex, newIndex);
+    await saveSortOrders("equipment", catValue, reordered.map((eq) => eq.equipment_name));
+  };
 
   const handleAdd = async () => {
     if (!addEquipment.trim()) return;
