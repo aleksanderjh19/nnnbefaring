@@ -35,6 +35,7 @@ const CATEGORY_META = [
   { value: "kjøretøy", label: "Kjøretøy", icon: Car },
   { value: "maskin", label: "Maskin", icon: Cpu },
   { value: "traktor_utstyr", label: "Traktor m/utstyr", icon: Tractor },
+  { value: "maleinstrument", label: "Måleinstrument", icon: Activity },
   { value: "utstyr", label: "Utstyr", icon: HardHat },
   { value: "annet", label: "Annet", icon: Package },
 ];
