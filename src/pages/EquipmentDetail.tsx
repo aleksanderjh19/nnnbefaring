@@ -246,9 +246,6 @@ const EquipmentDetail = () => {
         </section>
 
         {/* Info */}
-        <section className="rounded-xl border border-border bg-card p-5 space-y-4">
-          <h2 className="font-display text-sm font-bold text-foreground">Utstyrsinformasjon</h2>
-
         <section className={`rounded-xl border bg-card p-5 space-y-4 ${editing ? "border-primary/30" : "border-border"}`}>
           <h2 className="font-display text-sm font-bold text-foreground">Utstyrsinformasjon</h2>
 
