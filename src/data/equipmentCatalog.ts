@@ -258,6 +258,11 @@ export const EQUIPMENT_CATALOG: CategoryEntry[] = [
     ],
   },
   {
+    value: "maleinstrument",
+    label: "Måleinstrument",
+    equipment: [],
+  },
+  {
     value: "annet",
     label: "Annet",
     equipment: [],
