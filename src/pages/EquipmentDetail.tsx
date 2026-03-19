@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Camera, MapPin, Volume2, Activity, FileText, Pencil, Save, X, GraduationCap } from "lucide-react";
+import { ArrowLeft, MapPin, Volume2, Activity, FileText, Pencil, Save, X, GraduationCap } from "lucide-react";
+import { ImageDropZone } from "@/components/ImageDropZone";
 import {
   Dialog,
   DialogContent,
@@ -46,7 +47,7 @@ const EquipmentDetail = () => {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const [showEmployeePicker, setShowEmployeePicker] = useState(false);
   const [employees, setEmployees] = useState<{ id: string; name: string }[]>([]);
   const [employeeSearch, setEmployeeSearch] = useState("");
@@ -139,10 +140,8 @@ const EquipmentDetail = () => {
     fetchItem();
   };
 
-  const handlePhotoCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0 || !item) return;
-    const file = files[0];
+  const handleFileUpload = useCallback(async (file: File) => {
+    if (!item) return;
     const ext = file.name.split(".").pop();
     const path = `equipment-photos/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
     const { error } = await supabase.storage.from("training-files").upload(path, file);
@@ -150,7 +149,7 @@ const EquipmentDetail = () => {
     const { data } = supabase.storage.from("training-files").getPublicUrl(path);
     await supabase.from("equipment_catalog").update({ image_url: data.publicUrl }).eq("id", item.id);
     fetchItem();
-  };
+  }, [item]);
 
   if (loading) {
     return (
@@ -210,40 +209,12 @@ const EquipmentDetail = () => {
 
       <main className="mx-auto max-w-2xl px-5 py-5 space-y-5">
         {/* Image */}
-        <section className="rounded-xl border border-border bg-card overflow-hidden">
-          {item.image_url ? (
-            <div className="relative">
-              <img
-                src={item.image_url}
-                alt={displayName}
-                className="w-full max-h-72 object-contain bg-muted/30"
-              />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-full bg-card/80 backdrop-blur text-foreground shadow hover:bg-card"
-                title="Bytt bilde"
-              >
-                <Camera className="h-4 w-4" />
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="flex w-full flex-col items-center justify-center gap-2 py-16 text-muted-foreground hover:text-primary"
-            >
-              <Camera className="h-8 w-8" />
-              <span className="font-body text-sm">Legg til bilde</span>
-            </button>
-          )}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={handlePhotoCapture}
-            className="hidden"
-          />
-        </section>
+        <ImageDropZone
+          onFileSelected={handleFileUpload}
+          currentImageUrl={item.image_url}
+          alt={displayName}
+          emptyLabel="Legg til bilde"
+        />
 
         {/* Info */}
         <section className={`rounded-xl border bg-card p-5 space-y-4 ${editing ? "border-primary/30" : "border-border"}`}>

@@ -452,28 +452,8 @@ const EquipmentCatalog = () => {
               </div>
               <div className="col-span-2">
                 <label className="mb-1 block font-body text-xs text-muted-foreground">Bilde</label>
-                <div className="flex items-center gap-3">
-                  <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-input px-4 py-2.5 text-muted-foreground transition-colors hover:border-primary hover:text-foreground">
-                    <ImagePlus className="h-4 w-4" />
-                    <span className="font-body text-xs">{addImageFile ? addImageFile.name : "Velg bilde..."}</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0] || null;
-                        setAddImageFile(file);
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onload = (ev) => setAddImagePreview(ev.target?.result as string);
-                          reader.readAsDataURL(file);
-                        } else {
-                          setAddImagePreview(null);
-                        }
-                      }}
-                    />
-                  </label>
-                  {addImagePreview && (
+                {addImagePreview ? (
+                  <div className="flex items-center gap-3">
                     <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-border">
                       <img src={addImagePreview} alt="Forhåndsvisning" className="h-full w-full object-contain" />
                       <button
@@ -484,8 +464,45 @@ const EquipmentCatalog = () => {
                         <X className="h-3 w-3" />
                       </button>
                     </div>
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  <div
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const file = e.dataTransfer.files?.[0];
+                      if (file && file.type.startsWith("image/")) {
+                        setAddImageFile(file);
+                        const reader = new FileReader();
+                        reader.onload = (ev) => setAddImagePreview(ev.target?.result as string);
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                    className="group"
+                  >
+                    <label className="flex w-full cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed border-input px-4 py-6 text-muted-foreground transition-colors hover:border-primary hover:text-foreground group-[.dragging]:border-primary">
+                      <ImagePlus className="h-6 w-6" />
+                      <span className="font-body text-xs">Klikk eller dra og slipp bilde</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] || null;
+                          setAddImageFile(file);
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (ev) => setAddImagePreview(ev.target?.result as string);
+                            reader.readAsDataURL(file);
+                          } else {
+                            setAddImagePreview(null);
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
+                )}
               </div>
             </div>
             <div className="flex justify-end">
