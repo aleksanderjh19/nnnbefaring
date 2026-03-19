@@ -149,7 +149,7 @@ function SortableEquipmentCard({
   );
 }
 
-
+const EquipmentCatalog = () => {
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
   const { saveSortOrders, sortItems } = useSortOrders();
