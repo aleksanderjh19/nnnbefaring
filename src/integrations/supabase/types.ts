@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      catalog_sort_orders: {
+        Row: {
+          category_value: string
+          entity_key: string
+          entity_type: string
+          id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          category_value: string
+          entity_key: string
+          entity_type: string
+          id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          category_value?: string
+          entity_key?: string
+          entity_type?: string
+          id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       employees: {
         Row: {
           active: boolean
