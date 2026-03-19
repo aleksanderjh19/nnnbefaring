@@ -16,7 +16,7 @@ export function useSortOrders() {
       .from("catalog_sort_orders" as any)
       .select("entity_type, category_value, entity_key, sort_order")
       .order("sort_order");
-    if (data) setSortOrders(data as SortOrder[]);
+    if (data) setSortOrders(data as unknown as SortOrder[]);
   }, []);
 
   useEffect(() => {
