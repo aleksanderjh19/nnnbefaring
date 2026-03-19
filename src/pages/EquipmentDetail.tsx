@@ -209,40 +209,12 @@ const EquipmentDetail = () => {
 
       <main className="mx-auto max-w-2xl px-5 py-5 space-y-5">
         {/* Image */}
-        <section className="rounded-xl border border-border bg-card overflow-hidden">
-          {item.image_url ? (
-            <div className="relative">
-              <img
-                src={item.image_url}
-                alt={displayName}
-                className="w-full max-h-72 object-contain bg-muted/30"
-              />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-full bg-card/80 backdrop-blur text-foreground shadow hover:bg-card"
-                title="Bytt bilde"
-              >
-                <Camera className="h-4 w-4" />
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="flex w-full flex-col items-center justify-center gap-2 py-16 text-muted-foreground hover:text-primary"
-            >
-              <Camera className="h-8 w-8" />
-              <span className="font-body text-sm">Legg til bilde</span>
-            </button>
-          )}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={handlePhotoCapture}
-            className="hidden"
-          />
-        </section>
+        <ImageDropZone
+          onFileSelected={handleFileUpload}
+          currentImageUrl={item.image_url}
+          alt={displayName}
+          emptyLabel="Legg til bilde"
+        />
 
         {/* Info */}
         <section className={`rounded-xl border bg-card p-5 space-y-4 ${editing ? "border-primary/30" : "border-border"}`}>
