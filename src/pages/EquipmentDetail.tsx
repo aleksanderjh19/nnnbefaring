@@ -140,10 +140,8 @@ const EquipmentDetail = () => {
     fetchItem();
   };
 
-  const handlePhotoCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0 || !item) return;
-    const file = files[0];
+  const handleFileUpload = useCallback(async (file: File) => {
+    if (!item) return;
     const ext = file.name.split(".").pop();
     const path = `equipment-photos/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
     const { error } = await supabase.storage.from("training-files").upload(path, file);
@@ -151,7 +149,7 @@ const EquipmentDetail = () => {
     const { data } = supabase.storage.from("training-files").getPublicUrl(path);
     await supabase.from("equipment_catalog").update({ image_url: data.publicUrl }).eq("id", item.id);
     fetchItem();
-  };
+  }, [item]);
 
   if (loading) {
     return (
