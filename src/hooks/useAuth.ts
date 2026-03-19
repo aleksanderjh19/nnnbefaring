@@ -37,7 +37,7 @@ export function useAuth() {
       if (session?.user) {
         setTimeout(() => {
           supabase
-            .from("user_roles" as any)
+            .from("user_roles")
             .select("role")
             .eq("user_id", session.user.id)
             .eq("role", "admin")
