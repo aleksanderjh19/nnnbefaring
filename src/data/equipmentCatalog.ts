@@ -241,7 +241,7 @@ export const EQUIPMENT_CATALOG: CategoryEntry[] = [
         ],
       },
       {
-        name: "Skjerebrenner",
+        name: "Skjærebrenner",
         brands: [],
       },
       {
