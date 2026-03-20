@@ -352,7 +352,7 @@ export default function WasteManagement() {
                   key={cat.id}
                   className="flex gap-3 rounded-xl border border-border bg-card p-4 transition-shadow hover:shadow-md"
                 >
-                  <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${cat.color} text-white`}>
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white" style={{ backgroundColor: getBgColor(cat.color) }}>
                     <Icon className="h-5 w-5" />
                   </div>
                   <div className="min-w-0 flex-1 space-y-1">
