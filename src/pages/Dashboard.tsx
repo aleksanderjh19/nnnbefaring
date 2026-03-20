@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Cable, Landmark, Zap, ChevronRight, GraduationCap } from "lucide-react";
+import { Cable, Landmark, Zap, ChevronRight, GraduationCap, Trash2 } from "lucide-react";
 import heroVideo from "@/assets/hero-video.mp4";
 
 const tools = [
@@ -34,6 +34,14 @@ const tools = [
     description: "Registrering og oppfølging av opplæring",
     icon: GraduationCap,
     path: "/dokumentert-opplaering",
+    ready: true,
+  },
+  {
+    id: "avfallshandtering",
+    name: "Avfallshåndtering",
+    description: "Sorteringsoversikt og varsling om tømming",
+    icon: Trash2,
+    path: "/avfallshandtering",
     ready: true,
   },
 ];
