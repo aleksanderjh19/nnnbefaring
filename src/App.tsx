@@ -18,6 +18,7 @@ import TrainingForm from "./pages/TrainingForm.tsx";
 import TrainingPrint from "./pages/TrainingPrint.tsx";
 import EquipmentCatalog from "./pages/EquipmentCatalog.tsx";
 import EquipmentDetail from "./pages/EquipmentDetail.tsx";
+import WasteManagement from "./pages/WasteManagement.tsx";
 import AdminEmployeeList from "./pages/AdminEmployeeList.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
