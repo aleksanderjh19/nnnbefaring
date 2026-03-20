@@ -229,6 +229,36 @@ export type Database = {
         }
         Relationships: []
       }
+      waste_categories: {
+        Row: {
+          color: string
+          description: string
+          icon_name: string
+          id: string
+          label: string
+          location: string
+          sort_order: number
+        }
+        Insert: {
+          color?: string
+          description?: string
+          icon_name?: string
+          id: string
+          label: string
+          location?: string
+          sort_order?: number
+        }
+        Update: {
+          color?: string
+          description?: string
+          icon_name?: string
+          id?: string
+          label?: string
+          location?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       waste_notification_recipients: {
         Row: {
           created_at: string
@@ -247,6 +277,21 @@ export type Database = {
           email?: string
           id?: string
           waste_category?: string
+        }
+        Relationships: []
+      }
+      waste_page_settings: {
+        Row: {
+          key: string
+          value: string
+        }
+        Insert: {
+          key: string
+          value?: string
+        }
+        Update: {
+          key?: string
+          value?: string
         }
         Relationships: []
       }
