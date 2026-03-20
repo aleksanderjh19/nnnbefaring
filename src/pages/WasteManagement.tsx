@@ -37,6 +37,18 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   Trash2, Package, Wrench, Battery, Zap, Recycle,
 };
 
+// Convert Tailwind bg classes to hex colors for inline styles (avoids purging)
+const BG_COLOR_MAP: Record<string, string> = {
+  "bg-gray-600": "#4b5563",
+  "bg-amber-700": "#b45309",
+  "bg-slate-500": "#64748b",
+  "bg-yellow-600": "#ca8a04",
+  "bg-emerald-700": "#047857",
+  "bg-blue-600": "#2563eb",
+};
+
+const getBgColor = (twClass: string) => BG_COLOR_MAP[twClass] || "#6b7280";
+
 interface WasteCategoryRow {
   id: string;
   label: string;
@@ -340,7 +352,7 @@ export default function WasteManagement() {
                   key={cat.id}
                   className="flex gap-3 rounded-xl border border-border bg-card p-4 transition-shadow hover:shadow-md"
                 >
-                  <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${cat.color} text-white`}>
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white" style={{ backgroundColor: getBgColor(cat.color) }}>
                     <Icon className="h-5 w-5" />
                   </div>
                   <div className="min-w-0 flex-1 space-y-1">
@@ -424,7 +436,7 @@ export default function WasteManagement() {
                   }`}
                 >
                   <Checkbox checked={selected.has(cat.id)} onCheckedChange={() => toggle(cat.id)} />
-                  <div className={`flex h-7 w-7 items-center justify-center rounded-md ${cat.color} text-white`}>
+                  <div className="flex h-7 w-7 items-center justify-center rounded-md text-white" style={{ backgroundColor: getBgColor(cat.color) }}>
                     <Icon className="h-3.5 w-3.5" />
                   </div>
                   <span className="font-display text-sm font-semibold text-foreground">{cat.label}</span>
