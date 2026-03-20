@@ -202,10 +202,10 @@ export const EQUIPMENT_CATALOG: CategoryEntry[] = [
     label: "Kjøretøy",
     equipment: [
       {
-        name: "Snøscooter",
+        name: "Snøskuter",
         brands: [
           { brand: "Lynx", types: ["Ranger 600 E-TEC", "59 Yeti 550"] },
-          { brand: "Skidoo", types: ["Summit 85", "Tundra 600 HO E-TEC"] },
+          { brand: "Skidoo", types: ["Summit 85", "Summit 850", "Summit 850 Expert", "Tundra 600 HO", "Tundra 600 HO E-TEC"] },
           { brand: "Polaris", types: ["850 SKS"] },
         ],
       },
