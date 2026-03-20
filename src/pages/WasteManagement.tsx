@@ -105,7 +105,7 @@ export default function WasteManagement() {
   const [settingsCategory, setSettingsCategory] = useState<string>(WASTE_CATEGORIES[0].id);
 
   useEffect(() => {
-    document.title = "Avfallshåndtering – NNN Verktøy";
+    document.title = "Avfallshåndtering Bjerka – NNN Verktøy";
   }, []);
 
   useEffect(() => {
