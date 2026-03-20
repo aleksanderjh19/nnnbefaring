@@ -36,6 +36,14 @@ const tools = [
     path: "/dokumentert-opplaering",
     ready: true,
   },
+  {
+    id: "avfallshandtering",
+    name: "Avfallshåndtering",
+    description: "Sorteringsoversikt og varsling om tømming",
+    icon: Trash2,
+    path: "/avfallshandtering",
+    ready: true,
+  },
 ];
 
 const Dashboard = () => {
