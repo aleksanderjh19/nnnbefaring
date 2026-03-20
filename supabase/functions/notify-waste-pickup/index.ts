@@ -97,7 +97,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "NNN Verktøy <varsling@nnn.verktoy.no>",
+        from: "NNN Verktøy <onboarding@resend.dev>",
         to: uniqueEmails,
         subject: `Tømmevarsel: ${categoryLabels}`,
         html: emailHtml,
