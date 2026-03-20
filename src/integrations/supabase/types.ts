@@ -229,6 +229,51 @@ export type Database = {
         }
         Relationships: []
       }
+      waste_notification_recipients: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          waste_category: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          waste_category: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          waste_category?: string
+        }
+        Relationships: []
+      }
+      waste_pickup_requests: {
+        Row: {
+          id: string
+          note: string | null
+          requested_at: string
+          requested_by: string | null
+          waste_category: string
+        }
+        Insert: {
+          id?: string
+          note?: string | null
+          requested_at?: string
+          requested_by?: string | null
+          waste_category: string
+        }
+        Update: {
+          id?: string
+          note?: string | null
+          requested_at?: string
+          requested_by?: string | null
+          waste_category?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
