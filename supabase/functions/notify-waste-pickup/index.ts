@@ -90,23 +90,65 @@ serve(async (req) => {
 </div>`.trim();
 
     // Send via Resend
-    const resendRes = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${resendApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: "NNN Verktøy <onboarding@resend.dev>",
-        to: uniqueEmails,
-        subject: `Tømmevarsel: ${categoryLabels}`,
-        html: emailHtml,
-      }),
-    });
+    const sendEmail = async (to: string[]) =>
+      fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: "NNN Verktøy <onboarding@resend.dev>",
+          to,
+          subject: `Tømmevarsel: ${categoryLabels}`,
+          html: emailHtml,
+        }),
+      });
+
+    let resendRes = await sendEmail(uniqueEmails);
 
     if (!resendRes.ok) {
       const errBody = await resendRes.text();
       console.error("Resend error:", resendRes.status, errBody);
+
+      const allowedEmailMatch = errBody.match(/own email address \(([^)]+)\)/i);
+      const allowedTestEmail = allowedEmailMatch?.[1];
+      const isResendTestModeRestriction =
+        resendRes.status === 403 &&
+        /only send testing emails/i.test(errBody) &&
+        Boolean(allowedTestEmail);
+
+      if (isResendTestModeRestriction && allowedTestEmail) {
+        console.warn(
+          "Resend test mode restriction detected. Retrying to allowed inbox:",
+          allowedTestEmail
+        );
+
+        resendRes = await sendEmail([allowedTestEmail]);
+
+        if (!resendRes.ok) {
+          const retryErrBody = await resendRes.text();
+          console.error("Resend retry error:", resendRes.status, retryErrBody);
+          throw new Error(`Kunne ikke sende e-post (${resendRes.status})`);
+        }
+
+        const resendFallbackData = await resendRes.json();
+        console.log("Resend success (test mode fallback):", resendFallbackData);
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            test_mode: true,
+            message: `Resend testmodus: varsel sendt til ${allowedTestEmail}. Verifiser domene for å sende til alle mottakere.`,
+            recipients: [allowedTestEmail],
+            intended_recipients: uniqueEmails,
+          }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
       throw new Error(`Kunne ikke sende e-post (${resendRes.status})`);
     }
 
