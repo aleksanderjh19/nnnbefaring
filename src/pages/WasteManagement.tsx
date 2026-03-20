@@ -436,7 +436,7 @@ export default function WasteManagement() {
                   }`}
                 >
                   <Checkbox checked={selected.has(cat.id)} onCheckedChange={() => toggle(cat.id)} />
-                  <div className={`flex h-7 w-7 items-center justify-center rounded-md ${cat.color} text-white`}>
+                  <div className="flex h-7 w-7 items-center justify-center rounded-md text-white" style={{ backgroundColor: getBgColor(cat.color) }}>
                     <Icon className="h-3.5 w-3.5" />
                   </div>
                   <span className="font-display text-sm font-semibold text-foreground">{cat.label}</span>
