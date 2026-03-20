@@ -19,6 +19,8 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    if (!resendApiKey) throw new Error("RESEND_API_KEY not configured");
 
     // Verify the calling user
     const userClient = createClient(supabaseUrl, anonKey, {
@@ -43,7 +45,9 @@ serve(async (req) => {
       .in("waste_category", categories);
 
     if (!recipients || recipients.length === 0) {
-      throw new Error("Ingen mottakere er konfigurert for valgte kategorier. Be en administrator om å legge til mottakere.");
+      throw new Error(
+        "Ingen mottakere er konfigurert for valgte kategorier. Be en administrator om å legge til mottakere."
+      );
     }
 
     // Log the pickup request
@@ -63,39 +67,51 @@ serve(async (req) => {
       plast: "Plast",
     };
 
-    const categoryLabels = categories.map((c: string) => LABELS[c] || c).join(", ");
+    const categoryLabels = categories
+      .map((c: string) => LABELS[c] || c)
+      .join(", ");
 
-    // Group recipients by email (one email per recipient, may cover multiple categories)
     const uniqueEmails = [...new Set(recipients.map((r) => r.email))];
 
-    // Send emails via Lovable AI API
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    const emailHtml = `
+<div style="font-family: sans-serif; max-width: 520px; margin: 0 auto; padding: 24px;">
+  <h2 style="color: #1a1a1a; margin-bottom: 16px;">Tømmevarsel</h2>
+  <p>Det er meldt behov for tømming av følgende avfallskategorier:</p>
+  <ul style="padding-left: 20px;">
+    ${categories.map((c: string) => `<li>${LABELS[c] || c}</li>`).join("")}
+  </ul>
+  ${note ? `<p><strong>Kommentar:</strong> ${note}</p>` : ""}
+  <p style="color: #666; font-size: 14px;">
+    Meldt av: ${user.email}<br/>
+    Tidspunkt: ${new Date().toLocaleString("nb-NO", { timeZone: "Europe/Oslo" })}
+  </p>
+  <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
+  <p style="color: #999; font-size: 12px;">NNN Verktøy – Avfallshåndtering</p>
+</div>`.trim();
 
-    const emailBody = `
-Hei,
+    // Send via Resend
+    const resendRes = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${resendApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: "NNN Verktøy <onboarding@resend.dev>",
+        to: uniqueEmails,
+        subject: `Tømmevarsel: ${categoryLabels}`,
+        html: emailHtml,
+      }),
+    });
 
-Det er meldt behov for tømming av følgende avfallskategorier:
+    if (!resendRes.ok) {
+      const errBody = await resendRes.text();
+      console.error("Resend error:", resendRes.status, errBody);
+      throw new Error(`Kunne ikke sende e-post (${resendRes.status})`);
+    }
 
-${categories.map((c: string) => `• ${LABELS[c] || c}`).join("\n")}
-
-${note ? `Kommentar: ${note}\n` : ""}
-Meldt av bruker: ${user.email}
-Tidspunkt: ${new Date().toLocaleString("nb-NO", { timeZone: "Europe/Oslo" })}
-
-Vennlig hilsen
-NNN Verktøy
-`.trim();
-
-    // Use a simple approach: call the Lovable AI to format, but actually
-    // we'll use Supabase's built-in email or just store the notification.
-    // For now, we send via a simple fetch to a mail endpoint.
-    // Since we don't have a mail service configured yet, we'll log and return success.
-
-    // Store notifications so they're visible in the app
-    console.log(`Sending waste pickup notification to: ${uniqueEmails.join(", ")}`);
-    console.log(`Categories: ${categoryLabels}`);
-    console.log(`Body:\n${emailBody}`);
+    const resendData = await resendRes.json();
+    console.log("Resend success:", resendData);
 
     return new Response(
       JSON.stringify({
