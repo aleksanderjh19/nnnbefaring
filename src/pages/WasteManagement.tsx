@@ -195,7 +195,7 @@ export default function WasteManagement() {
           </button>
           <div className="flex-1">
             <h1 className="font-display text-lg font-extrabold tracking-tight text-foreground">
-              Avfallshåndtering
+              Avfallshåndtering Bjerka
             </h1>
             <p className="font-body text-xs text-muted-foreground">
               Sorteringsoversikt og varsling om tømming
