@@ -37,6 +37,18 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   Trash2, Package, Wrench, Battery, Zap, Recycle,
 };
 
+// Convert Tailwind bg classes to hex colors for inline styles (avoids purging)
+const BG_COLOR_MAP: Record<string, string> = {
+  "bg-gray-600": "#4b5563",
+  "bg-amber-700": "#b45309",
+  "bg-slate-500": "#64748b",
+  "bg-yellow-600": "#ca8a04",
+  "bg-emerald-700": "#047857",
+  "bg-blue-600": "#2563eb",
+};
+
+const getBgColor = (twClass: string) => BG_COLOR_MAP[twClass] || "#6b7280";
+
 interface WasteCategoryRow {
   id: string;
   label: string;
