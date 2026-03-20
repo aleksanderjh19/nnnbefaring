@@ -38,7 +38,7 @@ const tools = [
   },
   {
     id: "avfallshandtering",
-    name: "Avfallshåndtering",
+    name: "Avfallshåndtering Bjerka",
     description: "Sorteringsoversikt og varsling om tømming",
     icon: Trash2,
     path: "/avfallshandtering",
