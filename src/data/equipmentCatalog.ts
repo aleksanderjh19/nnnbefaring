@@ -150,7 +150,7 @@ export const EQUIPMENT_CATALOG: CategoryEntry[] = [
         ],
       },
       {
-        name: "Hovel",
+        name: "Høvel",
         brands: [
           { brand: "Bosch", types: ["PHO 3100"] },
         ],
