@@ -323,15 +323,17 @@ export default function VoltageRound() {
                     >
                       {r.status === "completed" ? "Fullført" : "Kladd"}
                     </span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteRound(r.id);
-                      }}
-                      className="text-muted-foreground hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    {(r.status !== "completed" || isAdmin) && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteRound(r.id);
+                        }}
+                        className="text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
                   </CardContent>
                 </Card>
               ))}
