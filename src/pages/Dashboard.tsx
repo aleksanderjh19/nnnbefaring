@@ -105,6 +105,12 @@ const Dashboard = () => {
                     Kommer snart
                   </span>
                 )}
+                {'wip' in tool && tool.wip && (
+                  <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 font-body text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                    <AlertTriangle className="h-3 w-3" />
+                    OBS! Under bygging
+                  </span>
+                )}
               </div>
               {tool.ready && (
                 <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
