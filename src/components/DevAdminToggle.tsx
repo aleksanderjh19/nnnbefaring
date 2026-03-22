@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { Shield, ShieldOff } from "lucide-react";
-import { setDevAdminOverride } from "@/hooks/useAuth";
+import { useAuth, setDevAdminOverride } from "@/hooks/useAuth";
 
 const DEV_ADMIN_KEY = "__dev_admin_override";
 
 const DevAdminToggle = () => {
+  const { realIsAdmin } = useAuth();
   const [isAdmin, setIsAdmin] = useState(() => localStorage.getItem(DEV_ADMIN_KEY) !== "false");
 
   useEffect(() => {
@@ -12,6 +13,9 @@ const DevAdminToggle = () => {
     window.addEventListener("dev-admin-change", handler);
     return () => window.removeEventListener("dev-admin-change", handler);
   }, []);
+
+  // Only real admins can see this toggle
+  if (!realIsAdmin) return null;
 
   const toggle = () => {
     const next = !isAdmin;
