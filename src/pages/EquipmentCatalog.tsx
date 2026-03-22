@@ -70,8 +70,8 @@ const EquipmentCatalog = () => {
   const [addImagePreview, setAddImagePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
-  const fetchCatalog = async () => {
-    setLoading(true);
+  const fetchCatalog = async (preserveScroll = false) => {
+    const scrollY = preserveScroll ? window.scrollY : 0;
     const { data } = await supabase
       .from("equipment_catalog")
       .select("*")
@@ -81,6 +81,7 @@ const EquipmentCatalog = () => {
       .order("type");
     if (data) setRows(data as CatalogRow[]);
     setLoading(false);
+    if (preserveScroll) requestAnimationFrame(() => window.scrollTo(0, scrollY));
   };
 
   useEffect(() => { document.title = "Utstyrskatalog – Statnett"; fetchCatalog(); }, []);
