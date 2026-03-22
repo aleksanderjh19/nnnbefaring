@@ -385,22 +385,16 @@ const TrainingForm = () => {
             {/* Equipment name - dropdown + free text */}
             <div className="col-span-2 sm:col-span-1">
               <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Maskin/utstyr *</label>
-              <input
-                list="equipment-names-list"
+              <ComboInput
                 value={equipmentName}
-                onChange={(e) => {
-                  setEquipmentName(e.target.value);
+                onChange={(val) => {
+                  setEquipmentName(val);
                   setSelectedBrand("");
                   setEquipmentType("");
                 }}
+                options={getEquipmentForCategory(equipmentCategory).map((eq) => eq.name)}
                 placeholder="Velg eller skriv inn..."
-                className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
-              <datalist id="equipment-names-list">
-                {getEquipmentForCategory(equipmentCategory).map((eq) => (
-                  <option key={eq.name} value={eq.name} />
-                ))}
-              </datalist>
             </div>
 
             {/* Tractor: show types checklist */}
