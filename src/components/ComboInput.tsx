@@ -70,7 +70,7 @@ const ComboInput = ({ value, onChange, options, placeholder = "Velg eller skriv 
       </div>
 
       {open && filtered.length > 0 && (
-        <ul className="absolute z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-border bg-popover py-1 shadow-md">
+        <ul className="absolute z-50 mt-1 max-h-[60vh] w-full overflow-y-auto rounded-lg border border-border bg-popover py-1 shadow-md">
           {filtered.map((opt) => (
             <li
               key={opt}
