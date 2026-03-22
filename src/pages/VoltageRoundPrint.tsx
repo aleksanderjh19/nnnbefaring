@@ -330,5 +330,3 @@ export default function VoltageRoundPrint() {
     </div>
   );
 }
-
-import React from "react";
