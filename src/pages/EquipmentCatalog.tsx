@@ -269,7 +269,7 @@ const EquipmentCatalog = () => {
         toast.success("Kategorier slått sammen");
       }
       setShowMerge(false);
-      fetchCatalog();
+      fetchCatalog(true);
     } catch (e: any) {
       toast.error(e.message || "Feil ved sammenslåing");
     }
