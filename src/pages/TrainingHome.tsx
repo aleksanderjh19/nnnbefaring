@@ -195,7 +195,6 @@ const TrainingHome = () => {
         )}
       </main>
     </div>
-    </PullToRefresh>
   );
 };
 
