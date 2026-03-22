@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, type PointerEvent } from "react";
 import { ChevronDown } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -47,21 +47,24 @@ const ComboInput = ({ value, onChange, options, placeholder = "Velg eller skriv 
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [handleClickOutside]);
 
-  // When typing is enabled on mobile, focus after React re-renders with readOnly=false
-  useEffect(() => {
-    if (isMobile && typingEnabled && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [typingEnabled, isMobile]);
+  const handleInputPointerDown = (e: PointerEvent<HTMLInputElement>) => {
+    if (!isMobile) return;
 
-  const handleInputClick = () => {
-    if (isMobile) {
-      if (!open) {
-        setOpen(true);
-        setFilter("");
-      } else if (!typingEnabled) {
-        setTypingEnabled(true);
+    if (!open) {
+      // First tap on mobile: open list only, no keyboard
+      e.preventDefault();
+      setOpen(true);
+      setFilter("");
+      setTypingEnabled(false);
+      return;
+    }
+
+    if (!typingEnabled) {
+      // Second tap on mobile: make editable before focus so keyboard can open
+      if (inputRef.current) {
+        inputRef.current.readOnly = false;
       }
+      setTypingEnabled(true);
     }
   };
 
@@ -80,7 +83,7 @@ const ComboInput = ({ value, onChange, options, placeholder = "Velg eller skriv 
           value={open ? filter || value : value}
           readOnly={isMobile && !typingEnabled}
           onFocus={handleFocus}
-          onClick={handleInputClick}
+          onPointerDown={handleInputPointerDown}
           onChange={(e) => handleInputChange(e.target.value)}
           placeholder={placeholder}
           className="h-10 w-full rounded-lg border border-input bg-background px-3 pr-8 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
@@ -89,10 +92,16 @@ const ComboInput = ({ value, onChange, options, placeholder = "Velg eller skriv 
           type="button"
           tabIndex={-1}
           onClick={() => {
-            setOpen(!open);
-            if (!open) {
-              if (!isMobile) inputRef.current?.focus();
+            if (open) {
+              setOpen(false);
+              setTypingEnabled(false);
+              return;
             }
+
+            setOpen(true);
+            setFilter("");
+            setTypingEnabled(false);
+            if (!isMobile) inputRef.current?.focus();
           }}
           className="absolute right-0 top-0 flex h-10 w-8 items-center justify-center text-muted-foreground"
         >
