@@ -50,6 +50,12 @@ const EquipmentCatalog = () => {
   const [renameNewName, setRenameNewName] = useState("");
   const [renaming, setRenaming] = useState(false);
 
+  // Merge types state
+  const [showMergeTypes, setShowMergeTypes] = useState(false);
+  const [mergeTypesRows, setMergeTypesRows] = useState<CatalogRow[]>([]);
+  const [mergeTypesTarget, setMergeTypesTarget] = useState("");
+  const [mergingTypes, setMergingTypes] = useState(false);
+
   // Add form state
   const [showAdd, setShowAdd] = useState(false);
   const [addCategory, setAddCategory] = useState("bensinverktoy");
@@ -286,6 +292,43 @@ const EquipmentCatalog = () => {
     setRenaming(false);
   };
 
+  const openMergeTypes = (eqRows: CatalogRow[]) => {
+    const selected = eqRows.filter((r) => selectedRowIds.has(r.id));
+    if (selected.length < 2) { toast.error("Velg minst 2 typer for sammenslåing"); return; }
+    setMergeTypesRows(selected);
+    setMergeTypesTarget(selected[0].id);
+    setShowMergeTypes(true);
+  };
+
+  const handleMergeTypes = async () => {
+    if (!mergeTypesTarget || mergeTypesRows.length < 2) return;
+    setMergingTypes(true);
+    const targetRow = mergeTypesRows.find((r) => r.id === mergeTypesTarget);
+    if (!targetRow) return;
+    const sourceIds = mergeTypesRows.filter((r) => r.id !== mergeTypesTarget).map((r) => r.id);
+    try {
+      const { error } = await supabase.functions.invoke("catalog-manage", {
+        body: {
+          action: "merge_types",
+          source_ids: sourceIds,
+          target_id: mergeTypesTarget,
+          target_brand: targetRow.brand,
+          target_type: targetRow.type,
+          category_value: targetRow.category_value,
+          equipment_name: targetRow.equipment_name,
+        },
+      });
+      if (error) throw error;
+      toast.success(`${mergeTypesRows.length} typer slått sammen til "${targetRow.brand} ${targetRow.type}"`);
+      setShowMergeTypes(false);
+      setSelectedRowIds(new Set());
+      fetchCatalog();
+    } catch (e: any) {
+      toast.error(e.message || "Feil ved sammenslåing");
+    }
+    setMergingTypes(false);
+  };
+
   // Get unique equipment names for a category (for merge UI)
   const getEquipmentNamesForCategory = (catValue: string) => {
     const catMap = grouped.get(catValue);
@@ -473,13 +516,24 @@ const EquipmentCatalog = () => {
                                       <span className="font-body text-xs font-medium text-muted-foreground">Velg alle</span>
                                     </label>
                                     {eq.rows.some((r) => selectedRowIds.has(r.id)) && (
-                                      <button
-                                        onClick={() => { setEmployeeSearch(""); setShowEmployeePicker(true); }}
-                                        className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 font-body text-xs font-semibold text-primary-foreground hover:bg-primary/90"
-                                      >
-                                        <GraduationCap className="h-3.5 w-3.5" />
-                                        Legg til opplæring ({eq.rows.filter((r) => selectedRowIds.has(r.id)).length})
-                                      </button>
+                                      <div className="flex items-center gap-2">
+                                        {isAdmin && eq.rows.filter((r) => selectedRowIds.has(r.id)).length >= 2 && (
+                                          <button
+                                            onClick={() => openMergeTypes(eq.rows)}
+                                            className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 font-body text-xs font-semibold text-foreground hover:bg-secondary"
+                                          >
+                                            <Merge className="h-3.5 w-3.5" />
+                                            Slå sammen ({eq.rows.filter((r) => selectedRowIds.has(r.id)).length})
+                                          </button>
+                                        )}
+                                        <button
+                                          onClick={() => { setEmployeeSearch(""); setShowEmployeePicker(true); }}
+                                          className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 font-body text-xs font-semibold text-primary-foreground hover:bg-primary/90"
+                                        >
+                                          <GraduationCap className="h-3.5 w-3.5" />
+                                          Legg til opplæring ({eq.rows.filter((r) => selectedRowIds.has(r.id)).length})
+                                        </button>
+                                      </div>
                                     )}
                                   </div>
                                   <div className="overflow-hidden">
@@ -690,6 +744,55 @@ const EquipmentCatalog = () => {
                 {renaming ? "Lagrer..." : "Lagre"}
               </button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Merge types dialog */}
+      <Dialog open={showMergeTypes} onOpenChange={setShowMergeTypes}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-display text-base">Slå sammen typer</DialogTitle>
+            <DialogDescription className="font-body text-sm text-muted-foreground">
+              Velg hvilken type som skal beholdes. De andre slettes fra katalogen, men ansatte som har opplæring på disse beholder opplæringen med oppdatert navn.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            {mergeTypesRows.map((r) => (
+              <label
+                key={r.id}
+                className={`flex items-center gap-3 rounded-lg border px-3 py-2.5 cursor-pointer transition-colors ${
+                  mergeTypesTarget === r.id ? "border-primary bg-primary/5" : "border-border hover:bg-secondary"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="mergeTarget"
+                  checked={mergeTypesTarget === r.id}
+                  onChange={() => setMergeTypesTarget(r.id)}
+                  className="accent-primary"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="font-body text-sm font-medium text-foreground">{r.brand || "–"}</p>
+                  <p className="font-body text-xs text-muted-foreground">{r.type || "–"}</p>
+                </div>
+              </label>
+            ))}
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              onClick={() => setShowMergeTypes(false)}
+              className="rounded-lg border border-border px-4 py-2 font-body text-sm text-muted-foreground hover:bg-secondary"
+            >
+              Avbryt
+            </button>
+            <button
+              onClick={handleMergeTypes}
+              disabled={mergingTypes}
+              className="rounded-lg bg-primary px-4 py-2 font-body text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            >
+              {mergingTypes ? "Slår sammen..." : `Slå sammen (${mergeTypesRows.length} → 1)`}
+            </button>
           </div>
         </DialogContent>
       </Dialog>
