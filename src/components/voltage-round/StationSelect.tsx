@@ -42,9 +42,6 @@ export default function StationSelect({ onSelect }: Props) {
                     <h3 className="text-base font-bold text-white">{station.name}</h3>
                     <p className="text-xs text-white/60 font-medium">{station.shortName}</p>
                   </div>
-                  <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${colors.accent}`}>
-                    {station.voltageLevels.map((vl) => `${vl.kV}kV`).join(" / ")}
-                  </span>
                 </div>
               </div>
 
