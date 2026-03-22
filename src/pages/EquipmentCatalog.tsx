@@ -865,63 +865,23 @@ function AddEquipmentForm({
         {/* Equipment name */}
         <div>
           <label className="mb-1 block font-body text-xs text-muted-foreground">Maskin/utstyr *</label>
-          {addEquipmentCustom || existingNames.length === 0 ? (
-            <div className="flex gap-1">
-              <input
-                value={addEquipment}
-                onChange={(e) => setAddEquipment(e.target.value)}
-                placeholder="F.eks. Motorsag"
-                className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-              {existingNames.length > 0 && (
-                <button type="button" onClick={() => { setAddEquipmentCustom(false); setAddEquipment(""); }}
-                  className="shrink-0 rounded-lg border border-input px-2 text-muted-foreground hover:bg-secondary" title="Velg fra liste">
-                  <ChevronDown className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-          ) : (
-            <select
-              value={addEquipment}
-              onChange={(e) => { if (e.target.value === "__custom__") { setAddEquipmentCustom(true); setAddEquipment(""); } else setAddEquipment(e.target.value); }}
-              className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              <option value="">Velg maskin/utstyr...</option>
-              <option value="__custom__">✏️ Skriv eget...</option>
-              {existingNames.map((name) => <option key={name} value={name}>{name}</option>)}
-            </select>
-          )}
+          <ComboInput
+            value={addEquipment}
+            onChange={setAddEquipment}
+            options={existingNames}
+            placeholder="Velg eller skriv inn..."
+          />
         </div>
 
         {/* Brand */}
         <div>
           <label className="mb-1 block font-body text-xs text-muted-foreground">Merke</label>
-          {addBrandCustom || existingBrands.length === 0 ? (
-            <div className="flex gap-1">
-              <input
-                value={addBrand}
-                onChange={(e) => setAddBrand(e.target.value)}
-                placeholder="F.eks. Stihl"
-                className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-              {existingBrands.length > 0 && (
-                <button type="button" onClick={() => { setAddBrandCustom(false); setAddBrand(""); }}
-                  className="shrink-0 rounded-lg border border-input px-2 text-muted-foreground hover:bg-secondary" title="Velg fra liste">
-                  <ChevronDown className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-          ) : (
-            <select
-              value={addBrand}
-              onChange={(e) => { if (e.target.value === "__custom__") { setAddBrandCustom(true); setAddBrand(""); } else setAddBrand(e.target.value); }}
-              className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              <option value="">Velg merke...</option>
-              <option value="__custom__">✏️ Skriv eget...</option>
-              {existingBrands.map((brand) => <option key={brand} value={brand}>{brand}</option>)}
-            </select>
-          )}
+          <ComboInput
+            value={addBrand}
+            onChange={setAddBrand}
+            options={existingBrands}
+            placeholder="Velg eller skriv inn..."
+          />
         </div>
 
         {/* Type */}
@@ -938,22 +898,12 @@ function AddEquipmentForm({
         {/* Location */}
         <div className="col-span-2">
           <label className="mb-1 block font-body text-xs text-muted-foreground">Plassering</label>
-          <select
+          <ComboInput
             value={addLocation}
-            onChange={(e) => setAddLocation(e.target.value)}
-            className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-          >
-            <option value="">Ingen plassering</option>
-            {LOCATIONS.map((loc) => <option key={loc} value={loc}>{loc}</option>)}
-          </select>
-          {addLocation === "Annet" && (
-            <input
-              value={addCustomLocation}
-              onChange={(e) => setAddCustomLocation(e.target.value)}
-              placeholder="Skriv inn plassering"
-              className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          )}
+            onChange={setAddLocation}
+            options={LOCATIONS}
+            placeholder="Velg eller skriv inn..."
+          />
         </div>
 
         {/* Image */}
