@@ -178,7 +178,7 @@ const EquipmentCatalog = () => {
     setAddType(""); setAddLocation(""); setAddCustomLocation("");
     setAddImageFile(null); setAddImagePreview(null);
     setShowAdd(false); setUploading(false);
-    fetchCatalog();
+    fetchCatalog(true);
   };
 
   const handleDelete = async (id: string) => {
