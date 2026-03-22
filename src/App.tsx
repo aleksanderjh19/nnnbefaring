@@ -20,6 +20,7 @@ import EquipmentCatalog from "./pages/EquipmentCatalog.tsx";
 import EquipmentDetail from "./pages/EquipmentDetail.tsx";
 import WasteManagement from "./pages/WasteManagement.tsx";
 import AdminEmployeeList from "./pages/AdminEmployeeList.tsx";
+import VoltageRound from "./pages/VoltageRound.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -51,6 +52,7 @@ const App = () => (
             <Route path="/dokumentert-opplaering/katalog" element={<ProtectedRoute><EquipmentCatalog /></ProtectedRoute>} />
             <Route path="/dokumentert-opplaering/katalog/:itemId" element={<ProtectedRoute><EquipmentDetail /></ProtectedRoute>} />
             <Route path="/avfallshandtering" element={<ProtectedRoute><WasteManagement /></ProtectedRoute>} />
+            <Route path="/spenningsrunde" element={<ProtectedRoute><VoltageRound /></ProtectedRoute>} />
 
             {/* Admin routes */}
             <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminPanel /></ProtectedRoute>} />

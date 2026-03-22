@@ -23,10 +23,10 @@ const tools = [
   {
     id: "spenningsrunde",
     name: "Spenningsrunde",
-    description: "Spenningsrunde og kontroll av anlegg",
+    description: "Kontroll av spenningstrafoer på stasjoner",
     icon: Zap,
     path: "/spenningsrunde",
-    ready: false,
+    ready: true,
   },
   {
     id: "dokumentert-opplaering",
