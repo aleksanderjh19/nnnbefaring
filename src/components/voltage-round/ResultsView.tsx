@@ -323,15 +323,21 @@ export default function ResultsView({ transformers, measurements, secondaryVolta
 }
 
 function DeviationTable({ deviations, limit }: { deviations: DeviationResult[]; limit: number }) {
+  // Get unique transformer names in order
+  const transformerHeaders = deviations[0]?.values.map((v) => ({
+    id: v.transformerId,
+    name: v.transformerName,
+  })) ?? [];
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-xs">
         <thead>
           <tr className="border-b border-border">
             <th className="text-left py-1 px-2 font-medium text-muted-foreground">Fase</th>
-            {deviations[0]?.values.map((v) => (
-              <th key={v.transformerId} className="text-center py-1 px-2 font-medium text-[10px]">
-                {v.transformerName}
+            {transformerHeaders.map((t) => (
+              <th key={t.id} className="text-center py-1 px-2 font-medium text-[10px]">
+                {t.name}
               </th>
             ))}
             <th className="text-center py-1 px-2 font-medium text-muted-foreground">Avvik</th>
@@ -343,11 +349,11 @@ function DeviationTable({ deviations, limit }: { deviations: DeviationResult[]; 
             <tr key={d.phase} className="border-b border-border/50">
               <td className="py-1.5 px-2 font-medium">{PHASE_LABELS[d.phase]}</td>
               {d.values.map((v) => (
-                <td key={v.transformerId} className="text-center py-1.5 px-2">
+                <td key={v.transformerId} className="text-center py-1.5 px-2 font-mono">
                   {v.measValue.toFixed(2)}
                 </td>
               ))}
-              <td className={`text-center py-1.5 px-2 font-bold ${d.acceptable ? "" : "text-destructive"}`}>
+              <td className={`text-center py-1.5 px-2 font-bold font-mono ${d.acceptable ? "text-green-600 dark:text-green-400" : "text-destructive"}`}>
                 {d.maxDeviation.toFixed(2)}
               </td>
               <td className="text-center py-1.5 px-2">
@@ -368,47 +374,63 @@ function DeviationTable({ deviations, limit }: { deviations: DeviationResult[]; 
 function DeviationChart({ deviations, limit }: { deviations: DeviationResult[]; limit: number }) {
   if (deviations.length === 0) return null;
 
-  const transformerNames = deviations[0].values.map((v) => v.transformerName);
-  const baselineIndex = 0;
-
-  const chartData = transformerNames.map((name, tIdx) => {
-    const point: Record<string, number | string> = { name };
-    for (const d of deviations) {
-      const baseValue = d.values[baselineIndex].measValue;
-      const thisValue = d.values[tIdx].measValue;
-      point[d.phase] = Number((thisValue - baseValue).toFixed(3));
+  // Build bar-chart-like data: one group per phase, bars per transformer
+  const chartData = deviations.map((d) => {
+    const entry: Record<string, number | string> = { phase: PHASE_LABELS[d.phase] };
+    for (const v of d.values) {
+      entry[v.transformerName] = Number(v.measValue.toFixed(2));
     }
-    return point;
+    return entry;
   });
 
-  const colors = ["hsl(var(--primary))", "hsl(var(--chart-2))", "hsl(var(--chart-3))"];
+  const transformerNames = deviations[0].values.map((v) => v.transformerName);
+  const colors = [
+    "hsl(var(--primary))",
+    "hsl(var(--chart-2))",
+    "hsl(var(--chart-3))",
+    "hsl(var(--chart-4))",
+    "hsl(var(--chart-5))",
+  ];
+
+  // Calculate Y domain from data
+  const allValues = deviations.flatMap(d => d.values.map(v => v.measValue));
+  const minVal = Math.min(...allValues);
+  const maxVal = Math.max(...allValues);
+  const padding = Math.max((maxVal - minVal) * 0.3, limit * 2);
+  const yMin = Math.floor((minVal - padding) * 100) / 100;
+  const yMax = Math.ceil((maxVal + padding) * 100) / 100;
 
   return (
     <div>
-      <p className="text-[10px] text-muted-foreground mb-2">
-        Differanse relativt til {transformerNames[0]} (V)
+      <p className="text-[10px] font-medium text-muted-foreground mb-2">
+        Måleverdier per fase (V) — stiplet linje viser ± akseptabelt avvik
       </p>
-      <ResponsiveContainer width="100%" height={200}>
-        <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-          <XAxis dataKey="name" tick={{ fontSize: 9 }} />
-          <YAxis tick={{ fontSize: 9 }} domain={[-limit * 3, limit * 3]} />
-          <Tooltip contentStyle={{ fontSize: 11 }} />
-          <ReferenceLine y={limit} stroke="hsl(var(--destructive))" strokeDasharray="5 5" label={{ value: `+${limit.toFixed(2)}`, fontSize: 9 }} />
-          <ReferenceLine y={-limit} stroke="hsl(var(--destructive))" strokeDasharray="5 5" label={{ value: `-${limit.toFixed(2)}`, fontSize: 9 }} />
-          <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeWidth={1} />
-          {PHASES.map((phase, i) => (
+      <ResponsiveContainer width="100%" height={220}>
+        <LineChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 5 }}>
+          <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+          <XAxis dataKey="phase" tick={{ fontSize: 11 }} />
+          <YAxis
+            tick={{ fontSize: 10 }}
+            domain={[yMin, yMax]}
+            tickFormatter={(v: number) => v.toFixed(1)}
+          />
+          <Tooltip
+            contentStyle={{ fontSize: 12, borderRadius: 8 }}
+            formatter={(value: number) => [`${value.toFixed(2)} V`, undefined]}
+          />
+          {transformerNames.map((name, i) => (
             <Line
-              key={phase}
+              key={name}
               type="monotone"
-              dataKey={phase}
-              name={PHASE_LABELS[phase]}
-              stroke={colors[i]}
-              strokeWidth={2}
-              dot={{ r: 4 }}
+              dataKey={name}
+              name={name}
+              stroke={colors[i % colors.length]}
+              strokeWidth={2.5}
+              dot={{ r: 5, strokeWidth: 2 }}
+              activeDot={{ r: 7 }}
             />
           ))}
-          <Legend wrapperStyle={{ fontSize: 10 }} />
+          <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
         </LineChart>
       </ResponsiveContainer>
     </div>
