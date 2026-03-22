@@ -9,6 +9,7 @@ import { SortableContext, verticalListSortingStrategy, arrayMove } from "@dnd-ki
 import {
   ArrowLeft, Plus, ChevronDown, ChevronRight, Search, X, GraduationCap, ImagePlus, Merge, Pencil,
 } from "lucide-react";
+import ComboInput from "@/components/ComboInput";
 import { toast } from "sonner";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
@@ -151,7 +152,7 @@ const EquipmentCatalog = () => {
     if (!addEquipment.trim()) return;
     setUploading(true);
     const catLabel = CATEGORY_META.find((c) => c.value === addCategory)?.label || addCategory;
-    const resolvedLocation = addLocation === "Annet" ? addCustomLocation.trim() : addLocation;
+    const resolvedLocation = addLocation.trim();
 
     let imageUrl: string | null = null;
     if (addImageFile) {
@@ -646,26 +647,30 @@ const EquipmentCatalog = () => {
               <div className="space-y-3">
                 <div>
                   <label className="mb-1 block font-body text-xs text-muted-foreground">Kategori</label>
-                  <select value={mergeSourceCat} onChange={(e) => { setMergeSourceCat(e.target.value); setMergeSourceEquip(""); setMergeTargetEquip(""); }}
-                    className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
-                    {categories.filter((c) => c.count > 0).map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-                  </select>
+                  <ComboInput
+                    value={categories.find((c) => c.value === mergeSourceCat)?.label || ""}
+                    onChange={(val) => { const cat = categories.find((c) => c.label === val); if (cat) { setMergeSourceCat(cat.value); setMergeSourceEquip(""); setMergeTargetEquip(""); } }}
+                    options={categories.filter((c) => c.count > 0).map((c) => c.label)}
+                    placeholder="Velg kategori..."
+                  />
                 </div>
                 <div>
                   <label className="mb-1 block font-body text-xs text-muted-foreground">Flytt fra (kilde)</label>
-                  <select value={mergeSourceEquip} onChange={(e) => setMergeSourceEquip(e.target.value)}
-                    className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
-                    <option value="">Velg utstyr...</option>
-                    {getEquipmentNamesForCategory(mergeSourceCat).map((n) => <option key={n} value={n}>{n}</option>)}
-                  </select>
+                  <ComboInput
+                    value={mergeSourceEquip}
+                    onChange={setMergeSourceEquip}
+                    options={getEquipmentNamesForCategory(mergeSourceCat)}
+                    placeholder="Velg utstyr..."
+                  />
                 </div>
                 <div>
                   <label className="mb-1 block font-body text-xs text-muted-foreground">Slå sammen med (mål)</label>
-                  <select value={mergeTargetEquip} onChange={(e) => setMergeTargetEquip(e.target.value)}
-                    className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
-                    <option value="">Velg utstyr...</option>
-                    {getEquipmentNamesForCategory(mergeSourceCat).filter((n) => n !== mergeSourceEquip).map((n) => <option key={n} value={n}>{n}</option>)}
-                  </select>
+                  <ComboInput
+                    value={mergeTargetEquip}
+                    onChange={setMergeTargetEquip}
+                    options={getEquipmentNamesForCategory(mergeSourceCat).filter((n) => n !== mergeSourceEquip)}
+                    placeholder="Velg utstyr..."
+                  />
                 </div>
                 {mergeSourceEquip && mergeTargetEquip && (
                   <p className="rounded-lg bg-destructive/10 px-3 py-2 font-body text-xs text-destructive">
@@ -677,19 +682,21 @@ const EquipmentCatalog = () => {
               <div className="space-y-3">
                 <div>
                   <label className="mb-1 block font-body text-xs text-muted-foreground">Flytt fra (kilde-kategori)</label>
-                  <select value={mergeSourceCat} onChange={(e) => setMergeSourceCat(e.target.value)}
-                    className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
-                    <option value="">Velg kategori...</option>
-                    {categories.filter((c) => c.count > 0).map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-                  </select>
+                  <ComboInput
+                    value={categories.find((c) => c.value === mergeSourceCat)?.label || ""}
+                    onChange={(val) => { const cat = categories.find((c) => c.label === val); if (cat) setMergeSourceCat(cat.value); }}
+                    options={categories.filter((c) => c.count > 0).map((c) => c.label)}
+                    placeholder="Velg kategori..."
+                  />
                 </div>
                 <div>
                   <label className="mb-1 block font-body text-xs text-muted-foreground">Slå sammen med (mål-kategori)</label>
-                  <select value={mergeTargetCat} onChange={(e) => setMergeTargetCat(e.target.value)}
-                    className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
-                    <option value="">Velg kategori...</option>
-                    {categories.filter((c) => c.value !== mergeSourceCat).map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-                  </select>
+                  <ComboInput
+                    value={categories.find((c) => c.value === mergeTargetCat)?.label || ""}
+                    onChange={(val) => { const cat = categories.find((c) => c.label === val); if (cat) setMergeTargetCat(cat.value); }}
+                    options={categories.filter((c) => c.value !== mergeSourceCat).map((c) => c.label)}
+                    placeholder="Velg kategori..."
+                  />
                 </div>
                 {mergeSourceCat && mergeTargetCat && (
                   <p className="rounded-lg bg-destructive/10 px-3 py-2 font-body text-xs text-destructive">
@@ -858,63 +865,23 @@ function AddEquipmentForm({
         {/* Equipment name */}
         <div>
           <label className="mb-1 block font-body text-xs text-muted-foreground">Maskin/utstyr *</label>
-          {addEquipmentCustom || existingNames.length === 0 ? (
-            <div className="flex gap-1">
-              <input
-                value={addEquipment}
-                onChange={(e) => setAddEquipment(e.target.value)}
-                placeholder="F.eks. Motorsag"
-                className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-              {existingNames.length > 0 && (
-                <button type="button" onClick={() => { setAddEquipmentCustom(false); setAddEquipment(""); }}
-                  className="shrink-0 rounded-lg border border-input px-2 text-muted-foreground hover:bg-secondary" title="Velg fra liste">
-                  <ChevronDown className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-          ) : (
-            <select
-              value={addEquipment}
-              onChange={(e) => { if (e.target.value === "__custom__") { setAddEquipmentCustom(true); setAddEquipment(""); } else setAddEquipment(e.target.value); }}
-              className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              <option value="">Velg maskin/utstyr...</option>
-              <option value="__custom__">✏️ Skriv eget...</option>
-              {existingNames.map((name) => <option key={name} value={name}>{name}</option>)}
-            </select>
-          )}
+          <ComboInput
+            value={addEquipment}
+            onChange={setAddEquipment}
+            options={existingNames}
+            placeholder="Velg eller skriv inn..."
+          />
         </div>
 
         {/* Brand */}
         <div>
           <label className="mb-1 block font-body text-xs text-muted-foreground">Merke</label>
-          {addBrandCustom || existingBrands.length === 0 ? (
-            <div className="flex gap-1">
-              <input
-                value={addBrand}
-                onChange={(e) => setAddBrand(e.target.value)}
-                placeholder="F.eks. Stihl"
-                className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-              {existingBrands.length > 0 && (
-                <button type="button" onClick={() => { setAddBrandCustom(false); setAddBrand(""); }}
-                  className="shrink-0 rounded-lg border border-input px-2 text-muted-foreground hover:bg-secondary" title="Velg fra liste">
-                  <ChevronDown className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-          ) : (
-            <select
-              value={addBrand}
-              onChange={(e) => { if (e.target.value === "__custom__") { setAddBrandCustom(true); setAddBrand(""); } else setAddBrand(e.target.value); }}
-              className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              <option value="">Velg merke...</option>
-              <option value="__custom__">✏️ Skriv eget...</option>
-              {existingBrands.map((brand) => <option key={brand} value={brand}>{brand}</option>)}
-            </select>
-          )}
+          <ComboInput
+            value={addBrand}
+            onChange={setAddBrand}
+            options={existingBrands}
+            placeholder="Velg eller skriv inn..."
+          />
         </div>
 
         {/* Type */}
@@ -931,22 +898,12 @@ function AddEquipmentForm({
         {/* Location */}
         <div className="col-span-2">
           <label className="mb-1 block font-body text-xs text-muted-foreground">Plassering</label>
-          <select
+          <ComboInput
             value={addLocation}
-            onChange={(e) => setAddLocation(e.target.value)}
-            className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-          >
-            <option value="">Ingen plassering</option>
-            {LOCATIONS.map((loc) => <option key={loc} value={loc}>{loc}</option>)}
-          </select>
-          {addLocation === "Annet" && (
-            <input
-              value={addCustomLocation}
-              onChange={(e) => setAddCustomLocation(e.target.value)}
-              placeholder="Skriv inn plassering"
-              className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          )}
+            onChange={setAddLocation}
+            options={LOCATIONS}
+            placeholder="Velg eller skriv inn..."
+          />
         </div>
 
         {/* Image */}

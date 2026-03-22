@@ -558,42 +558,29 @@ const TrainingForm = () => {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Navn *</label>
-              <div className="relative">
-                <select
-                  value={trainerName}
-                  onChange={(e) => setTrainerName(e.target.value)}
-                  className="h-10 w-full appearance-none rounded-lg border border-input bg-background px-3 pr-8 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  <option value="">Velg person...</option>
-                  {allEmployees.map((emp) => (
-                    <option key={emp.id} value={emp.name}>{emp.name}</option>
-                  ))}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              </div>
+              <ComboInput
+                value={trainerName}
+                onChange={setTrainerName}
+                options={allEmployees.map((emp) => emp.name)}
+                placeholder="Velg person..."
+              />
             </div>
             <div>
               <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Virksomhet</label>
-              <div className="relative">
-                <select
-                  value={trainerCompany}
-                  onChange={(e) => setTrainerCompany(e.target.value)}
-                  className="h-10 w-full appearance-none rounded-lg border border-input bg-background px-3 pr-8 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  {COMPANIES.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              </div>
-              {trainerCompany === "Annet" && (
-                <input
-                  value={customCompany}
-                  onChange={(e) => setCustomCompany(e.target.value)}
-                  placeholder="Skriv inn virksomhet"
-                  className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              )}
+              <ComboInput
+                value={trainerCompany === "Annet" ? customCompany : trainerCompany}
+                onChange={(val) => {
+                  if (COMPANIES.includes(val)) {
+                    setTrainerCompany(val);
+                    setCustomCompany("");
+                  } else {
+                    setTrainerCompany("Annet");
+                    setCustomCompany(val);
+                  }
+                }}
+                options={COMPANIES}
+                placeholder="Velg eller skriv inn..."
+              />
             </div>
           </div>
         </section>

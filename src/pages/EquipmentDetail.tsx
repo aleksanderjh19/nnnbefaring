@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, forwardRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, MapPin, Volume2, Activity, FileText, Pencil, Save, X, GraduationCap } from "lucide-react";
+import ComboInput from "@/components/ComboInput";
 import { ImageDropZone } from "@/components/ImageDropZone";
 import {
   Dialog,
@@ -125,7 +126,7 @@ const EquipmentDetail = () => {
   const handleSave = async () => {
     if (!item) return;
     setSaving(true);
-    const resolvedLocation = editLocation === "Annet" ? editCustomLocation.trim() : editLocation;
+    const resolvedLocation = editLocation.trim();
     const newName = editEquipmentName.trim() || item.equipment_name;
 
     // If equipment name changed, propagate to all catalog rows + training records via edge function
@@ -280,24 +281,12 @@ const EquipmentDetail = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2 sm:col-span-1">
                 <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Plassering</label>
-                <select
+                <ComboInput
                   value={editLocation}
-                  onChange={(e) => setEditLocation(e.target.value)}
-                  className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  <option value="">Ingen plassering</option>
-                  {LOCATIONS.map((loc) => (
-                    <option key={loc} value={loc}>{loc}</option>
-                  ))}
-                </select>
-                {editLocation === "Annet" && (
-                  <input
-                    value={editCustomLocation}
-                    onChange={(e) => setEditCustomLocation(e.target.value)}
-                    placeholder="Skriv inn plassering"
-                    className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                  />
-                )}
+                  onChange={setEditLocation}
+                  options={LOCATIONS}
+                  placeholder="Velg eller skriv inn..."
+                />
               </div>
               <div>
                 <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Lydnivå (dB)</label>
