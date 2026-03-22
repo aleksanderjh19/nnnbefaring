@@ -567,7 +567,7 @@ const EquipmentCatalog = () => {
                                     categoryValue={cat.value}
                                     categoryLabel={cat.label}
                                     equipmentName={eq.equipment_name}
-                                    onAdded={fetchCatalog}
+                                    onAdded={() => fetchCatalog(true)}
                                   />
                                 </div>
                               )}
