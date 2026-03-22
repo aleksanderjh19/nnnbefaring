@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Camera, Save, X, ChevronDown } from "lucide-react";
+import ComboInput from "@/components/ComboInput";
 import SignaturePad from "@/components/SignaturePad";
 
 const FALLBACK_CATEGORIES = [
@@ -384,22 +385,16 @@ const TrainingForm = () => {
             {/* Equipment name - dropdown + free text */}
             <div className="col-span-2 sm:col-span-1">
               <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Maskin/utstyr *</label>
-              <input
-                list="equipment-names-list"
+              <ComboInput
                 value={equipmentName}
-                onChange={(e) => {
-                  setEquipmentName(e.target.value);
+                onChange={(val) => {
+                  setEquipmentName(val);
                   setSelectedBrand("");
                   setEquipmentType("");
                 }}
+                options={getEquipmentForCategory(equipmentCategory).map((eq) => eq.name)}
                 placeholder="Velg eller skriv inn..."
-                className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
-              <datalist id="equipment-names-list">
-                {getEquipmentForCategory(equipmentCategory).map((eq) => (
-                  <option key={eq.name} value={eq.name} />
-                ))}
-              </datalist>
             </div>
 
             {/* Tractor: show types checklist */}
@@ -442,35 +437,23 @@ const TrainingForm = () => {
                 {/* Brand - single input with datalist */}
                 <div className="col-span-2 sm:col-span-1">
                   <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Merke</label>
-                  <input
-                    list={`brand-list-${equipmentName}`}
+                  <ComboInput
                     value={selectedBrand}
-                    onChange={(e) => { setSelectedBrand(e.target.value); setEquipmentType(""); }}
+                    onChange={(val) => { setSelectedBrand(val); setEquipmentType(""); }}
+                    options={getBrandsForEquipment(equipmentCategory, equipmentName).map((b) => b.brand)}
                     placeholder="Velg eller skriv inn..."
-                    className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   />
-                  <datalist id={`brand-list-${equipmentName}`}>
-                    {getBrandsForEquipment(equipmentCategory, equipmentName).map((b) => (
-                      <option key={b.brand} value={b.brand} />
-                    ))}
-                  </datalist>
                 </div>
 
-                {/* Type - single input with datalist */}
+                {/* Type */}
                 <div className="col-span-2 sm:col-span-1">
                   <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Type</label>
-                  <input
-                    list={`type-list-${equipmentName}-${selectedBrand}`}
+                  <ComboInput
                     value={equipmentType}
-                    onChange={(e) => setEquipmentType(e.target.value)}
+                    onChange={(val) => setEquipmentType(val)}
+                    options={getTypesForBrand(equipmentCategory, equipmentName, selectedBrand)}
                     placeholder="Velg eller skriv inn..."
-                    className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   />
-                  <datalist id={`type-list-${equipmentName}-${selectedBrand}`}>
-                    {getTypesForBrand(equipmentCategory, equipmentName, selectedBrand).map((t) => (
-                      <option key={t} value={t} />
-                    ))}
-                  </datalist>
                 </div>
               </>
             )}
