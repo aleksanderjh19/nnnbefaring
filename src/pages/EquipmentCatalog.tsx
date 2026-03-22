@@ -516,13 +516,24 @@ const EquipmentCatalog = () => {
                                       <span className="font-body text-xs font-medium text-muted-foreground">Velg alle</span>
                                     </label>
                                     {eq.rows.some((r) => selectedRowIds.has(r.id)) && (
-                                      <button
-                                        onClick={() => { setEmployeeSearch(""); setShowEmployeePicker(true); }}
-                                        className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 font-body text-xs font-semibold text-primary-foreground hover:bg-primary/90"
-                                      >
-                                        <GraduationCap className="h-3.5 w-3.5" />
-                                        Legg til opplæring ({eq.rows.filter((r) => selectedRowIds.has(r.id)).length})
-                                      </button>
+                                      <div className="flex items-center gap-2">
+                                        {isAdmin && eq.rows.filter((r) => selectedRowIds.has(r.id)).length >= 2 && (
+                                          <button
+                                            onClick={() => openMergeTypes(eq.rows)}
+                                            className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 font-body text-xs font-semibold text-foreground hover:bg-secondary"
+                                          >
+                                            <Merge className="h-3.5 w-3.5" />
+                                            Slå sammen ({eq.rows.filter((r) => selectedRowIds.has(r.id)).length})
+                                          </button>
+                                        )}
+                                        <button
+                                          onClick={() => { setEmployeeSearch(""); setShowEmployeePicker(true); }}
+                                          className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 font-body text-xs font-semibold text-primary-foreground hover:bg-primary/90"
+                                        >
+                                          <GraduationCap className="h-3.5 w-3.5" />
+                                          Legg til opplæring ({eq.rows.filter((r) => selectedRowIds.has(r.id)).length})
+                                        </button>
+                                      </div>
                                     )}
                                   </div>
                                   <div className="overflow-hidden">
