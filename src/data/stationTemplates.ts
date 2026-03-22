@@ -188,7 +188,7 @@ export const STATIONS: StationTemplate[] = [
     voltageLevels: [
       {
         id: "nms_66",
-        kV: "66",
+        kV: "300",
         nominalVoltage: 110,
         secondaryVoltage: 63.51,
         fields: [
