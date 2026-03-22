@@ -384,36 +384,22 @@ const TrainingForm = () => {
             {/* Equipment name - dropdown + free text */}
             <div className="col-span-2 sm:col-span-1">
               <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Maskin/utstyr *</label>
-              <div className="relative">
-                <select
-                  value={getEquipmentForCategory(equipmentCategory).some((e) => e.name === equipmentName) ? equipmentName : "__custom__"}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (val === "__custom__") {
-                      setEquipmentName("");
-                    } else {
-                      setEquipmentName(val);
-                    }
-                    setSelectedBrand("");
-                    setEquipmentType("");
-                  }}
-                  className="h-10 w-full appearance-none rounded-lg border border-input bg-background px-3 pr-8 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  <option value="__custom__">Annet (skriv inn)</option>
-                  {getEquipmentForCategory(equipmentCategory).map((eq) => (
-                    <option key={eq.name} value={eq.name}>{eq.name}</option>
-                  ))}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              </div>
-              {!getEquipmentForCategory(equipmentCategory).some((e) => e.name === equipmentName) && (
-                <input
-                  value={equipmentName}
-                  onChange={(e) => setEquipmentName(e.target.value)}
-                  placeholder="Skriv inn maskin/utstyr"
-                  className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              )}
+              <input
+                list="equipment-names-list"
+                value={equipmentName}
+                onChange={(e) => {
+                  setEquipmentName(e.target.value);
+                  setSelectedBrand("");
+                  setEquipmentType("");
+                }}
+                placeholder="Velg eller skriv inn..."
+                className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+              <datalist id="equipment-names-list">
+                {getEquipmentForCategory(equipmentCategory).map((eq) => (
+                  <option key={eq.name} value={eq.name} />
+                ))}
+              </datalist>
             </div>
 
             {/* Tractor: show types checklist */}
@@ -453,89 +439,38 @@ const TrainingForm = () => {
               </div>
             ) : (
               <>
-                {/* Brand dropdown + custom */}
+                {/* Brand - single input with datalist */}
                 <div className="col-span-2 sm:col-span-1">
                   <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Merke</label>
-                  {getBrandsForEquipment(equipmentCategory, equipmentName).length > 0 ? (
-                    <>
-                      <div className="relative">
-                        <select
-                          value={getBrandsForEquipment(equipmentCategory, equipmentName).some((b) => b.brand === selectedBrand) ? selectedBrand : "__custom__"}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (val === "__custom__") {
-                              setSelectedBrand("");
-                            } else {
-                              setSelectedBrand(val);
-                            }
-                            setEquipmentType("");
-                          }}
-                          className="h-10 w-full appearance-none rounded-lg border border-input bg-background px-3 pr-8 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                        >
-                          <option value="__custom__">Annet (skriv inn)</option>
-                          {getBrandsForEquipment(equipmentCategory, equipmentName).map((b) => (
-                            <option key={b.brand} value={b.brand}>{b.brand}</option>
-                          ))}
-                        </select>
-                        <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      </div>
-                      {!getBrandsForEquipment(equipmentCategory, equipmentName).some((b) => b.brand === selectedBrand) && (
-                        <input
-                          value={selectedBrand}
-                          onChange={(e) => { setSelectedBrand(e.target.value); setEquipmentType(""); }}
-                          placeholder="Skriv inn merke"
-                          className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                        />
-                      )}
-                    </>
-                  ) : (
-                    <input
-                      value={selectedBrand}
-                      onChange={(e) => { setSelectedBrand(e.target.value); setEquipmentType(""); }}
-                      placeholder="Skriv inn merke"
-                      className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                    />
-                  )}
+                  <input
+                    list={`brand-list-${equipmentName}`}
+                    value={selectedBrand}
+                    onChange={(e) => { setSelectedBrand(e.target.value); setEquipmentType(""); }}
+                    placeholder="Velg eller skriv inn..."
+                    className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                  <datalist id={`brand-list-${equipmentName}`}>
+                    {getBrandsForEquipment(equipmentCategory, equipmentName).map((b) => (
+                      <option key={b.brand} value={b.brand} />
+                    ))}
+                  </datalist>
                 </div>
 
-                {/* Type dropdown + custom */}
+                {/* Type - single input with datalist */}
                 <div className="col-span-2 sm:col-span-1">
                   <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Type</label>
-                  {getTypesForBrand(equipmentCategory, equipmentName, selectedBrand).length > 0 ? (
-                    <>
-                      <div className="relative">
-                        <select
-                          value={getTypesForBrand(equipmentCategory, equipmentName, selectedBrand).includes(equipmentType) ? equipmentType : "__custom__"}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setEquipmentType(val === "__custom__" ? "" : val);
-                          }}
-                          className="h-10 w-full appearance-none rounded-lg border border-input bg-background px-3 pr-8 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                        >
-                          <option value="__custom__">Annet (skriv inn)</option>
-                          {getTypesForBrand(equipmentCategory, equipmentName, selectedBrand).map((t) => (
-                            <option key={t} value={t}>{t}</option>
-                          ))}
-                        </select>
-                        <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      </div>
-                      {!getTypesForBrand(equipmentCategory, equipmentName, selectedBrand).includes(equipmentType) && (
-                        <input
-                          value={equipmentType}
-                          onChange={(e) => setEquipmentType(e.target.value)}
-                          placeholder="Skriv inn type/modell"
-                          className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                        />
-                      )}
-                    </>
-                  ) : (
-                    <input
-                      value={equipmentType}
-                      onChange={(e) => setEquipmentType(e.target.value)}
-                      placeholder="Skriv inn type/modell"
-                      className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                    />
-                  )}
+                  <input
+                    list={`type-list-${equipmentName}-${selectedBrand}`}
+                    value={equipmentType}
+                    onChange={(e) => setEquipmentType(e.target.value)}
+                    placeholder="Velg eller skriv inn..."
+                    className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                  <datalist id={`type-list-${equipmentName}-${selectedBrand}`}>
+                    {getTypesForBrand(equipmentCategory, equipmentName, selectedBrand).map((t) => (
+                      <option key={t} value={t} />
+                    ))}
+                  </datalist>
                 </div>
               </>
             )}
