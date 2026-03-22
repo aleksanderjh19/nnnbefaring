@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { RefreshCw } from "lucide-react";
 
 interface PullToRefreshProps {
@@ -6,11 +6,13 @@ interface PullToRefreshProps {
   children: React.ReactNode;
 }
 
-const THRESHOLD = 80;
+const THRESHOLD = 70;
+const MAX_PULL = 120;
 
 const PullToRefresh = ({ onRefresh, children }: PullToRefreshProps) => {
   const [displayDistance, setDisplayDistance] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+  const [releasing, setReleasing] = useState(false);
 
   const startY = useRef(0);
   const pullingRef = useRef(false);
@@ -26,17 +28,19 @@ const PullToRefresh = ({ onRefresh, children }: PullToRefreshProps) => {
       if (isAtTop() && !refreshingRef.current) {
         startY.current = e.touches[0].clientY;
         pullingRef.current = true;
+        setReleasing(false);
       }
     };
 
     const handleTouchMove = (e: TouchEvent) => {
       if (!pullingRef.current || refreshingRef.current) return;
       const currentY = e.touches[0].clientY;
-      const diff = currentY - startY.current;
-      if (diff > 0 && isAtTop()) {
-        const dist = Math.min(diff * 0.5, THRESHOLD * 1.5);
-        pullDistRef.current = dist;
-        setDisplayDistance(dist);
+      const rawDiff = currentY - startY.current;
+      if (rawDiff > 0 && isAtTop()) {
+        // Rubber-band effect: diminishing returns as you pull further
+        const resistance = Math.min(rawDiff / 2.5, MAX_PULL);
+        pullDistRef.current = resistance;
+        setDisplayDistance(resistance);
       } else {
         pullDistRef.current = 0;
         setDisplayDistance(0);
@@ -52,16 +56,21 @@ const PullToRefresh = ({ onRefresh, children }: PullToRefreshProps) => {
       if (dist >= THRESHOLD && !refreshingRef.current) {
         refreshingRef.current = true;
         setRefreshing(true);
-        setDisplayDistance(THRESHOLD * 0.6);
+        setReleasing(true);
+        setDisplayDistance(48); // Snap to spinner resting position
         try {
           await onRefreshRef.current();
         } finally {
           refreshingRef.current = false;
           setRefreshing(false);
+          setReleasing(true);
           setDisplayDistance(0);
+          setTimeout(() => setReleasing(false), 300);
         }
       } else {
+        setReleasing(true);
         setDisplayDistance(0);
+        setTimeout(() => setReleasing(false), 300);
       }
     };
 
@@ -77,17 +86,46 @@ const PullToRefresh = ({ onRefresh, children }: PullToRefreshProps) => {
   }, []);
 
   const progress = Math.min(displayDistance / THRESHOLD, 1);
+  const isPulling = displayDistance > 0 || refreshing;
+  const pastThreshold = displayDistance >= THRESHOLD;
 
   return (
-    <div>
+    <div className="relative">
+      {/* Pull indicator */}
       <div
-        className="flex items-center justify-center overflow-hidden transition-[height] duration-200 ease-out"
-        style={{ height: displayDistance > 0 || refreshing ? `${Math.max(displayDistance, refreshing ? THRESHOLD * 0.6 : 0)}px` : "0px" }}
+        className={`pointer-events-none flex items-center justify-center overflow-hidden ${
+          releasing ? "transition-[height] duration-300 ease-out" : ""
+        }`}
+        style={{ height: isPulling ? `${displayDistance}px` : "0px" }}
       >
-        <RefreshCw
-          className={`h-5 w-5 text-muted-foreground transition-transform ${refreshing ? "animate-spin" : ""}`}
-          style={{ opacity: progress, transform: `rotate(${progress * 360}deg)` }}
-        />
+        <div
+          className={`flex h-10 w-10 items-center justify-center rounded-full border bg-card shadow-sm ${
+            releasing ? "transition-all duration-300 ease-out" : ""
+          } ${
+            pastThreshold || refreshing
+              ? "border-primary/30 shadow-primary/10"
+              : "border-border"
+          }`}
+          style={{
+            opacity: Math.max(0, Math.min(progress * 1.5, 1)),
+            transform: `scale(${0.5 + progress * 0.5})`,
+          }}
+        >
+          <RefreshCw
+            className={`h-4 w-4 ${
+              refreshing
+                ? "animate-spin text-primary"
+                : pastThreshold
+                ? "text-primary"
+                : "text-muted-foreground"
+            }`}
+            style={
+              !refreshing
+                ? { transform: `rotate(${progress * 360}deg)`, transition: releasing ? "transform 0.3s ease-out" : "none" }
+                : undefined
+            }
+          />
+        </div>
       </div>
       {children}
     </div>
