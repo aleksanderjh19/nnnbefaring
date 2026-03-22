@@ -405,6 +405,7 @@ export default function VoltageRound() {
             secondaryVoltage={data.secondaryVoltage}
             comments={data.comments}
             onCommentsChange={(c) => updateData({ comments: c })}
+            onMeasurementsChange={(m) => updateData({ measurements: m })}
           />
         )}
       </main>
