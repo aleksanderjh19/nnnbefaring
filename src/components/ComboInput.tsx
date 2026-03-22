@@ -47,20 +47,20 @@ const ComboInput = ({ value, onChange, options, placeholder = "Velg eller skriv 
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [handleClickOutside]);
 
+  // When typing is enabled on mobile, focus after React re-renders with readOnly=false
+  useEffect(() => {
+    if (isMobile && typingEnabled && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [typingEnabled, isMobile]);
+
   const handleInputClick = () => {
     if (isMobile) {
       if (!open) {
-        // First tap: open list, no keyboard
         setOpen(true);
         setFilter("");
       } else if (!typingEnabled) {
-        // Second tap: enable typing / keyboard
         setTypingEnabled(true);
-        // Remove readOnly so keyboard appears
-        if (inputRef.current) {
-          inputRef.current.readOnly = false;
-          inputRef.current.focus();
-        }
       }
     }
   };
