@@ -286,7 +286,7 @@ const EquipmentCatalog = () => {
       if (error) throw error;
       toast.success(`"${renameOldName}" omdøpt til "${renameNewName.trim()}"`);
       setShowRenameEquip(false);
-      fetchCatalog();
+      fetchCatalog(true);
     } catch (e: any) {
       toast.error(e.message || "Feil ved omdøping");
     }
