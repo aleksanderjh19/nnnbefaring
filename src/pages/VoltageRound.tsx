@@ -186,8 +186,17 @@ export default function VoltageRound() {
 
   const save = async (status: string = "draft") => {
     setSaving(true);
+
+    // When completing, append quarter to station name if not already there
+    let stationName = data.stationName;
+    if (status === "completed" && !stationName.includes("Kvartal")) {
+      const quarter = getQuarter(data.date);
+      stationName = `${stationName} Kvartal ${quarter}`;
+      setData((prev) => ({ ...prev, stationName }));
+    }
+
     const payload = {
-      station_name: data.stationName,
+      station_name: stationName,
       voltage_level: data.voltageLevel,
       secondary_voltage: data.secondaryVoltage,
       date: data.date,
