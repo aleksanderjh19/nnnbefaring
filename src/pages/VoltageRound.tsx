@@ -1,39 +1,75 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Check, Download, Zap, Plus, History, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Zap, Plus, History, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import StationSetup from "@/components/voltage-round/StationSetup";
-import TransformerConfig from "@/components/voltage-round/TransformerConfig";
+import { useAuth } from "@/hooks/useAuth";
+import StationSelect from "@/components/voltage-round/StationSelect";
+import BusbarAssignment from "@/components/voltage-round/BusbarAssignment";
 import MeasurementInput from "@/components/voltage-round/MeasurementInput";
 import ResultsView from "@/components/voltage-round/ResultsView";
 import {
   VoltageRoundData,
   createEmptyInstrument,
   createEmptyMeasurements,
-  calculateDeviations,
 } from "@/components/voltage-round/types";
+import {
+  StationTemplate,
+  VoltageLevelConfig,
+  FieldDefinition,
+  findStation,
+  findVoltageLevel,
+} from "@/data/stationTemplates";
 
 const STEPS = [
-  { label: "Stasjon", icon: "1" },
-  { label: "Felt", icon: "2" },
-  { label: "Målinger", icon: "3" },
-  { label: "Resultater", icon: "4" },
+  { label: "Kobling", icon: "1" },
+  { label: "Målinger", icon: "2" },
+  { label: "Resultater", icon: "3" },
 ];
 
-function createEmptyRound(): VoltageRoundData {
+function nameFromEmail(email?: string): string {
+  if (!email) return "";
+  const local = email.split("@")[0];
+  return local
+    .split(/[._-]/)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(" ");
+}
+
+function createRoundFromTemplate(
+  station: StationTemplate,
+  level: VoltageLevelConfig,
+  userName: string
+): VoltageRoundData {
+  const activeFields = level.fields.filter((f) => !f.isPlaceholder);
+  const transformers = activeFields.map((f) => ({
+    id: f.id,
+    name: f.name,
+    busbar: (f.fixedBusbar || "A") as "A" | "B",
+    drawingRef: f.drawingRef,
+  }));
+
+  const measurements = createEmptyMeasurements(transformers);
+  for (const f of activeFields) {
+    if (measurements[f.id]) {
+      measurements[f.id].UL1_ULN.terminal = f.terminals.UL1_ULN;
+      measurements[f.id].UL2_ULN.terminal = f.terminals.UL2_ULN;
+      measurements[f.id].UL3_ULN.terminal = f.terminals.UL3_ULN;
+    }
+  }
+
   return {
-    stationName: "",
-    voltageLevel: "300",
-    secondaryVoltage: 63.5,
+    stationName: `${station.name.toUpperCase()} ${level.kV}kV`,
+    voltageLevel: level.kV,
+    secondaryVoltage: level.secondaryVoltage,
     date: new Date().toISOString().slice(0, 10),
-    signNames: "",
+    signNames: userName,
     refInstrument: createEmptyInstrument(),
     measInstrument: createEmptyInstrument(),
-    transformers: [],
-    measurements: {},
+    transformers,
+    measurements,
     comments: "",
   };
 }
@@ -49,9 +85,15 @@ interface SavedRound {
 
 export default function VoltageRound() {
   const navigate = useNavigate();
-  const [view, setView] = useState<"list" | "wizard">("list");
+  const { user } = useAuth();
+  const [view, setView] = useState<"list" | "select-station" | "wizard">("list");
   const [step, setStep] = useState(0);
-  const [data, setData] = useState<VoltageRoundData>(createEmptyRound);
+  const [data, setData] = useState<VoltageRoundData>(() => createRoundFromTemplate(
+    { id: "", name: "", shortName: "", voltageLevels: [] },
+    { id: "", kV: "", nominalVoltage: 110, secondaryVoltage: 63.51, fields: [] },
+    ""
+  ));
+  const [templateFields, setTemplateFields] = useState<FieldDefinition[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [history, setHistory] = useState<SavedRound[]>([]);
@@ -79,8 +121,11 @@ export default function VoltageRound() {
     setData((prev) => ({ ...prev, ...partial }));
   };
 
-  const startNew = () => {
-    setData(createEmptyRound());
+  const handleStationSelect = (station: StationTemplate, level: VoltageLevelConfig) => {
+    const userName = nameFromEmail(user?.email);
+    const roundData = createRoundFromTemplate(station, level, userName);
+    setData(roundData);
+    setTemplateFields(level.fields.filter((f) => !f.isPlaceholder));
     setEditingId(null);
     setStep(0);
     setView("wizard");
@@ -94,7 +139,7 @@ export default function VoltageRound() {
       .single();
     if (!row) return;
     const r = row as any;
-    setData({
+    const roundData: VoltageRoundData = {
       stationName: r.station_name,
       voltageLevel: r.voltage_level,
       secondaryVoltage: Number(r.secondary_voltage),
@@ -105,7 +150,18 @@ export default function VoltageRound() {
       transformers: r.transformers ?? [],
       measurements: r.measurements ?? {},
       comments: r.comments ?? "",
-    });
+    };
+    setData(roundData);
+
+    // Try to find template fields for this station
+    const station = findStation(r.station_name);
+    if (station) {
+      const level = findVoltageLevel(station, r.voltage_level);
+      if (level) {
+        setTemplateFields(level.fields.filter((f) => !f.isPlaceholder));
+      }
+    }
+
     setEditingId(id);
     setStep(0);
     setView("wizard");
@@ -149,33 +205,43 @@ export default function VoltageRound() {
     if (error) {
       toast({ title: "Feil", description: "Kunne ikke lagre.", variant: "destructive" });
     } else {
-      toast({ title: "Lagret", description: status === "completed" ? "Spenningsrunden er fullført." : "Kladd lagret." });
+      toast({
+        title: "Lagret",
+        description: status === "completed" ? "Spenningsrunden er fullført." : "Kladd lagret.",
+      });
       fetchHistory();
     }
     setSaving(false);
   };
 
   const canAdvance = () => {
-    if (step === 0) return data.stationName.trim().length > 0;
-    if (step === 1) return data.transformers.length >= 2;
+    if (step === 0) return data.transformers.length >= 2;
     return true;
   };
 
   const next = () => {
-    if (step === 1) {
+    if (step === 0) {
       // Ensure measurements object has entries for all transformers
       const updated = createEmptyMeasurements(data.transformers);
-      // Merge existing measurements
       for (const t of data.transformers) {
         if (data.measurements[t.id]) {
           updated[t.id] = data.measurements[t.id];
         }
       }
+      // Re-apply template terminals
+      for (const tf of templateFields) {
+        if (updated[tf.id]) {
+          if (tf.terminals.UL1_ULN) updated[tf.id].UL1_ULN.terminal = tf.terminals.UL1_ULN;
+          if (tf.terminals.UL2_ULN) updated[tf.id].UL2_ULN.terminal = tf.terminals.UL2_ULN;
+          if (tf.terminals.UL3_ULN) updated[tf.id].UL3_ULN.terminal = tf.terminals.UL3_ULN;
+        }
+      }
       setData((prev) => ({ ...prev, measurements: updated }));
     }
-    setStep((s) => Math.min(s + 1, 3));
+    setStep((s) => Math.min(s + 1, 2));
   };
 
+  // ─── LIST VIEW ────────────────────────────────────────────
   if (view === "list") {
     return (
       <div className="min-h-screen bg-background">
@@ -191,7 +257,7 @@ export default function VoltageRound() {
           </div>
         </header>
         <main className="mx-auto max-w-2xl px-5 py-6 space-y-4">
-          <Button onClick={startNew} className="w-full">
+          <Button onClick={() => setView("select-station")} className="w-full">
             <Plus className="mr-2 h-4 w-4" /> Ny spenningsrunde
           </Button>
 
@@ -208,7 +274,11 @@ export default function VoltageRound() {
           ) : (
             <div className="space-y-2">
               {history.map((r) => (
-                <Card key={r.id} className="cursor-pointer hover:bg-secondary/50 transition-colors" onClick={() => loadRound(r.id)}>
+                <Card
+                  key={r.id}
+                  className="cursor-pointer hover:bg-secondary/50 transition-colors"
+                  onClick={() => loadRound(r.id)}
+                >
                   <CardContent className="flex items-center gap-3 py-3 px-4">
                     <Zap className="h-4 w-4 text-primary shrink-0" />
                     <div className="min-w-0 flex-1">
@@ -217,15 +287,20 @@ export default function VoltageRound() {
                       </p>
                       <p className="text-xs text-muted-foreground">{r.date}</p>
                     </div>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                      r.status === "completed"
-                        ? "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400"
-                        : "bg-muted text-muted-foreground"
-                    }`}>
+                    <span
+                      className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                        r.status === "completed"
+                          ? "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
                       {r.status === "completed" ? "Fullført" : "Kladd"}
                     </span>
                     <button
-                      onClick={(e) => { e.stopPropagation(); deleteRound(r.id); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteRound(r.id);
+                      }}
                       className="text-muted-foreground hover:text-destructive"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -240,21 +315,47 @@ export default function VoltageRound() {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card">
-        <div className="mx-auto max-w-2xl px-5 py-4">
-          <div className="flex items-center gap-3 mb-3">
-            <button
-              onClick={() => { save(); setView("list"); }}
-              className="text-muted-foreground hover:text-foreground"
-            >
+  // ─── STATION SELECT VIEW ─────────────────────────────────
+  if (view === "select-station") {
+    return (
+      <div className="min-h-screen bg-background">
+        <header className="border-b border-border bg-card">
+          <div className="mx-auto max-w-2xl px-5 py-4 flex items-center gap-3">
+            <button onClick={() => setView("list")} className="text-muted-foreground hover:text-foreground">
               <ArrowLeft className="h-5 w-5" />
             </button>
             <div className="flex items-center gap-2">
               <Zap className="h-5 w-5 text-primary" />
-              <h1 className="font-display text-lg font-bold">
-                {data.stationName || "Ny spenningsrunde"}
+              <h1 className="font-display text-lg font-bold">Ny spenningsrunde</h1>
+            </div>
+          </div>
+        </header>
+        <main className="mx-auto max-w-2xl px-5 py-6">
+          <StationSelect onSelect={handleStationSelect} />
+        </main>
+      </div>
+    );
+  }
+
+  // ─── WIZARD VIEW ──────────────────────────────────────────
+  return (
+    <div className="min-h-screen bg-background pb-20">
+      <header className="border-b border-border bg-card">
+        <div className="mx-auto max-w-2xl px-5 py-4">
+          <div className="flex items-center gap-3 mb-3">
+            <button
+              onClick={() => {
+                save();
+                setView("list");
+              }}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <Zap className="h-5 w-5 text-primary shrink-0" />
+              <h1 className="font-display text-lg font-bold truncate">
+                {data.stationName || "Spenningsrunde"}
               </h1>
             </div>
           </div>
@@ -283,21 +384,21 @@ export default function VoltageRound() {
       </header>
 
       <main className="mx-auto max-w-2xl px-5 py-6">
-        {step === 0 && <StationSetup data={data} onChange={updateData} />}
-        {step === 1 && (
-          <TransformerConfig
-            transformers={data.transformers}
-            onChange={(t) => updateData({ transformers: t })}
+        {step === 0 && (
+          <BusbarAssignment
+            data={data}
+            templateFields={templateFields}
+            onChange={updateData}
           />
         )}
-        {step === 2 && (
+        {step === 1 && (
           <MeasurementInput
             transformers={data.transformers}
             measurements={data.measurements}
             onChange={(m) => updateData({ measurements: m })}
           />
         )}
-        {step === 3 && (
+        {step === 2 && (
           <ResultsView
             transformers={data.transformers}
             measurements={data.measurements}
@@ -317,7 +418,7 @@ export default function VoltageRound() {
             </Button>
           )}
           <div className="flex-1" />
-          {step < 3 ? (
+          {step < 2 ? (
             <Button onClick={next} disabled={!canAdvance()} size="sm">
               Neste <ArrowRight className="ml-1.5 h-4 w-4" />
             </Button>

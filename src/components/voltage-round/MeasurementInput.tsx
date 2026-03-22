@@ -1,5 +1,4 @@
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TransformerField, Phase, PHASES, PHASE_LABELS, MeasurementData, PhaseMeasurement } from "./types";
 
 interface Props {
@@ -81,7 +80,7 @@ function BusbarMeasurements({
       <div className={`${bgColor} text-white px-4 py-2 rounded-t-xl text-sm font-bold`}>
         {label}
       </div>
-      <div className={`${lightBg} rounded-b-xl border border-t-0 border-border overflow-x-auto`}>
+      <div className={`${lightBg} rounded-b-xl border border-t-0 border-border`}>
         {/* Terminal block section */}
         <div className="p-3">
           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
@@ -93,8 +92,8 @@ function BusbarMeasurements({
                 <tr className="border-b border-border">
                   <th className="text-left py-1 px-2 w-20 text-muted-foreground font-medium">Fase</th>
                   {transformers.map((t) => (
-                    <th key={t.id} className="text-left py-1 px-2 font-medium min-w-[120px]">
-                      {t.name}
+                    <th key={t.id} className="text-left py-1 px-2 font-medium min-w-[100px]">
+                      <span className="text-[10px]">{t.name}</span>
                     </th>
                   ))}
                 </tr>
@@ -103,16 +102,25 @@ function BusbarMeasurements({
                 {PHASES.map((phase) => (
                   <tr key={phase} className="border-b border-border/50">
                     <td className="py-1.5 px-2 font-medium text-muted-foreground">{PHASE_LABELS[phase]}</td>
-                    {transformers.map((t) => (
-                      <td key={t.id} className="py-1 px-2">
-                        <Input
-                          className="h-7 text-xs"
-                          placeholder="X2: 1-4"
-                          value={measurements[t.id]?.[phase]?.terminal ?? ""}
-                          onChange={(e) => onUpdate(t.id, phase, "terminal", e.target.value)}
-                        />
-                      </td>
-                    ))}
+                    {transformers.map((t) => {
+                      const terminal = measurements[t.id]?.[phase]?.terminal ?? "";
+                      return (
+                        <td key={t.id} className="py-1 px-2">
+                          {terminal ? (
+                            <span className="text-[10px] font-mono bg-muted/50 px-1.5 py-0.5 rounded">
+                              {terminal}
+                            </span>
+                          ) : (
+                            <Input
+                              className="h-7 text-xs"
+                              placeholder="Rekkekl.nr"
+                              value=""
+                              onChange={(e) => onUpdate(t.id, phase, "terminal", e.target.value)}
+                            />
+                          )}
+                        </td>
+                      );
+                    })}
                   </tr>
                 ))}
               </tbody>
