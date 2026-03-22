@@ -229,6 +229,57 @@ export type Database = {
         }
         Relationships: []
       }
+      voltage_rounds: {
+        Row: {
+          comments: string | null
+          created_at: string
+          created_by: string | null
+          date: string
+          id: string
+          meas_instrument: Json
+          measurements: Json
+          ref_instrument: Json
+          secondary_voltage: number
+          sign_names: string | null
+          station_name: string
+          status: string
+          transformers: Json
+          voltage_level: string
+        }
+        Insert: {
+          comments?: string | null
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          id?: string
+          meas_instrument?: Json
+          measurements?: Json
+          ref_instrument?: Json
+          secondary_voltage?: number
+          sign_names?: string | null
+          station_name: string
+          status?: string
+          transformers?: Json
+          voltage_level: string
+        }
+        Update: {
+          comments?: string | null
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          id?: string
+          meas_instrument?: Json
+          measurements?: Json
+          ref_instrument?: Json
+          secondary_voltage?: number
+          sign_names?: string | null
+          station_name?: string
+          status?: string
+          transformers?: Json
+          voltage_level?: string
+        }
+        Relationships: []
+      }
       waste_categories: {
         Row: {
           color: string
