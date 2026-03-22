@@ -96,7 +96,7 @@ interface SavedRound {
 
 export default function VoltageRound() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [view, setView] = useState<"list" | "select-station" | "wizard">("list");
   const [step, setStep] = useState(0);
   const [data, setData] = useState<VoltageRoundData>(() => createRoundFromTemplate(
@@ -234,6 +234,9 @@ export default function VoltageRound() {
         description: status === "completed" ? "Spenningsrunden er fullført." : "Kladd lagret.",
       });
       fetchHistory();
+      if (status === "completed") {
+        setView("list");
+      }
     }
     setSaving(false);
   };
@@ -307,7 +310,7 @@ export default function VoltageRound() {
                     <Zap className="h-4 w-4 text-primary shrink-0" />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium truncate">
-                        {r.station_name} {r.voltage_level}kV
+                        {r.station_name}
                       </p>
                       <p className="text-xs text-muted-foreground">{r.date}</p>
                     </div>
@@ -320,15 +323,17 @@ export default function VoltageRound() {
                     >
                       {r.status === "completed" ? "Fullført" : "Kladd"}
                     </span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteRound(r.id);
-                      }}
-                      className="text-muted-foreground hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    {(r.status !== "completed" || isAdmin) && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteRound(r.id);
+                        }}
+                        className="text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
                   </CardContent>
                 </Card>
               ))}
