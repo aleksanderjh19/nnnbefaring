@@ -23,30 +23,31 @@ const TrainingHome = () => {
   const [showProfilePicker, setShowProfilePicker] = useState(false);
   const [recordCounts, setRecordCounts] = useState<Record<string, number>>({});
 
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    const { data } = await supabase.from("employees").select("*").order("name");
+    if (data) {
+      const emps = data as Employee[];
+      setEmployees(emps);
+      if (user) {
+        const linked = emps.find((e) => e.user_id === user.id);
+        setMyEmployee(linked || null);
+        if (!linked) setShowProfilePicker(true);
+      }
+    }
+    const { data: records } = await supabase.from("training_records").select("employee_id");
+    if (records) {
+      const counts: Record<string, number> = {};
+      records.forEach((r) => { counts[r.employee_id] = (counts[r.employee_id] || 0) + 1; });
+      setRecordCounts(counts);
+    }
+    setLoading(false);
+  }, [user]);
+
   useEffect(() => {
     document.title = "Dokumentert Opplæring – Statnett";
-    const fetch = async () => {
-      setLoading(true);
-      const { data } = await supabase.from("employees").select("*").order("name");
-      if (data) {
-        const emps = data as Employee[];
-        setEmployees(emps);
-        if (user) {
-          const linked = emps.find((e) => e.user_id === user.id);
-          setMyEmployee(linked || null);
-          if (!linked) setShowProfilePicker(true);
-        }
-      }
-      const { data: records } = await supabase.from("training_records").select("employee_id");
-      if (records) {
-        const counts: Record<string, number> = {};
-        records.forEach((r) => { counts[r.employee_id] = (counts[r.employee_id] || 0) + 1; });
-        setRecordCounts(counts);
-      }
-      setLoading(false);
-    };
-    fetch();
-  }, [user]);
+    fetchData();
+  }, [fetchData]);
 
   const linkProfile = async (empId: string) => {
     await supabase.from("employees").update({ user_id: user?.id } as any).eq("id", empId);
