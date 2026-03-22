@@ -747,6 +747,55 @@ const EquipmentCatalog = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Merge types dialog */}
+      <Dialog open={showMergeTypes} onOpenChange={setShowMergeTypes}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-display text-base">Slå sammen typer</DialogTitle>
+            <DialogDescription className="font-body text-sm text-muted-foreground">
+              Velg hvilken type som skal beholdes. De andre slettes fra katalogen, men ansatte som har opplæring på disse beholder opplæringen med oppdatert navn.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            {mergeTypesRows.map((r) => (
+              <label
+                key={r.id}
+                className={`flex items-center gap-3 rounded-lg border px-3 py-2.5 cursor-pointer transition-colors ${
+                  mergeTypesTarget === r.id ? "border-primary bg-primary/5" : "border-border hover:bg-secondary"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="mergeTarget"
+                  checked={mergeTypesTarget === r.id}
+                  onChange={() => setMergeTypesTarget(r.id)}
+                  className="accent-primary"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="font-body text-sm font-medium text-foreground">{r.brand || "–"}</p>
+                  <p className="font-body text-xs text-muted-foreground">{r.type || "–"}</p>
+                </div>
+              </label>
+            ))}
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              onClick={() => setShowMergeTypes(false)}
+              className="rounded-lg border border-border px-4 py-2 font-body text-sm text-muted-foreground hover:bg-secondary"
+            >
+              Avbryt
+            </button>
+            <button
+              onClick={handleMergeTypes}
+              disabled={mergingTypes}
+              className="rounded-lg bg-primary px-4 py-2 font-body text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            >
+              {mergingTypes ? "Slår sammen..." : `Slå sammen (${mergeTypesRows.length} → 1)`}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
