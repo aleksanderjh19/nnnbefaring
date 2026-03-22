@@ -7,8 +7,9 @@ import {
 } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import {
-  ArrowLeft, Plus, ChevronDown, ChevronRight, Search, X, GraduationCap, ImagePlus,
+  ArrowLeft, Plus, ChevronDown, ChevronRight, Search, X, GraduationCap, ImagePlus, Merge, Pencil,
 } from "lucide-react";
+import { toast } from "sonner";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
