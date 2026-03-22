@@ -341,6 +341,15 @@ const EquipmentCatalog = () => {
             <Plus className="h-3.5 w-3.5" />
             Legg til
           </button>
+          {isAdmin && (
+            <button
+              onClick={() => { setShowMerge(true); setMergeType("equipment"); setMergeSourceCat(categories[0]?.value || ""); setMergeTargetCat(categories[0]?.value || ""); setMergeSourceEquip(""); setMergeTargetEquip(""); }}
+              className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 font-body text-xs font-semibold text-foreground hover:bg-secondary"
+            >
+              <Merge className="h-3.5 w-3.5" />
+              Slå sammen
+            </button>
+          )}
         </div>
 
         {/* Add form */}
