@@ -60,7 +60,6 @@ export default function StationSelect({ onSelect }: Props) {
                       <p className="text-sm font-semibold">{level.kV} kV</p>
                       <p className="text-[10px] text-muted-foreground">
                         {level.fields.filter((f) => !f.isPlaceholder).length} felt
-                        {" · "}Uf = {level.secondaryVoltage.toFixed(2)} V
                       </p>
                     </div>
                     <ChevronRight className="h-4 w-4 text-muted-foreground" />
