@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useRef, useEffect, useCallback } from "react";
 import { RefreshCw } from "lucide-react";
 
 interface PullToRefreshProps {
@@ -10,120 +10,130 @@ const THRESHOLD = 70;
 const MAX_PULL = 120;
 
 const PullToRefresh = ({ onRefresh, children }: PullToRefreshProps) => {
-  const [displayDistance, setDisplayDistance] = useState(0);
-  const [refreshing, setRefreshing] = useState(false);
-  const [releasing, setReleasing] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const spinnerRef = useRef<HTMLDivElement>(null);
+  const iconRef = useRef<SVGSVGElement>(null);
 
   const startY = useRef(0);
-  const pullingRef = useRef(false);
-  const pullDistRef = useRef(0);
-  const refreshingRef = useRef(false);
+  const pulling = useRef(false);
+  const dist = useRef(0);
+  const busy = useRef(false);
+  const rafId = useRef(0);
   const onRefreshRef = useRef(onRefresh);
   onRefreshRef.current = onRefresh;
+
+  const applyVisuals = useCallback((d: number, animate: boolean) => {
+    const el = containerRef.current;
+    const sp = spinnerRef.current;
+    const ic = iconRef.current;
+    if (!el || !sp || !ic) return;
+
+    const t = animate ? "height .3s cubic-bezier(.2,.9,.3,1)" : "none";
+    el.style.transition = t;
+    el.style.height = d > 0 ? `${d}px` : "0px";
+
+    const progress = Math.min(d / THRESHOLD, 1);
+    const past = d >= THRESHOLD;
+
+    sp.style.transition = animate ? "all .3s cubic-bezier(.2,.9,.3,1)" : "none";
+    sp.style.opacity = `${Math.min(progress * 1.5, 1)}`;
+    sp.style.transform = `scale(${0.5 + progress * 0.5})`;
+    sp.style.borderColor = past ? "hsl(var(--primary) / 0.3)" : "";
+
+    if (!busy.current) {
+      ic.style.transition = animate ? "transform .3s ease-out" : "none";
+      ic.style.transform = `rotate(${progress * 360}deg)`;
+      ic.style.color = past ? "hsl(var(--primary))" : "";
+      ic.classList.remove("animate-spin");
+    }
+  }, []);
+
+  const startSpin = useCallback(() => {
+    const ic = iconRef.current;
+    if (!ic) return;
+    ic.style.transition = "none";
+    ic.style.transform = "";
+    ic.style.color = "hsl(var(--primary))";
+    ic.classList.add("animate-spin");
+  }, []);
 
   useEffect(() => {
     const isAtTop = () => window.scrollY <= 0;
 
-    const handleTouchStart = (e: TouchEvent) => {
-      if (isAtTop() && !refreshingRef.current) {
-        startY.current = e.touches[0].clientY;
-        pullingRef.current = true;
-        setReleasing(false);
-      }
+    const onTouchStart = (e: TouchEvent) => {
+      if (busy.current || !isAtTop()) return;
+      startY.current = e.touches[0].clientY;
+      pulling.current = true;
     };
 
-    const handleTouchMove = (e: TouchEvent) => {
-      if (!pullingRef.current || refreshingRef.current) return;
-      const currentY = e.touches[0].clientY;
-      const rawDiff = currentY - startY.current;
-      if (rawDiff > 0 && isAtTop()) {
-        // Rubber-band effect: diminishing returns as you pull further
-        const resistance = Math.min(rawDiff / 2.5, MAX_PULL);
-        pullDistRef.current = resistance;
-        setDisplayDistance(resistance);
+    const onTouchMove = (e: TouchEvent) => {
+      if (!pulling.current || busy.current) return;
+      const raw = e.touches[0].clientY - startY.current;
+      if (raw > 0 && isAtTop()) {
+        dist.current = Math.min(raw / 2.5, MAX_PULL);
+        cancelAnimationFrame(rafId.current);
+        rafId.current = requestAnimationFrame(() => applyVisuals(dist.current, false));
       } else {
-        pullDistRef.current = 0;
-        setDisplayDistance(0);
+        dist.current = 0;
+        cancelAnimationFrame(rafId.current);
+        rafId.current = requestAnimationFrame(() => applyVisuals(0, false));
       }
     };
 
-    const handleTouchEnd = async () => {
-      if (!pullingRef.current) return;
-      const dist = pullDistRef.current;
-      pullingRef.current = false;
-      pullDistRef.current = 0;
+    const onTouchEnd = async () => {
+      if (!pulling.current) return;
+      pulling.current = false;
+      const d = dist.current;
+      dist.current = 0;
+      cancelAnimationFrame(rafId.current);
 
-      if (dist >= THRESHOLD && !refreshingRef.current) {
-        refreshingRef.current = true;
-        setRefreshing(true);
-        setReleasing(true);
-        setDisplayDistance(48); // Snap to spinner resting position
+      if (d >= THRESHOLD && !busy.current) {
+        busy.current = true;
+        applyVisuals(48, true);
+        startSpin();
         try {
           await onRefreshRef.current();
         } finally {
-          refreshingRef.current = false;
-          setRefreshing(false);
-          setReleasing(true);
-          setDisplayDistance(0);
-          setTimeout(() => setReleasing(false), 300);
+          busy.current = false;
+          applyVisuals(0, true);
+          const ic = iconRef.current;
+          if (ic) {
+            setTimeout(() => ic.classList.remove("animate-spin"), 300);
+          }
         }
       } else {
-        setReleasing(true);
-        setDisplayDistance(0);
-        setTimeout(() => setReleasing(false), 300);
+        applyVisuals(0, true);
       }
     };
 
-    document.addEventListener("touchstart", handleTouchStart, { passive: true });
-    document.addEventListener("touchmove", handleTouchMove, { passive: true });
-    document.addEventListener("touchend", handleTouchEnd);
+    document.addEventListener("touchstart", onTouchStart, { passive: true });
+    document.addEventListener("touchmove", onTouchMove, { passive: true });
+    document.addEventListener("touchend", onTouchEnd);
 
     return () => {
-      document.removeEventListener("touchstart", handleTouchStart);
-      document.removeEventListener("touchmove", handleTouchMove);
-      document.removeEventListener("touchend", handleTouchEnd);
+      document.removeEventListener("touchstart", onTouchStart);
+      document.removeEventListener("touchmove", onTouchMove);
+      document.removeEventListener("touchend", onTouchEnd);
+      cancelAnimationFrame(rafId.current);
     };
-  }, []);
-
-  const progress = Math.min(displayDistance / THRESHOLD, 1);
-  const isPulling = displayDistance > 0 || refreshing;
-  const pastThreshold = displayDistance >= THRESHOLD;
+  }, [applyVisuals, startSpin]);
 
   return (
     <div className="relative">
-      {/* Pull indicator */}
       <div
-        className={`pointer-events-none flex items-center justify-center overflow-hidden ${
-          releasing ? "transition-[height] duration-300 ease-out" : ""
-        }`}
-        style={{ height: isPulling ? `${displayDistance}px` : "0px" }}
+        ref={containerRef}
+        className="pointer-events-none flex items-center justify-center overflow-hidden"
+        style={{ height: 0, willChange: "height" }}
       >
         <div
-          className={`flex h-10 w-10 items-center justify-center rounded-full border bg-card shadow-sm ${
-            releasing ? "transition-all duration-300 ease-out" : ""
-          } ${
-            pastThreshold || refreshing
-              ? "border-primary/30 shadow-primary/10"
-              : "border-border"
-          }`}
-          style={{
-            opacity: Math.max(0, Math.min(progress * 1.5, 1)),
-            transform: `scale(${0.5 + progress * 0.5})`,
-          }}
+          ref={spinnerRef}
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card shadow-sm"
+          style={{ opacity: 0, transform: "scale(0.5)", willChange: "transform, opacity" }}
         >
           <RefreshCw
-            className={`h-4 w-4 ${
-              refreshing
-                ? "animate-spin text-primary"
-                : pastThreshold
-                ? "text-primary"
-                : "text-muted-foreground"
-            }`}
-            style={
-              !refreshing
-                ? { transform: `rotate(${progress * 360}deg)`, transition: releasing ? "transform 0.3s ease-out" : "none" }
-                : undefined
-            }
+            ref={iconRef}
+            className="h-4 w-4 text-muted-foreground"
+            style={{ willChange: "transform" }}
           />
         </div>
       </div>
