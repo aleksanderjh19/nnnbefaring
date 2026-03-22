@@ -38,6 +38,17 @@ function nameFromEmail(email?: string): string {
     .join(" ");
 }
 
+function getQuarter(dateStr: string): number {
+  const month = new Date(dateStr).getMonth(); // 0-based
+  return Math.floor(month / 3) + 1;
+}
+
+function isDraftExpired(createdAt: string): boolean {
+  const created = new Date(createdAt).getTime();
+  const now = Date.now();
+  return now - created > 24 * 60 * 60 * 1000;
+}
+
 function createRoundFromTemplate(
   station: StationTemplate,
   level: VoltageLevelConfig,
@@ -109,7 +120,11 @@ export default function VoltageRound() {
       .from("voltage_rounds")
       .select("id, station_name, voltage_level, date, status, created_at")
       .order("created_at", { ascending: false });
-    setHistory((rows as SavedRound[]) ?? []);
+    // Filter out expired drafts (older than 24h)
+    const filtered = ((rows as SavedRound[]) ?? []).filter(
+      (r) => r.status === "completed" || !isDraftExpired(r.created_at)
+    );
+    setHistory(filtered);
     setLoadingHistory(false);
   }, []);
 
@@ -175,8 +190,17 @@ export default function VoltageRound() {
 
   const save = async (status: string = "draft") => {
     setSaving(true);
+
+    // When completing, append quarter to station name if not already there
+    let stationName = data.stationName;
+    if (status === "completed" && !stationName.includes("Kvartal")) {
+      const quarter = getQuarter(data.date);
+      stationName = `${stationName} Kvartal ${quarter}`;
+      setData((prev) => ({ ...prev, stationName }));
+    }
+
     const payload = {
-      station_name: data.stationName,
+      station_name: stationName,
       voltage_level: data.voltageLevel,
       secondary_voltage: data.secondaryVoltage,
       date: data.date,
