@@ -437,17 +437,29 @@ const EquipmentCatalog = () => {
                           const isExpanded = expandedEquipment === eqKey;
                           return (
                             <SortableEquipmentCard key={eq.equipment_name} id={eq.equipment_name} isAdmin={isAdmin}>
-                              <button
-                                onClick={() => setExpandedEquipment(isExpanded ? null : eqKey)}
-                                className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-secondary"
-                              >
-                                <div className="min-w-0 flex-1">
-                                  <p className="font-display text-sm font-bold text-foreground">{eq.equipment_name}</p>
-                                  <p className="font-body text-xs text-muted-foreground">
-                                    {eq.brands.size} merke{eq.brands.size !== 1 ? "r" : ""} · {eq.rows.length} type{eq.rows.length !== 1 ? "r" : ""}
-                                  </p>
-                                </div>
-                                {isExpanded ? <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />}
+                              <div className="flex w-full items-center gap-1">
+                                <button
+                                  onClick={() => setExpandedEquipment(isExpanded ? null : eqKey)}
+                                  className="flex flex-1 items-center gap-3 px-4 py-3 text-left hover:bg-secondary"
+                                >
+                                  <div className="min-w-0 flex-1">
+                                    <p className="font-display text-sm font-bold text-foreground">{eq.equipment_name}</p>
+                                    <p className="font-body text-xs text-muted-foreground">
+                                      {eq.brands.size} merke{eq.brands.size !== 1 ? "r" : ""} · {eq.rows.length} type{eq.rows.length !== 1 ? "r" : ""}
+                                    </p>
+                                  </div>
+                                  {isExpanded ? <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />}
+                                </button>
+                                {isAdmin && (
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); setRenameCat(cat.value); setRenameOldName(eq.equipment_name); setRenameNewName(eq.equipment_name); setShowRenameEquip(true); }}
+                                    className="mr-2 shrink-0 rounded p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                                    title="Endre navn"
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </button>
+                                )}
+                              </div>
                               </button>
                               {isExpanded && (
                                 <div className="border-t border-border bg-secondary/30">
