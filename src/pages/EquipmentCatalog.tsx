@@ -460,7 +460,6 @@ const EquipmentCatalog = () => {
                                   </button>
                                 )}
                               </div>
-                              </button>
                               {isExpanded && (
                                 <div className="border-t border-border bg-secondary/30">
                                   <div className="flex items-center justify-between px-4 py-2 border-b border-border">
