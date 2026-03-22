@@ -453,34 +453,56 @@ const TrainingForm = () => {
               </div>
             ) : (
               <>
-                {/* Brand dropdown */}
-                {getBrandsForEquipment(equipmentCategory, equipmentName).length > 0 && (
-                  <div className="col-span-2 sm:col-span-1">
-                    <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Merke</label>
-                    <div className="relative">
-                      <select
-                        value={selectedBrand}
-                        onChange={(e) => {
-                          setSelectedBrand(e.target.value);
-                          setEquipmentType("");
-                        }}
-                        className="h-10 w-full appearance-none rounded-lg border border-input bg-background px-3 pr-8 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                      >
-                        <option value="">Velg merke...</option>
-                        {getBrandsForEquipment(equipmentCategory, equipmentName).map((b) => (
-                          <option key={b.brand} value={b.brand}>{b.brand}</option>
-                        ))}
-                      </select>
-                      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    </div>
-                  </div>
-                )}
+                {/* Brand dropdown + custom */}
+                <div className="col-span-2 sm:col-span-1">
+                  <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Merke</label>
+                  {getBrandsForEquipment(equipmentCategory, equipmentName).length > 0 ? (
+                    <>
+                      <div className="relative">
+                        <select
+                          value={getBrandsForEquipment(equipmentCategory, equipmentName).some((b) => b.brand === selectedBrand) ? selectedBrand : "__custom__"}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === "__custom__") {
+                              setSelectedBrand("");
+                            } else {
+                              setSelectedBrand(val);
+                            }
+                            setEquipmentType("");
+                          }}
+                          className="h-10 w-full appearance-none rounded-lg border border-input bg-background px-3 pr-8 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                        >
+                          <option value="__custom__">Annet (skriv inn)</option>
+                          {getBrandsForEquipment(equipmentCategory, equipmentName).map((b) => (
+                            <option key={b.brand} value={b.brand}>{b.brand}</option>
+                          ))}
+                        </select>
+                        <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      </div>
+                      {!getBrandsForEquipment(equipmentCategory, equipmentName).some((b) => b.brand === selectedBrand) && (
+                        <input
+                          value={selectedBrand}
+                          onChange={(e) => { setSelectedBrand(e.target.value); setEquipmentType(""); }}
+                          placeholder="Skriv inn merke"
+                          className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                        />
+                      )}
+                    </>
+                  ) : (
+                    <input
+                      value={selectedBrand}
+                      onChange={(e) => { setSelectedBrand(e.target.value); setEquipmentType(""); }}
+                      placeholder="Skriv inn merke"
+                      className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                    />
+                  )}
+                </div>
 
-                {/* Type dropdown or free text */}
+                {/* Type dropdown + custom */}
                 <div className="col-span-2 sm:col-span-1">
                   <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Type</label>
                   {getTypesForBrand(equipmentCategory, equipmentName, selectedBrand).length > 0 ? (
-                    <div className="space-y-2">
+                    <>
                       <div className="relative">
                         <select
                           value={getTypesForBrand(equipmentCategory, equipmentName, selectedBrand).includes(equipmentType) ? equipmentType : "__custom__"}
@@ -497,13 +519,20 @@ const TrainingForm = () => {
                         </select>
                         <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       </div>
-                      {!getTypesForBrand(equipmentCategory, equipmentName, selectedBrand).includes(equipmentType) && equipmentType !== "" ? null : null}
-                    </div>
+                      {!getTypesForBrand(equipmentCategory, equipmentName, selectedBrand).includes(equipmentType) && (
+                        <input
+                          value={equipmentType}
+                          onChange={(e) => setEquipmentType(e.target.value)}
+                          placeholder="Skriv inn type/modell"
+                          className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                        />
+                      )}
+                    </>
                   ) : (
                     <input
                       value={equipmentType}
                       onChange={(e) => setEquipmentType(e.target.value)}
-                      placeholder="F.eks. Honda HS 970"
+                      placeholder="Skriv inn type/modell"
                       className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                     />
                   )}
