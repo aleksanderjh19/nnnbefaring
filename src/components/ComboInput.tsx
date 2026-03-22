@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { ChevronDown } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ComboInputProps {
   value: string;
@@ -12,8 +13,10 @@ interface ComboInputProps {
 const ComboInput = ({ value, onChange, options, placeholder = "Velg eller skriv inn..." }: ComboInputProps) => {
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState("");
+  const [typingEnabled, setTypingEnabled] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const isMobile = useIsMobile();
 
   const filtered = options.filter((o) =>
     o.toLowerCase().includes((open ? filter : "").toLowerCase())
@@ -29,11 +32,13 @@ const ComboInput = ({ value, onChange, options, placeholder = "Velg eller skriv 
     onChange(val);
     setFilter("");
     setOpen(false);
+    setTypingEnabled(false);
   };
 
   const handleClickOutside = useCallback((e: MouseEvent) => {
     if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
       setOpen(false);
+      setTypingEnabled(false);
     }
   }, []);
 
@@ -42,16 +47,40 @@ const ComboInput = ({ value, onChange, options, placeholder = "Velg eller skriv 
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [handleClickOutside]);
 
+  const handleInputClick = () => {
+    if (isMobile) {
+      if (!open) {
+        // First tap: open list, no keyboard
+        setOpen(true);
+        setFilter("");
+      } else if (!typingEnabled) {
+        // Second tap: enable typing / keyboard
+        setTypingEnabled(true);
+        // Remove readOnly so keyboard appears
+        if (inputRef.current) {
+          inputRef.current.readOnly = false;
+          inputRef.current.focus();
+        }
+      }
+    }
+  };
+
+  const handleFocus = () => {
+    if (!isMobile) {
+      setOpen(true);
+      setFilter("");
+    }
+  };
+
   return (
     <div ref={containerRef} className="relative">
       <div className="relative">
         <input
           ref={inputRef}
           value={open ? filter || value : value}
-          onFocus={() => {
-            setOpen(true);
-            setFilter("");
-          }}
+          readOnly={isMobile && !typingEnabled}
+          onFocus={handleFocus}
+          onClick={handleInputClick}
           onChange={(e) => handleInputChange(e.target.value)}
           placeholder={placeholder}
           className="h-10 w-full rounded-lg border border-input bg-background px-3 pr-8 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
@@ -61,7 +90,9 @@ const ComboInput = ({ value, onChange, options, placeholder = "Velg eller skriv 
           tabIndex={-1}
           onClick={() => {
             setOpen(!open);
-            if (!open) inputRef.current?.focus();
+            if (!open) {
+              if (!isMobile) inputRef.current?.focus();
+            }
           }}
           className="absolute right-0 top-0 flex h-10 w-8 items-center justify-center text-muted-foreground"
         >
