@@ -36,6 +36,20 @@ const EquipmentCatalog = () => {
   const [employees, setEmployees] = useState<{ id: string; name: string }[]>([]);
   const [employeeSearch, setEmployeeSearch] = useState("");
 
+  // Admin merge/rename state
+  const [showMerge, setShowMerge] = useState(false);
+  const [mergeType, setMergeType] = useState<"equipment" | "category">("equipment");
+  const [mergeSourceCat, setMergeSourceCat] = useState("");
+  const [mergeSourceEquip, setMergeSourceEquip] = useState("");
+  const [mergeTargetCat, setMergeTargetCat] = useState("");
+  const [mergeTargetEquip, setMergeTargetEquip] = useState("");
+  const [merging, setMerging] = useState(false);
+  const [showRenameEquip, setShowRenameEquip] = useState(false);
+  const [renameCat, setRenameCat] = useState("");
+  const [renameOldName, setRenameOldName] = useState("");
+  const [renameNewName, setRenameNewName] = useState("");
+  const [renaming, setRenaming] = useState(false);
+
   // Add form state
   const [showAdd, setShowAdd] = useState(false);
   const [addCategory, setAddCategory] = useState("bensinverktoy");
