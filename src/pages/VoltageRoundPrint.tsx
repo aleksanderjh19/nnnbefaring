@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Printer } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import statnettLogo from "@/assets/statnett-logo.png";
 import {
   TransformerField,
   MeasurementData,
