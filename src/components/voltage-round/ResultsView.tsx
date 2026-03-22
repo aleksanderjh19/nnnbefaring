@@ -54,13 +54,13 @@ export default function ResultsView({ transformers, measurements, secondaryVolta
     setShowRemeasure(true);
   };
 
-  const updateRemeasurement = (tId: string, phase: Phase, value: string) => {
+  const updateRemeasurement = (tId: string, phase: Phase, field: "refValue" | "measValue", value: string) => {
     setRemeasurements(prev => {
       const updated = { ...prev };
       if (!updated[tId]) return prev;
       updated[tId] = {
         ...updated[tId],
-        [phase]: { ...updated[tId][phase], measValue: value === "" ? null : Number(value) },
+        [phase]: { ...updated[tId][phase], [field]: value === "" ? null : Number(value) },
       };
       return updated;
     });
@@ -72,11 +72,15 @@ export default function ResultsView({ transformers, measurements, secondaryVolta
     for (const tId of Object.keys(remeasurements)) {
       if (!merged[tId]) continue;
       for (const phase of PHASES) {
-        const rv = remeasurements[tId]?.[phase]?.measValue;
-        if (rv !== null && rv !== undefined) {
+        const rm = remeasurements[tId]?.[phase];
+        if (!rm) continue;
+        const updates: Record<string, unknown> = {};
+        if (rm.refValue !== null && rm.refValue !== undefined) updates.refValue = rm.refValue;
+        if (rm.measValue !== null && rm.measValue !== undefined) updates.measValue = rm.measValue;
+        if (Object.keys(updates).length > 0) {
           merged[tId] = {
             ...merged[tId],
-            [phase]: { ...merged[tId][phase], measValue: rv },
+            [phase]: { ...merged[tId][phase], ...updates },
           };
         }
       }
@@ -166,7 +170,7 @@ export default function ResultsView({ transformers, measurements, secondaryVolta
               Kontrollmåling
             </CardTitle>
             <p className="text-xs text-muted-foreground">
-              Fyll inn nye måleverdier for å verifisere avviket. Referanseverdiene beholdes fra første måling.
+              Fyll inn nye referanse- og måleverdier for å verifisere avviket.
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -176,7 +180,8 @@ export default function ResultsView({ transformers, measurements, secondaryVolta
               return (
                 <div key={busbar}>
                   <p className="text-xs font-bold mb-2">Samleskinne {busbar}</p>
-                  <div className="overflow-x-auto">
+                  {/* Terminal reference */}
+                  <div className="overflow-x-auto mb-2">
                     <table className="w-full text-xs">
                       <thead>
                         <tr className="border-b border-border">
@@ -189,17 +194,65 @@ export default function ResultsView({ transformers, measurements, secondaryVolta
                       <tbody>
                         {PHASES.map(phase => (
                           <tr key={phase} className="border-b border-border/50">
+                            <td className="py-1 px-2 font-medium text-muted-foreground">{PHASE_LABELS[phase]}</td>
+                            {bt.map(t => {
+                              const terminal = measurements[t.id]?.[phase]?.terminal ?? "";
+                              return (
+                                <td key={t.id} className="text-center py-1 px-2">
+                                  {terminal ? (
+                                    <span className="text-[10px] font-mono bg-muted/50 px-1.5 py-0.5 rounded">{terminal}</span>
+                                  ) : (
+                                    <span className="text-muted-foreground">–</span>
+                                  )}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {/* Measurement inputs: Ref + Mål */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className="text-left py-1 px-2 w-20 text-muted-foreground font-medium">Fase</th>
+                          {bt.map(t => (
+                            <th key={t.id} className="text-center py-1 px-1 font-medium" colSpan={2}>
+                              <span className="text-[10px]">{t.name}</span>
+                              <div className="flex gap-1 mt-1">
+                                <span className="flex-1 text-[9px] text-muted-foreground font-normal">Ref.</span>
+                                <span className="flex-1 text-[9px] text-muted-foreground font-normal">Mål.</span>
+                              </div>
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {PHASES.map(phase => (
+                          <tr key={phase} className="border-b border-border/50">
                             <td className="py-1.5 px-2 font-medium text-muted-foreground">{PHASE_LABELS[phase]}</td>
                             {bt.map(t => (
-                              <td key={t.id} className="py-1 px-2">
-                                <Input
-                                  className="h-7 text-xs text-center"
-                                  type="number"
-                                  step="0.01"
-                                  placeholder={measurements[t.id]?.[phase]?.measValue?.toFixed(2) ?? "0.00"}
-                                  value={remeasurements[t.id]?.[phase]?.measValue ?? ""}
-                                  onChange={(e) => updateRemeasurement(t.id, phase, e.target.value)}
-                                />
+                              <td key={t.id} className="py-1 px-1" colSpan={2}>
+                                <div className="flex gap-1">
+                                  <Input
+                                    className="h-7 text-xs text-center flex-1"
+                                    type="number"
+                                    step="0.01"
+                                    placeholder={measurements[t.id]?.[phase]?.refValue?.toFixed(2) ?? "0.00"}
+                                    value={remeasurements[t.id]?.[phase]?.refValue ?? ""}
+                                    onChange={(e) => updateRemeasurement(t.id, phase, "refValue", e.target.value)}
+                                  />
+                                  <Input
+                                    className="h-7 text-xs text-center flex-1"
+                                    type="number"
+                                    step="0.01"
+                                    placeholder={measurements[t.id]?.[phase]?.measValue?.toFixed(2) ?? "0.00"}
+                                    value={remeasurements[t.id]?.[phase]?.measValue ?? ""}
+                                    onChange={(e) => updateRemeasurement(t.id, phase, "measValue", e.target.value)}
+                                  />
+                                </div>
                               </td>
                             ))}
                           </tr>
@@ -207,6 +260,7 @@ export default function ResultsView({ transformers, measurements, secondaryVolta
                       </tbody>
                     </table>
                   </div>
+                  <p className="mt-1 text-[10px] font-bold text-destructive">NB! HUSK FORTEGN.</p>
                 </div>
               );
             })}
