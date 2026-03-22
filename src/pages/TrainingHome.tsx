@@ -64,7 +64,6 @@ const TrainingHome = () => {
   }
 
   return (
-    <PullToRefresh onRefresh={fetchData}>
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
         <div className="mx-auto max-w-2xl px-5 py-6 space-y-4">
