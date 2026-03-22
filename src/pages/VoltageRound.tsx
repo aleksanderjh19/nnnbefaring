@@ -234,6 +234,9 @@ export default function VoltageRound() {
         description: status === "completed" ? "Spenningsrunden er fullført." : "Kladd lagret.",
       });
       fetchHistory();
+      if (status === "completed") {
+        setView("list");
+      }
     }
     setSaving(false);
   };
