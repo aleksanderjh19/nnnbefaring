@@ -28,6 +28,10 @@ import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
 
+const handlePullRefresh = async () => {
+  window.location.reload();
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -35,6 +39,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <DevAdminToggle />
+        <PullToRefresh onRefresh={handlePullRefresh}>
         <BrowserRouter>
           <Routes>
             {/* Public routes */}
@@ -64,6 +69,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
+        </PullToRefresh>
       </LinesProvider>
     </TooltipProvider>
   </QueryClientProvider>
