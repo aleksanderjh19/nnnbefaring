@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Camera, Save, X, ChevronDown } from "lucide-react";
+import ComboInput from "@/components/ComboInput";
 import SignaturePad from "@/components/SignaturePad";
 
 const FALLBACK_CATEGORIES = [
