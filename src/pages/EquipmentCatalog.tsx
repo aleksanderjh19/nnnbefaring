@@ -292,6 +292,43 @@ const EquipmentCatalog = () => {
     setRenaming(false);
   };
 
+  const openMergeTypes = (eqRows: CatalogRow[]) => {
+    const selected = eqRows.filter((r) => selectedRowIds.has(r.id));
+    if (selected.length < 2) { toast.error("Velg minst 2 typer for sammenslåing"); return; }
+    setMergeTypesRows(selected);
+    setMergeTypesTarget(selected[0].id);
+    setShowMergeTypes(true);
+  };
+
+  const handleMergeTypes = async () => {
+    if (!mergeTypesTarget || mergeTypesRows.length < 2) return;
+    setMergingTypes(true);
+    const targetRow = mergeTypesRows.find((r) => r.id === mergeTypesTarget);
+    if (!targetRow) return;
+    const sourceIds = mergeTypesRows.filter((r) => r.id !== mergeTypesTarget).map((r) => r.id);
+    try {
+      const { error } = await supabase.functions.invoke("catalog-manage", {
+        body: {
+          action: "merge_types",
+          source_ids: sourceIds,
+          target_id: mergeTypesTarget,
+          target_brand: targetRow.brand,
+          target_type: targetRow.type,
+          category_value: targetRow.category_value,
+          equipment_name: targetRow.equipment_name,
+        },
+      });
+      if (error) throw error;
+      toast.success(`${mergeTypesRows.length} typer slått sammen til "${targetRow.brand} ${targetRow.type}"`);
+      setShowMergeTypes(false);
+      setSelectedRowIds(new Set());
+      fetchCatalog();
+    } catch (e: any) {
+      toast.error(e.message || "Feil ved sammenslåing");
+    }
+    setMergingTypes(false);
+  };
+
   // Get unique equipment names for a category (for merge UI)
   const getEquipmentNamesForCategory = (catValue: string) => {
     const catMap = grouped.get(catValue);
