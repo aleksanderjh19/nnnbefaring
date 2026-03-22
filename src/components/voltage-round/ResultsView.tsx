@@ -72,11 +72,15 @@ export default function ResultsView({ transformers, measurements, secondaryVolta
     for (const tId of Object.keys(remeasurements)) {
       if (!merged[tId]) continue;
       for (const phase of PHASES) {
-        const rv = remeasurements[tId]?.[phase]?.measValue;
-        if (rv !== null && rv !== undefined) {
+        const rm = remeasurements[tId]?.[phase];
+        if (!rm) continue;
+        const updates: Record<string, unknown> = {};
+        if (rm.refValue !== null && rm.refValue !== undefined) updates.refValue = rm.refValue;
+        if (rm.measValue !== null && rm.measValue !== undefined) updates.measValue = rm.measValue;
+        if (Object.keys(updates).length > 0) {
           merged[tId] = {
             ...merged[tId],
-            [phase]: { ...merged[tId][phase], measValue: rv },
+            [phase]: { ...merged[tId][phase], ...updates },
           };
         }
       }
