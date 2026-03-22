@@ -323,7 +323,7 @@ const EquipmentCatalog = () => {
       toast.success(`${mergeTypesRows.length} typer slått sammen til "${targetRow.brand} ${targetRow.type}"`);
       setShowMergeTypes(false);
       setSelectedRowIds(new Set());
-      fetchCatalog();
+      fetchCatalog(true);
     } catch (e: any) {
       toast.error(e.message || "Feil ved sammenslåing");
     }
