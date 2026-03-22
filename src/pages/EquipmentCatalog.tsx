@@ -50,6 +50,12 @@ const EquipmentCatalog = () => {
   const [renameNewName, setRenameNewName] = useState("");
   const [renaming, setRenaming] = useState(false);
 
+  // Merge types state
+  const [showMergeTypes, setShowMergeTypes] = useState(false);
+  const [mergeTypesRows, setMergeTypesRows] = useState<CatalogRow[]>([]);
+  const [mergeTypesTarget, setMergeTypesTarget] = useState("");
+  const [mergingTypes, setMergingTypes] = useState(false);
+
   // Add form state
   const [showAdd, setShowAdd] = useState(false);
   const [addCategory, setAddCategory] = useState("bensinverktoy");
