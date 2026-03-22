@@ -323,6 +323,18 @@ export default function VoltageRound() {
                     >
                       {r.status === "completed" ? "Fullført" : "Kladd"}
                     </span>
+                    {r.status === "completed" && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/spenningsrunde/${r.id}/print`);
+                        }}
+                        className="text-muted-foreground hover:text-primary"
+                        title="Last ned PDF"
+                      >
+                        <FileText className="h-4 w-4" />
+                      </button>
+                    )}
                     {(r.status !== "completed" || isAdmin) && (
                       <button
                         onClick={(e) => {
