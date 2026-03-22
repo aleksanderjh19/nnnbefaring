@@ -152,7 +152,7 @@ const EquipmentCatalog = () => {
     if (!addEquipment.trim()) return;
     setUploading(true);
     const catLabel = CATEGORY_META.find((c) => c.value === addCategory)?.label || addCategory;
-    const resolvedLocation = addLocation === "Annet" ? addCustomLocation.trim() : addLocation;
+    const resolvedLocation = addLocation.trim();
 
     let imageUrl: string | null = null;
     if (addImageFile) {

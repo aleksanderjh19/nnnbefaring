@@ -126,7 +126,7 @@ const EquipmentDetail = () => {
   const handleSave = async () => {
     if (!item) return;
     setSaving(true);
-    const resolvedLocation = editLocation === "Annet" ? editCustomLocation.trim() : editLocation;
+    const resolvedLocation = editLocation.trim();
     const newName = editEquipmentName.trim() || item.equipment_name;
 
     // If equipment name changed, propagate to all catalog rows + training records via edge function
