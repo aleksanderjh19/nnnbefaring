@@ -1,10 +1,12 @@
-import { AlertTriangle, CheckCircle2 } from "lucide-react";
+import { useState } from "react";
+import { AlertTriangle, CheckCircle2, RotateCcw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   TransformerField, MeasurementData, PHASES, PHASE_LABELS,
-  calculateDeviations, getDeviationLimit, DeviationResult,
+  calculateDeviations, getDeviationLimit, DeviationResult, Phase,
 } from "./types";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine, ResponsiveContainer,
@@ -16,12 +18,73 @@ interface Props {
   secondaryVoltage: number;
   comments: string;
   onCommentsChange: (c: string) => void;
+  onMeasurementsChange?: (m: MeasurementData) => void;
 }
 
-export default function ResultsView({ transformers, measurements, secondaryVoltage, comments, onCommentsChange }: Props) {
+export default function ResultsView({ transformers, measurements, secondaryVoltage, comments, onCommentsChange, onMeasurementsChange }: Props) {
+  const [showRemeasure, setShowRemeasure] = useState(false);
+  const [remeasurements, setRemeasurements] = useState<MeasurementData>({});
+
   const deviations = calculateDeviations(transformers, measurements, secondaryVoltage);
   const limit = getDeviationLimit(secondaryVoltage);
   const hasIssues = deviations.some((d) => !d.acceptable);
+
+  const hasRemeasurements = Object.keys(remeasurements).length > 0 &&
+    Object.values(remeasurements).some(phases =>
+      Object.values(phases).some(p => p.measValue !== null)
+    );
+
+  const remeasDeviations = hasRemeasurements
+    ? calculateDeviations(transformers, remeasurements, secondaryVoltage)
+    : [];
+  const remeasHasIssues = remeasDeviations.length > 0 && remeasDeviations.some((d) => !d.acceptable);
+
+  const initRemeasurements = () => {
+    const rm: MeasurementData = {};
+    for (const t of transformers) {
+      const orig = measurements[t.id];
+      if (!orig) continue;
+      rm[t.id] = {
+        UL1_ULN: { terminal: orig.UL1_ULN.terminal, refValue: orig.UL1_ULN.refValue, measValue: null },
+        UL2_ULN: { terminal: orig.UL2_ULN.terminal, refValue: orig.UL2_ULN.refValue, measValue: null },
+        UL3_ULN: { terminal: orig.UL3_ULN.terminal, refValue: orig.UL3_ULN.refValue, measValue: null },
+      };
+    }
+    setRemeasurements(rm);
+    setShowRemeasure(true);
+  };
+
+  const updateRemeasurement = (tId: string, phase: Phase, value: string) => {
+    setRemeasurements(prev => {
+      const updated = { ...prev };
+      if (!updated[tId]) return prev;
+      updated[tId] = {
+        ...updated[tId],
+        [phase]: { ...updated[tId][phase], measValue: value === "" ? null : Number(value) },
+      };
+      return updated;
+    });
+  };
+
+  const applyRemeasurements = () => {
+    if (!onMeasurementsChange) return;
+    const merged = { ...measurements };
+    for (const tId of Object.keys(remeasurements)) {
+      if (!merged[tId]) continue;
+      for (const phase of PHASES) {
+        const rv = remeasurements[tId]?.[phase]?.measValue;
+        if (rv !== null && rv !== undefined) {
+          merged[tId] = {
+            ...merged[tId],
+            [phase]: { ...merged[tId][phase], measValue: rv },
+          };
+        }
+      }
+    }
+    onMeasurementsChange(merged);
+    setShowRemeasure(false);
+    setRemeasurements({});
+  };
 
   return (
     <div className="space-y-6">
@@ -31,7 +94,7 @@ export default function ResultsView({ transformers, measurements, secondaryVolta
           {hasIssues ? (
             <>
               <AlertTriangle className="h-6 w-6 text-destructive shrink-0" />
-              <div>
+              <div className="flex-1">
                 <p className="font-bold text-sm text-destructive">Avvik funnet!</p>
                 <p className="text-xs text-muted-foreground">
                   Differanser større enn akseptabelt avvik ({limit.toFixed(2)} V) er oppdaget.
@@ -53,19 +116,24 @@ export default function ResultsView({ transformers, measurements, secondaryVolta
         </CardContent>
       </Card>
 
-      {/* Acceptable deviation table */}
+      {/* Re-measure button */}
+      {hasIssues && !showRemeasure && (
+        <Button variant="outline" className="w-full border-destructive/50 text-destructive hover:bg-destructive/10" onClick={initRemeasurements}>
+          <RotateCcw className="mr-2 h-4 w-4" /> Utfør kontrollmåling
+        </Button>
+      )}
+
+      {/* Acceptable deviation */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm">Akseptabelt avvik (Kl. 0,2)</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-xs">
-            <div className="grid grid-cols-2 gap-2">
-              <span className="text-muted-foreground">Uf (nominell):</span>
-              <span className="font-medium">{secondaryVoltage.toFixed(2)} V</span>
-              <span className="text-muted-foreground">Akseptabelt avvik:</span>
-              <span className="font-medium">{limit.toFixed(2)} V</span>
-            </div>
+          <div className="text-xs grid grid-cols-2 gap-2">
+            <span className="text-muted-foreground">Uf (nominell):</span>
+            <span className="font-medium">{secondaryVoltage.toFixed(2)} V</span>
+            <span className="text-muted-foreground">Akseptabelt avvik:</span>
+            <span className="font-medium">{limit.toFixed(2)} V</span>
           </div>
         </CardContent>
       </Card>
@@ -77,9 +145,7 @@ export default function ResultsView({ transformers, measurements, secondaryVolta
         return (
           <Card key={busbar}>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm">
-                Samleskinne {busbar} – Avviksanalyse
-              </CardTitle>
+              <CardTitle className="text-sm">Samleskinne {busbar} – Avviksanalyse</CardTitle>
             </CardHeader>
             <CardContent>
               <DeviationTable deviations={busbarDevs} limit={limit} />
@@ -90,6 +156,99 @@ export default function ResultsView({ transformers, measurements, secondaryVolta
           </Card>
         );
       })}
+
+      {/* Re-measurement input */}
+      {showRemeasure && (
+        <Card className="border-amber-500/50 bg-amber-50/30 dark:bg-amber-950/10">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <RotateCcw className="h-4 w-4 text-amber-600" />
+              Kontrollmåling
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Fyll inn nye måleverdier for å verifisere avviket. Referanseverdiene beholdes fra første måling.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {["A", "B"].map((busbar) => {
+              const bt = transformers.filter(t => t.busbar === busbar);
+              if (bt.length < 2) return null;
+              return (
+                <div key={busbar}>
+                  <p className="text-xs font-bold mb-2">Samleskinne {busbar}</p>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className="text-left py-1 px-2 w-20 text-muted-foreground font-medium">Fase</th>
+                          {bt.map(t => (
+                            <th key={t.id} className="text-center py-1 px-2 font-medium text-[10px]">{t.name}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {PHASES.map(phase => (
+                          <tr key={phase} className="border-b border-border/50">
+                            <td className="py-1.5 px-2 font-medium text-muted-foreground">{PHASE_LABELS[phase]}</td>
+                            {bt.map(t => (
+                              <td key={t.id} className="py-1 px-2">
+                                <Input
+                                  className="h-7 text-xs text-center"
+                                  type="number"
+                                  step="0.01"
+                                  placeholder={measurements[t.id]?.[phase]?.measValue?.toFixed(2) ?? "0.00"}
+                                  value={remeasurements[t.id]?.[phase]?.measValue ?? ""}
+                                  onChange={(e) => updateRemeasurement(t.id, phase, e.target.value)}
+                                />
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              );
+            })}
+
+            {hasRemeasurements && (
+              <div className="space-y-3 pt-2 border-t border-border">
+                <p className="text-xs font-bold">Resultat kontrollmåling:</p>
+                <Card className={remeasHasIssues ? "border-destructive" : "border-green-500"}>
+                  <CardContent className="flex items-center gap-3 py-3">
+                    {remeasHasIssues ? (
+                      <>
+                        <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
+                        <p className="text-xs font-medium text-destructive">Avvik bekreftet – kontakt driftsleder.</p>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
+                        <p className="text-xs font-medium text-green-700 dark:text-green-400">Kontrollmåling OK – avviket var forbigående.</p>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {remeasDeviations.length > 0 && ["A", "B"].map(busbar => {
+                  const devs = remeasDeviations.filter(d => d.busbar === busbar);
+                  if (devs.length === 0) return null;
+                  return <DeviationTable key={busbar} deviations={devs} limit={limit} />;
+                })}
+
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => { setShowRemeasure(false); setRemeasurements({}); }}>
+                    Avbryt
+                  </Button>
+                  <Button size="sm" onClick={applyRemeasurements}>
+                    Bruk kontrollmåling som gjeldende
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Comments */}
       <Card>
@@ -155,9 +314,8 @@ function DeviationTable({ deviations, limit }: { deviations: DeviationResult[]; 
 function DeviationChart({ deviations, limit }: { deviations: DeviationResult[]; limit: number }) {
   if (deviations.length === 0) return null;
 
-  // Build chart data: one entry per transformer, with deviation per phase
   const transformerNames = deviations[0].values.map((v) => v.transformerName);
-  const baselineIndex = 0; // Use first transformer as reference
+  const baselineIndex = 0;
 
   const chartData = transformerNames.map((name, tIdx) => {
     const point: Record<string, number | string> = { name };
