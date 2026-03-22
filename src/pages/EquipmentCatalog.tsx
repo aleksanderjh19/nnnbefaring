@@ -7,8 +7,9 @@ import {
 } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import {
-  ArrowLeft, Plus, ChevronDown, ChevronRight, Search, X, GraduationCap, ImagePlus,
+  ArrowLeft, Plus, ChevronDown, ChevronRight, Search, X, GraduationCap, ImagePlus, Merge, Pencil,
 } from "lucide-react";
+import { toast } from "sonner";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
@@ -34,6 +35,20 @@ const EquipmentCatalog = () => {
   const [showEmployeePicker, setShowEmployeePicker] = useState(false);
   const [employees, setEmployees] = useState<{ id: string; name: string }[]>([]);
   const [employeeSearch, setEmployeeSearch] = useState("");
+
+  // Admin merge/rename state
+  const [showMerge, setShowMerge] = useState(false);
+  const [mergeType, setMergeType] = useState<"equipment" | "category">("equipment");
+  const [mergeSourceCat, setMergeSourceCat] = useState("");
+  const [mergeSourceEquip, setMergeSourceEquip] = useState("");
+  const [mergeTargetCat, setMergeTargetCat] = useState("");
+  const [mergeTargetEquip, setMergeTargetEquip] = useState("");
+  const [merging, setMerging] = useState(false);
+  const [showRenameEquip, setShowRenameEquip] = useState(false);
+  const [renameCat, setRenameCat] = useState("");
+  const [renameOldName, setRenameOldName] = useState("");
+  const [renameNewName, setRenameNewName] = useState("");
+  const [renaming, setRenaming] = useState(false);
 
   // Add form state
   const [showAdd, setShowAdd] = useState(false);
@@ -229,6 +244,54 @@ const EquipmentCatalog = () => {
     navigate(`/dokumentert-opplaering/ansatt/${employeeId}/ny?${params.toString()}`);
   };
 
+  const handleMerge = async () => {
+    setMerging(true);
+    try {
+      if (mergeType === "equipment") {
+        const { error } = await supabase.functions.invoke("catalog-manage", {
+          body: { action: "merge_equipment", category_value: mergeSourceCat, source_name: mergeSourceEquip, target_name: mergeTargetEquip },
+        });
+        if (error) throw error;
+        toast.success(`"${mergeSourceEquip}" slått sammen med "${mergeTargetEquip}"`);
+      } else {
+        const targetLabel = CATEGORY_META.find((c) => c.value === mergeTargetCat)?.label || mergeTargetCat;
+        const { error } = await supabase.functions.invoke("catalog-manage", {
+          body: { action: "merge_category", source_value: mergeSourceCat, target_value: mergeTargetCat, target_label: targetLabel },
+        });
+        if (error) throw error;
+        toast.success("Kategorier slått sammen");
+      }
+      setShowMerge(false);
+      fetchCatalog();
+    } catch (e: any) {
+      toast.error(e.message || "Feil ved sammenslåing");
+    }
+    setMerging(false);
+  };
+
+  const handleRenameEquip = async () => {
+    if (!renameNewName.trim() || renameNewName.trim() === renameOldName) return;
+    setRenaming(true);
+    try {
+      const { error } = await supabase.functions.invoke("catalog-manage", {
+        body: { action: "rename_equipment", category_value: renameCat, old_name: renameOldName, new_name: renameNewName.trim() },
+      });
+      if (error) throw error;
+      toast.success(`"${renameOldName}" omdøpt til "${renameNewName.trim()}"`);
+      setShowRenameEquip(false);
+      fetchCatalog();
+    } catch (e: any) {
+      toast.error(e.message || "Feil ved omdøping");
+    }
+    setRenaming(false);
+  };
+
+  // Get unique equipment names for a category (for merge UI)
+  const getEquipmentNamesForCategory = (catValue: string) => {
+    const catMap = grouped.get(catValue);
+    return catMap ? Array.from(catMap.keys()).sort() : [];
+  };
+
   const handleImageSelect = (file: File | null) => {
     setAddImageFile(file);
     if (file) {
@@ -278,6 +341,15 @@ const EquipmentCatalog = () => {
             <Plus className="h-3.5 w-3.5" />
             Legg til
           </button>
+          {isAdmin && (
+            <button
+              onClick={() => { setShowMerge(true); setMergeType("equipment"); setMergeSourceCat(categories[0]?.value || ""); setMergeTargetCat(categories[0]?.value || ""); setMergeSourceEquip(""); setMergeTargetEquip(""); }}
+              className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 font-body text-xs font-semibold text-foreground hover:bg-secondary"
+            >
+              <Merge className="h-3.5 w-3.5" />
+              Slå sammen
+            </button>
+          )}
         </div>
 
         {/* Add form */}
@@ -365,18 +437,29 @@ const EquipmentCatalog = () => {
                           const isExpanded = expandedEquipment === eqKey;
                           return (
                             <SortableEquipmentCard key={eq.equipment_name} id={eq.equipment_name} isAdmin={isAdmin}>
-                              <button
-                                onClick={() => setExpandedEquipment(isExpanded ? null : eqKey)}
-                                className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-secondary"
-                              >
-                                <div className="min-w-0 flex-1">
-                                  <p className="font-display text-sm font-bold text-foreground">{eq.equipment_name}</p>
-                                  <p className="font-body text-xs text-muted-foreground">
-                                    {eq.brands.size} merke{eq.brands.size !== 1 ? "r" : ""} · {eq.rows.length} type{eq.rows.length !== 1 ? "r" : ""}
-                                  </p>
-                                </div>
-                                {isExpanded ? <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />}
-                              </button>
+                              <div className="flex w-full items-center gap-1">
+                                <button
+                                  onClick={() => setExpandedEquipment(isExpanded ? null : eqKey)}
+                                  className="flex flex-1 items-center gap-3 px-4 py-3 text-left hover:bg-secondary"
+                                >
+                                  <div className="min-w-0 flex-1">
+                                    <p className="font-display text-sm font-bold text-foreground">{eq.equipment_name}</p>
+                                    <p className="font-body text-xs text-muted-foreground">
+                                      {eq.brands.size} merke{eq.brands.size !== 1 ? "r" : ""} · {eq.rows.length} type{eq.rows.length !== 1 ? "r" : ""}
+                                    </p>
+                                  </div>
+                                  {isExpanded ? <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />}
+                                </button>
+                                {isAdmin && (
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); setRenameCat(cat.value); setRenameOldName(eq.equipment_name); setRenameNewName(eq.equipment_name); setShowRenameEquip(true); }}
+                                    className="mr-2 shrink-0 rounded p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                                    title="Endre navn"
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </button>
+                                )}
+                              </div>
                               {isExpanded && (
                                 <div className="border-t border-border bg-secondary/30">
                                   <div className="flex items-center justify-between px-4 py-2 border-b border-border">
@@ -473,6 +556,138 @@ const EquipmentCatalog = () => {
                 </button>
               ))
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Merge dialog */}
+      <Dialog open={showMerge} onOpenChange={setShowMerge}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display text-base">Slå sammen</DialogTitle>
+            <DialogDescription className="font-body text-sm text-muted-foreground">
+              Slå sammen utstyr eller kategorier. Opplæringsdata flyttes automatisk.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setMergeType("equipment")}
+                className={`flex-1 rounded-lg px-3 py-2 font-body text-xs font-semibold transition-colors ${mergeType === "equipment" ? "bg-primary text-primary-foreground" : "border border-border text-muted-foreground hover:bg-secondary"}`}
+              >
+                Utstyr
+              </button>
+              <button
+                onClick={() => setMergeType("category")}
+                className={`flex-1 rounded-lg px-3 py-2 font-body text-xs font-semibold transition-colors ${mergeType === "category" ? "bg-primary text-primary-foreground" : "border border-border text-muted-foreground hover:bg-secondary"}`}
+              >
+                Kategori
+              </button>
+            </div>
+
+            {mergeType === "equipment" ? (
+              <div className="space-y-3">
+                <div>
+                  <label className="mb-1 block font-body text-xs text-muted-foreground">Kategori</label>
+                  <select value={mergeSourceCat} onChange={(e) => { setMergeSourceCat(e.target.value); setMergeSourceEquip(""); setMergeTargetEquip(""); }}
+                    className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
+                    {categories.filter((c) => c.count > 0).map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block font-body text-xs text-muted-foreground">Flytt fra (kilde)</label>
+                  <select value={mergeSourceEquip} onChange={(e) => setMergeSourceEquip(e.target.value)}
+                    className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
+                    <option value="">Velg utstyr...</option>
+                    {getEquipmentNamesForCategory(mergeSourceCat).map((n) => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block font-body text-xs text-muted-foreground">Slå sammen med (mål)</label>
+                  <select value={mergeTargetEquip} onChange={(e) => setMergeTargetEquip(e.target.value)}
+                    className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
+                    <option value="">Velg utstyr...</option>
+                    {getEquipmentNamesForCategory(mergeSourceCat).filter((n) => n !== mergeSourceEquip).map((n) => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                </div>
+                {mergeSourceEquip && mergeTargetEquip && (
+                  <p className="rounded-lg bg-destructive/10 px-3 py-2 font-body text-xs text-destructive">
+                    Alt utstyr og opplæring under «{mergeSourceEquip}» flyttes til «{mergeTargetEquip}». Kildeoppføringene slettes.
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div>
+                  <label className="mb-1 block font-body text-xs text-muted-foreground">Flytt fra (kilde-kategori)</label>
+                  <select value={mergeSourceCat} onChange={(e) => setMergeSourceCat(e.target.value)}
+                    className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
+                    <option value="">Velg kategori...</option>
+                    {categories.filter((c) => c.count > 0).map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block font-body text-xs text-muted-foreground">Slå sammen med (mål-kategori)</label>
+                  <select value={mergeTargetCat} onChange={(e) => setMergeTargetCat(e.target.value)}
+                    className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
+                    <option value="">Velg kategori...</option>
+                    {categories.filter((c) => c.value !== mergeSourceCat).map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                  </select>
+                </div>
+                {mergeSourceCat && mergeTargetCat && (
+                  <p className="rounded-lg bg-destructive/10 px-3 py-2 font-body text-xs text-destructive">
+                    Alt utstyr flyttes fra «{categories.find((c) => c.value === mergeSourceCat)?.label}» til «{categories.find((c) => c.value === mergeTargetCat)?.label}». Opplæringsdata oppdateres.
+                  </p>
+                )}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setShowMerge(false)} className="rounded-lg border border-border px-4 py-2 font-body text-sm text-muted-foreground hover:bg-secondary">Avbryt</button>
+              <button
+                onClick={handleMerge}
+                disabled={merging || (mergeType === "equipment" ? (!mergeSourceEquip || !mergeTargetEquip) : (!mergeSourceCat || !mergeTargetCat))}
+                className="rounded-lg bg-destructive px-4 py-2 font-body text-sm font-semibold text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
+              >
+                {merging ? "Slår sammen..." : "Slå sammen"}
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rename equipment dialog */}
+      <Dialog open={showRenameEquip} onOpenChange={setShowRenameEquip}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-display text-base">Endre navn på utstyr</DialogTitle>
+            <DialogDescription className="font-body text-sm text-muted-foreground">
+              Endringen gjelder for alle oppføringer og opplæringsdata.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <label className="mb-1 block font-body text-xs text-muted-foreground">Nåværende navn</label>
+              <p className="font-body text-sm font-medium text-foreground">{renameOldName}</p>
+            </div>
+            <div>
+              <label className="mb-1 block font-body text-xs text-muted-foreground">Nytt navn</label>
+              <input
+                value={renameNewName}
+                onChange={(e) => setRenameNewName(e.target.value)}
+                className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setShowRenameEquip(false)} className="rounded-lg border border-border px-4 py-2 font-body text-sm text-muted-foreground hover:bg-secondary">Avbryt</button>
+              <button
+                onClick={handleRenameEquip}
+                disabled={renaming || !renameNewName.trim() || renameNewName.trim() === renameOldName}
+                className="rounded-lg bg-primary px-4 py-2 font-body text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              >
+                {renaming ? "Lagrer..." : "Lagre"}
+              </button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

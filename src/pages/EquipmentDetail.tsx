@@ -126,8 +126,23 @@ const EquipmentDetail = () => {
     if (!item) return;
     setSaving(true);
     const resolvedLocation = editLocation === "Annet" ? editCustomLocation.trim() : editLocation;
+    const newName = editEquipmentName.trim() || item.equipment_name;
+
+    // If equipment name changed, propagate to all catalog rows + training records via edge function
+    if (newName !== item.equipment_name) {
+      await supabase.functions.invoke("catalog-manage", {
+        body: {
+          action: "rename_equipment",
+          category_value: item.category_value,
+          old_name: item.equipment_name,
+          new_name: newName,
+        },
+      });
+    }
+
+    // Update this specific row's details
     await supabase.from("equipment_catalog").update({
-      equipment_name: editEquipmentName.trim() || item.equipment_name,
+      equipment_name: newName,
       brand: editBrand.trim() || null,
       type: editType.trim() || null,
       location: resolvedLocation || null,
