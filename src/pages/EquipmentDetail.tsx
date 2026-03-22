@@ -281,24 +281,12 @@ const EquipmentDetail = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2 sm:col-span-1">
                 <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Plassering</label>
-                <select
+                <ComboInput
                   value={editLocation}
-                  onChange={(e) => setEditLocation(e.target.value)}
-                  className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  <option value="">Ingen plassering</option>
-                  {LOCATIONS.map((loc) => (
-                    <option key={loc} value={loc}>{loc}</option>
-                  ))}
-                </select>
-                {editLocation === "Annet" && (
-                  <input
-                    value={editCustomLocation}
-                    onChange={(e) => setEditCustomLocation(e.target.value)}
-                    placeholder="Skriv inn plassering"
-                    className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                  />
-                )}
+                  onChange={setEditLocation}
+                  options={LOCATIONS}
+                  placeholder="Velg eller skriv inn..."
+                />
               </div>
               <div>
                 <label className="mb-1 block font-body text-xs font-medium text-muted-foreground">Lydnivå (dB)</label>

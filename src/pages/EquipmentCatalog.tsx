@@ -9,6 +9,7 @@ import { SortableContext, verticalListSortingStrategy, arrayMove } from "@dnd-ki
 import {
   ArrowLeft, Plus, ChevronDown, ChevronRight, Search, X, GraduationCap, ImagePlus, Merge, Pencil,
 } from "lucide-react";
+import ComboInput from "@/components/ComboInput";
 import { toast } from "sonner";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
