@@ -184,7 +184,7 @@ const EquipmentCatalog = () => {
   const handleDelete = async (id: string) => {
     if (!confirm("Slette denne oppføringen?")) return;
     await supabase.from("equipment_catalog").delete().eq("id", id);
-    fetchCatalog();
+    fetchCatalog(true);
   };
 
   const matchesSearch = (eq: GroupedEquipment) => {
