@@ -21,6 +21,7 @@ import EquipmentDetail from "./pages/EquipmentDetail.tsx";
 import WasteManagement from "./pages/WasteManagement.tsx";
 import AdminEmployeeList from "./pages/AdminEmployeeList.tsx";
 import VoltageRound from "./pages/VoltageRound.tsx";
+import VoltageRoundPrint from "./pages/VoltageRoundPrint.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -53,6 +54,7 @@ const App = () => (
             <Route path="/dokumentert-opplaering/katalog/:itemId" element={<ProtectedRoute><EquipmentDetail /></ProtectedRoute>} />
             <Route path="/avfallshandtering" element={<ProtectedRoute><WasteManagement /></ProtectedRoute>} />
             <Route path="/spenningsrunde" element={<ProtectedRoute><VoltageRound /></ProtectedRoute>} />
+            <Route path="/spenningsrunde/:roundId/print" element={<ProtectedRoute><VoltageRoundPrint /></ProtectedRoute>} />
 
             {/* Admin routes */}
             <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminPanel /></ProtectedRoute>} />
