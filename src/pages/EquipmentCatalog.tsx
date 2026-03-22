@@ -494,13 +494,15 @@ const EquipmentCatalog = () => {
                                       </thead>
                                       <tbody>
                                         {eq.rows.map((row) => (
-                                          <EquipmentRowWithPreview
+                                           <EquipmentRowWithPreview
                                             key={row.id}
                                             row={row}
                                             selected={selectedRowIds.has(row.id)}
                                             onToggle={() => toggleRowSelection(row.id)}
                                             onDelete={() => handleDelete(row.id)}
                                             onClick={() => navigate(`/dokumentert-opplaering/katalog/${row.id}`)}
+                                            isAdmin={isAdmin}
+                                            onRefresh={fetchCatalog}
                                           />
                                         ))}
                                       </tbody>
