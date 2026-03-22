@@ -117,6 +117,32 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    if (action === "rename_brand") {
+      const { category_value, equipment_name, old_brand, new_brand } = body;
+      if (!old_brand || !new_brand) throw new Error("Missing brand names");
+
+      await adminClient
+        .from("equipment_catalog")
+        .update({ brand: new_brand })
+        .eq("brand", old_brand)
+        .eq("equipment_name", equipment_name)
+        .eq("category_value", category_value);
+
+      return new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    if (action === "rename_type") {
+      const { id, new_type } = body;
+      if (!id || !new_type) throw new Error("Missing values");
+
+      await adminClient
+        .from("equipment_catalog")
+        .update({ type: new_type })
+        .eq("id", id);
+
+      return new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     throw new Error("Unknown action");
   } catch (e) {
     return new Response(JSON.stringify({ error: e.message }), {
