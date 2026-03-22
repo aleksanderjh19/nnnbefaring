@@ -27,6 +27,7 @@ const tools = [
     icon: Zap,
     path: "/spenningsrunde",
     ready: true,
+    wip: true,
   },
   {
     id: "dokumentert-opplaering",
@@ -35,6 +36,7 @@ const tools = [
     icon: GraduationCap,
     path: "/dokumentert-opplaering",
     ready: true,
+    wip: true,
   },
   {
     id: "avfallshandtering",
@@ -43,6 +45,7 @@ const tools = [
     icon: Trash2,
     path: "/avfallshandtering",
     ready: true,
+    wip: true,
   },
 ];
 
