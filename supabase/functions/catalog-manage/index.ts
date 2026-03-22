@@ -143,6 +143,62 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    if (action === "merge_types") {
+      // Merge multiple catalog rows into one, updating training_records
+      // source_ids: IDs to be merged away, target_id: the one to keep
+      // target_brand, target_type: the final brand/type name to use
+      const { source_ids, target_id, target_brand, target_type, category_value, equipment_name } = body;
+      if (!source_ids?.length || !target_id) throw new Error("Missing merge data");
+
+      // For each source row, update any training_records that match its brand+type
+      for (const srcId of source_ids) {
+        // Get the source row details
+        const { data: srcRow } = await adminClient
+          .from("equipment_catalog")
+          .select("brand, type")
+          .eq("id", srcId)
+          .single();
+        if (!srcRow) continue;
+
+        // Update training records: match on category + equipment + type
+        // Training records store equipment_type as "brand - type" or just type
+        if (srcRow.type) {
+          const oldEquipType = srcRow.brand ? `${srcRow.brand} - ${srcRow.type}` : srcRow.type;
+          const newEquipType = target_brand ? `${target_brand} - ${target_type}` : target_type;
+          
+          // Update records that match the full "brand - type" format
+          await adminClient
+            .from("training_records")
+            .update({ equipment_type: newEquipType })
+            .eq("equipment_name", equipment_name)
+            .eq("equipment_category", category_value)
+            .eq("equipment_type", oldEquipType);
+          
+          // Also try matching just the type
+          await adminClient
+            .from("training_records")
+            .update({ equipment_type: newEquipType })
+            .eq("equipment_name", equipment_name)
+            .eq("equipment_category", category_value)
+            .eq("equipment_type", srcRow.type);
+        }
+
+        // Delete the source catalog entry
+        await adminClient
+          .from("equipment_catalog")
+          .delete()
+          .eq("id", srcId);
+      }
+
+      // Update the target row with the chosen brand/type
+      await adminClient
+        .from("equipment_catalog")
+        .update({ brand: target_brand, type: target_type })
+        .eq("id", target_id);
+
+      return new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     throw new Error("Unknown action");
   } catch (e) {
     return new Response(JSON.stringify({ error: e.message }), {
