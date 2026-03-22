@@ -1,7 +1,9 @@
+import { useCallback } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
+import PullToRefresh from "@/components/PullToRefresh";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LinesProvider } from "@/hooks/useLines.tsx";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -26,6 +28,10 @@ import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
 
+const handlePullRefresh = async () => {
+  window.location.reload();
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -33,6 +39,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <DevAdminToggle />
+        <PullToRefresh onRefresh={handlePullRefresh}>
         <BrowserRouter>
           <Routes>
             {/* Public routes */}
@@ -62,6 +69,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
+        </PullToRefresh>
       </LinesProvider>
     </TooltipProvider>
   </QueryClientProvider>

@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { ArrowLeft, BookOpen, ChevronRight, ClipboardPlus, User, Users, Wrench } from "lucide-react";
 import heroVideo from "@/assets/hero-video.mp4";
-import PullToRefresh from "@/components/PullToRefresh";
 interface Employee {
   id: string;
   name: string;
@@ -65,7 +64,6 @@ const TrainingHome = () => {
   }
 
   return (
-    <PullToRefresh onRefresh={fetchData}>
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
         <div className="mx-auto max-w-2xl px-5 py-6 space-y-4">
@@ -197,7 +195,6 @@ const TrainingHome = () => {
         )}
       </main>
     </div>
-    </PullToRefresh>
   );
 };
 
