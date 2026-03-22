@@ -120,7 +120,11 @@ export default function VoltageRound() {
       .from("voltage_rounds")
       .select("id, station_name, voltage_level, date, status, created_at")
       .order("created_at", { ascending: false });
-    setHistory((rows as SavedRound[]) ?? []);
+    // Filter out expired drafts (older than 24h)
+    const filtered = ((rows as SavedRound[]) ?? []).filter(
+      (r) => r.status === "completed" || !isDraftExpired(r.created_at)
+    );
+    setHistory(filtered);
     setLoadingHistory(false);
   }, []);
 
