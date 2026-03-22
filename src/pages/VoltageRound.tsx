@@ -310,7 +310,7 @@ export default function VoltageRound() {
                     <Zap className="h-4 w-4 text-primary shrink-0" />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium truncate">
-                        {r.station_name} {r.voltage_level}kV
+                        {r.station_name}
                       </p>
                       <p className="text-xs text-muted-foreground">{r.date}</p>
                     </div>
