@@ -52,6 +52,7 @@ const App = () => (
             <Route path="/dokumentert-opplaering/katalog" element={<ProtectedRoute><EquipmentCatalog /></ProtectedRoute>} />
             <Route path="/dokumentert-opplaering/katalog/:itemId" element={<ProtectedRoute><EquipmentDetail /></ProtectedRoute>} />
             <Route path="/avfallshandtering" element={<ProtectedRoute><WasteManagement /></ProtectedRoute>} />
+            <Route path="/spenningsrunde" element={<ProtectedRoute><VoltageRound /></ProtectedRoute>} />
 
             {/* Admin routes */}
             <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminPanel /></ProtectedRoute>} />
