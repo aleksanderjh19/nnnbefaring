@@ -96,7 +96,7 @@ interface SavedRound {
 
 export default function VoltageRound() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [view, setView] = useState<"list" | "select-station" | "wizard">("list");
   const [step, setStep] = useState(0);
   const [data, setData] = useState<VoltageRoundData>(() => createRoundFromTemplate(
