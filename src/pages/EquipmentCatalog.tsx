@@ -244,6 +244,54 @@ const EquipmentCatalog = () => {
     navigate(`/dokumentert-opplaering/ansatt/${employeeId}/ny?${params.toString()}`);
   };
 
+  const handleMerge = async () => {
+    setMerging(true);
+    try {
+      if (mergeType === "equipment") {
+        const { error } = await supabase.functions.invoke("catalog-manage", {
+          body: { action: "merge_equipment", category_value: mergeSourceCat, source_name: mergeSourceEquip, target_name: mergeTargetEquip },
+        });
+        if (error) throw error;
+        toast.success(`"${mergeSourceEquip}" slått sammen med "${mergeTargetEquip}"`);
+      } else {
+        const targetLabel = CATEGORY_META.find((c) => c.value === mergeTargetCat)?.label || mergeTargetCat;
+        const { error } = await supabase.functions.invoke("catalog-manage", {
+          body: { action: "merge_category", source_value: mergeSourceCat, target_value: mergeTargetCat, target_label: targetLabel },
+        });
+        if (error) throw error;
+        toast.success("Kategorier slått sammen");
+      }
+      setShowMerge(false);
+      fetchCatalog();
+    } catch (e: any) {
+      toast.error(e.message || "Feil ved sammenslåing");
+    }
+    setMerging(false);
+  };
+
+  const handleRenameEquip = async () => {
+    if (!renameNewName.trim() || renameNewName.trim() === renameOldName) return;
+    setRenaming(true);
+    try {
+      const { error } = await supabase.functions.invoke("catalog-manage", {
+        body: { action: "rename_equipment", category_value: renameCat, old_name: renameOldName, new_name: renameNewName.trim() },
+      });
+      if (error) throw error;
+      toast.success(`"${renameOldName}" omdøpt til "${renameNewName.trim()}"`);
+      setShowRenameEquip(false);
+      fetchCatalog();
+    } catch (e: any) {
+      toast.error(e.message || "Feil ved omdøping");
+    }
+    setRenaming(false);
+  };
+
+  // Get unique equipment names for a category (for merge UI)
+  const getEquipmentNamesForCategory = (catValue: string) => {
+    const catMap = grouped.get(catValue);
+    return catMap ? Array.from(catMap.keys()).sort() : [];
+  };
+
   const handleImageSelect = (file: File | null) => {
     setAddImageFile(file);
     if (file) {
