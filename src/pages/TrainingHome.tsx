@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { ArrowLeft, BookOpen, ChevronRight, ClipboardPlus, User, Users, Wrench } from "lucide-react";
 import heroVideo from "@/assets/hero-video.mp4";
-
+import PullToRefresh from "@/components/PullToRefresh";
 interface Employee {
   id: string;
   name: string;
@@ -23,30 +23,31 @@ const TrainingHome = () => {
   const [showProfilePicker, setShowProfilePicker] = useState(false);
   const [recordCounts, setRecordCounts] = useState<Record<string, number>>({});
 
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    const { data } = await supabase.from("employees").select("*").order("name");
+    if (data) {
+      const emps = data as Employee[];
+      setEmployees(emps);
+      if (user) {
+        const linked = emps.find((e) => e.user_id === user.id);
+        setMyEmployee(linked || null);
+        if (!linked) setShowProfilePicker(true);
+      }
+    }
+    const { data: records } = await supabase.from("training_records").select("employee_id");
+    if (records) {
+      const counts: Record<string, number> = {};
+      records.forEach((r) => { counts[r.employee_id] = (counts[r.employee_id] || 0) + 1; });
+      setRecordCounts(counts);
+    }
+    setLoading(false);
+  }, [user]);
+
   useEffect(() => {
     document.title = "Dokumentert Opplæring – Statnett";
-    const fetch = async () => {
-      setLoading(true);
-      const { data } = await supabase.from("employees").select("*").order("name");
-      if (data) {
-        const emps = data as Employee[];
-        setEmployees(emps);
-        if (user) {
-          const linked = emps.find((e) => e.user_id === user.id);
-          setMyEmployee(linked || null);
-          if (!linked) setShowProfilePicker(true);
-        }
-      }
-      const { data: records } = await supabase.from("training_records").select("employee_id");
-      if (records) {
-        const counts: Record<string, number> = {};
-        records.forEach((r) => { counts[r.employee_id] = (counts[r.employee_id] || 0) + 1; });
-        setRecordCounts(counts);
-      }
-      setLoading(false);
-    };
-    fetch();
-  }, [user]);
+    fetchData();
+  }, [fetchData]);
 
   const linkProfile = async (empId: string) => {
     await supabase.from("employees").update({ user_id: user?.id } as any).eq("id", empId);
@@ -64,6 +65,7 @@ const TrainingHome = () => {
   }
 
   return (
+    <PullToRefresh onRefresh={fetchData}>
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
         <div className="mx-auto max-w-2xl px-5 py-6 space-y-4">
@@ -195,6 +197,7 @@ const TrainingHome = () => {
         )}
       </main>
     </div>
+    </PullToRefresh>
   );
 };
 
