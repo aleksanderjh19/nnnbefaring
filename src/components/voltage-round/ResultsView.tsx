@@ -54,13 +54,13 @@ export default function ResultsView({ transformers, measurements, secondaryVolta
     setShowRemeasure(true);
   };
 
-  const updateRemeasurement = (tId: string, phase: Phase, value: string) => {
+  const updateRemeasurement = (tId: string, phase: Phase, field: "refValue" | "measValue", value: string) => {
     setRemeasurements(prev => {
       const updated = { ...prev };
       if (!updated[tId]) return prev;
       updated[tId] = {
         ...updated[tId],
-        [phase]: { ...updated[tId][phase], measValue: value === "" ? null : Number(value) },
+        [phase]: { ...updated[tId][phase], [field]: value === "" ? null : Number(value) },
       };
       return updated;
     });
