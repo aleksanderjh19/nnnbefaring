@@ -119,10 +119,14 @@ export default function VoltageRoundPrint() {
 
       {/* Print content */}
       <div className="mx-auto max-w-4xl px-6 py-8 print:px-0 print:py-4 print:max-w-none">
-        {/* Header */}
+        {/* Statnett header */}
+        <div className="mb-6 flex items-center justify-between rounded-lg bg-[hsl(155,100%,15%)] px-6 py-4 print:rounded-none print:-mx-0 print:mb-6 print:px-8 print:py-5">
+          <img src={statnettLogo} alt="Statnett" className="h-6 print:h-7" />
+          <span className="font-display text-xs font-bold uppercase tracking-widest text-white/80">Spenningsrunde</span>
+        </div>
+
         <div className="text-center mb-6">
-          <h1 className="text-xl font-bold uppercase tracking-wide">Spenningsrunde</h1>
-          <h2 className="text-lg font-semibold mt-1">{round.station_name}</h2>
+          <h2 className="text-lg font-semibold">{round.station_name}</h2>
         </div>
 
         {/* Metadata table */}
