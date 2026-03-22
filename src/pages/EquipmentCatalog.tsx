@@ -647,26 +647,30 @@ const EquipmentCatalog = () => {
               <div className="space-y-3">
                 <div>
                   <label className="mb-1 block font-body text-xs text-muted-foreground">Kategori</label>
-                  <select value={mergeSourceCat} onChange={(e) => { setMergeSourceCat(e.target.value); setMergeSourceEquip(""); setMergeTargetEquip(""); }}
-                    className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
-                    {categories.filter((c) => c.count > 0).map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-                  </select>
+                  <ComboInput
+                    value={categories.find((c) => c.value === mergeSourceCat)?.label || ""}
+                    onChange={(val) => { const cat = categories.find((c) => c.label === val); if (cat) { setMergeSourceCat(cat.value); setMergeSourceEquip(""); setMergeTargetEquip(""); } }}
+                    options={categories.filter((c) => c.count > 0).map((c) => c.label)}
+                    placeholder="Velg kategori..."
+                  />
                 </div>
                 <div>
                   <label className="mb-1 block font-body text-xs text-muted-foreground">Flytt fra (kilde)</label>
-                  <select value={mergeSourceEquip} onChange={(e) => setMergeSourceEquip(e.target.value)}
-                    className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
-                    <option value="">Velg utstyr...</option>
-                    {getEquipmentNamesForCategory(mergeSourceCat).map((n) => <option key={n} value={n}>{n}</option>)}
-                  </select>
+                  <ComboInput
+                    value={mergeSourceEquip}
+                    onChange={setMergeSourceEquip}
+                    options={getEquipmentNamesForCategory(mergeSourceCat)}
+                    placeholder="Velg utstyr..."
+                  />
                 </div>
                 <div>
                   <label className="mb-1 block font-body text-xs text-muted-foreground">Slå sammen med (mål)</label>
-                  <select value={mergeTargetEquip} onChange={(e) => setMergeTargetEquip(e.target.value)}
-                    className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
-                    <option value="">Velg utstyr...</option>
-                    {getEquipmentNamesForCategory(mergeSourceCat).filter((n) => n !== mergeSourceEquip).map((n) => <option key={n} value={n}>{n}</option>)}
-                  </select>
+                  <ComboInput
+                    value={mergeTargetEquip}
+                    onChange={setMergeTargetEquip}
+                    options={getEquipmentNamesForCategory(mergeSourceCat).filter((n) => n !== mergeSourceEquip)}
+                    placeholder="Velg utstyr..."
+                  />
                 </div>
                 {mergeSourceEquip && mergeTargetEquip && (
                   <p className="rounded-lg bg-destructive/10 px-3 py-2 font-body text-xs text-destructive">
@@ -678,19 +682,21 @@ const EquipmentCatalog = () => {
               <div className="space-y-3">
                 <div>
                   <label className="mb-1 block font-body text-xs text-muted-foreground">Flytt fra (kilde-kategori)</label>
-                  <select value={mergeSourceCat} onChange={(e) => setMergeSourceCat(e.target.value)}
-                    className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
-                    <option value="">Velg kategori...</option>
-                    {categories.filter((c) => c.count > 0).map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-                  </select>
+                  <ComboInput
+                    value={categories.find((c) => c.value === mergeSourceCat)?.label || ""}
+                    onChange={(val) => { const cat = categories.find((c) => c.label === val); if (cat) setMergeSourceCat(cat.value); }}
+                    options={categories.filter((c) => c.count > 0).map((c) => c.label)}
+                    placeholder="Velg kategori..."
+                  />
                 </div>
                 <div>
                   <label className="mb-1 block font-body text-xs text-muted-foreground">Slå sammen med (mål-kategori)</label>
-                  <select value={mergeTargetCat} onChange={(e) => setMergeTargetCat(e.target.value)}
-                    className="h-10 w-full rounded-lg border border-input bg-background px-3 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
-                    <option value="">Velg kategori...</option>
-                    {categories.filter((c) => c.value !== mergeSourceCat).map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-                  </select>
+                  <ComboInput
+                    value={categories.find((c) => c.value === mergeTargetCat)?.label || ""}
+                    onChange={(val) => { const cat = categories.find((c) => c.label === val); if (cat) setMergeTargetCat(cat.value); }}
+                    options={categories.filter((c) => c.value !== mergeSourceCat).map((c) => c.label)}
+                    placeholder="Velg kategori..."
+                  />
                 </div>
                 {mergeSourceCat && mergeTargetCat && (
                   <p className="rounded-lg bg-destructive/10 px-3 py-2 font-body text-xs text-destructive">
