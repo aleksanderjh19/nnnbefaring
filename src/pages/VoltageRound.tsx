@@ -38,6 +38,17 @@ function nameFromEmail(email?: string): string {
     .join(" ");
 }
 
+function getQuarter(dateStr: string): number {
+  const month = new Date(dateStr).getMonth(); // 0-based
+  return Math.floor(month / 3) + 1;
+}
+
+function isDraftExpired(createdAt: string): boolean {
+  const created = new Date(createdAt).getTime();
+  const now = Date.now();
+  return now - created > 24 * 60 * 60 * 1000;
+}
+
 function createRoundFromTemplate(
   station: StationTemplate,
   level: VoltageLevelConfig,
