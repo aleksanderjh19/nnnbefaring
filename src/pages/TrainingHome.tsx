@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { ArrowLeft, BookOpen, ChevronRight, ClipboardPlus, User, Users, Wrench } from "lucide-react";
 import heroVideo from "@/assets/hero-video.mp4";
-
+import PullToRefresh from "@/components/PullToRefresh";
 interface Employee {
   id: string;
   name: string;
