@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Cable, Landmark, Zap, ChevronRight, GraduationCap, Trash2 } from "lucide-react";
+import { Cable, Landmark, Zap, ChevronRight, GraduationCap, Trash2, AlertTriangle } from "lucide-react";
 import heroVideo from "@/assets/hero-video.mp4";
 
 const tools = [
@@ -27,6 +27,7 @@ const tools = [
     icon: Zap,
     path: "/spenningsrunde",
     ready: true,
+    wip: true,
   },
   {
     id: "dokumentert-opplaering",
@@ -35,6 +36,7 @@ const tools = [
     icon: GraduationCap,
     path: "/dokumentert-opplaering",
     ready: true,
+    wip: true,
   },
   {
     id: "avfallshandtering",
@@ -43,6 +45,7 @@ const tools = [
     icon: Trash2,
     path: "/avfallshandtering",
     ready: true,
+    wip: true,
   },
 ];
 
@@ -100,6 +103,12 @@ const Dashboard = () => {
                 {!tool.ready && (
                   <span className="mt-1 inline-block rounded-full bg-muted px-2 py-0.5 font-body text-[10px] font-medium text-muted-foreground">
                     Kommer snart
+                  </span>
+                )}
+                {'wip' in tool && tool.wip && (
+                  <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 font-body text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                    <AlertTriangle className="h-3 w-3" />
+                    OBS! Under bygging
                   </span>
                 )}
               </div>
