@@ -557,7 +557,7 @@ const EquipmentCatalog = () => {
                                             onDelete={() => handleDelete(row.id)}
                                             onClick={() => navigate(`/dokumentert-opplaering/katalog/${row.id}`)}
                                             isAdmin={isAdmin}
-                                            onRefresh={fetchCatalog}
+                                            onRefresh={() => fetchCatalog(true)}
                                           />
                                         ))}
                                       </tbody>
