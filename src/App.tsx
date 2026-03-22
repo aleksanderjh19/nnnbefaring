@@ -21,6 +21,7 @@ import EquipmentDetail from "./pages/EquipmentDetail.tsx";
 import WasteManagement from "./pages/WasteManagement.tsx";
 import AdminEmployeeList from "./pages/AdminEmployeeList.tsx";
 import VoltageRound from "./pages/VoltageRound.tsx";
+import VoltageRoundPrint from "./pages/VoltageRoundPrint.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
