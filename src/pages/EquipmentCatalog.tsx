@@ -70,8 +70,8 @@ const EquipmentCatalog = () => {
   const [addImagePreview, setAddImagePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
-  const fetchCatalog = async () => {
-    setLoading(true);
+  const fetchCatalog = async (preserveScroll = false) => {
+    const scrollY = preserveScroll ? window.scrollY : 0;
     const { data } = await supabase
       .from("equipment_catalog")
       .select("*")
@@ -81,6 +81,7 @@ const EquipmentCatalog = () => {
       .order("type");
     if (data) setRows(data as CatalogRow[]);
     setLoading(false);
+    if (preserveScroll) requestAnimationFrame(() => window.scrollTo(0, scrollY));
   };
 
   useEffect(() => { document.title = "Utstyrskatalog – Statnett"; fetchCatalog(); }, []);
@@ -177,13 +178,13 @@ const EquipmentCatalog = () => {
     setAddType(""); setAddLocation(""); setAddCustomLocation("");
     setAddImageFile(null); setAddImagePreview(null);
     setShowAdd(false); setUploading(false);
-    fetchCatalog();
+    fetchCatalog(true);
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm("Slette denne oppføringen?")) return;
     await supabase.from("equipment_catalog").delete().eq("id", id);
-    fetchCatalog();
+    fetchCatalog(true);
   };
 
   const matchesSearch = (eq: GroupedEquipment) => {
@@ -268,7 +269,7 @@ const EquipmentCatalog = () => {
         toast.success("Kategorier slått sammen");
       }
       setShowMerge(false);
-      fetchCatalog();
+      fetchCatalog(true);
     } catch (e: any) {
       toast.error(e.message || "Feil ved sammenslåing");
     }
@@ -285,7 +286,7 @@ const EquipmentCatalog = () => {
       if (error) throw error;
       toast.success(`"${renameOldName}" omdøpt til "${renameNewName.trim()}"`);
       setShowRenameEquip(false);
-      fetchCatalog();
+      fetchCatalog(true);
     } catch (e: any) {
       toast.error(e.message || "Feil ved omdøping");
     }
@@ -322,7 +323,7 @@ const EquipmentCatalog = () => {
       toast.success(`${mergeTypesRows.length} typer slått sammen til "${targetRow.brand} ${targetRow.type}"`);
       setShowMergeTypes(false);
       setSelectedRowIds(new Set());
-      fetchCatalog();
+      fetchCatalog(true);
     } catch (e: any) {
       toast.error(e.message || "Feil ved sammenslåing");
     }
@@ -556,7 +557,7 @@ const EquipmentCatalog = () => {
                                             onDelete={() => handleDelete(row.id)}
                                             onClick={() => navigate(`/dokumentert-opplaering/katalog/${row.id}`)}
                                             isAdmin={isAdmin}
-                                            onRefresh={fetchCatalog}
+                                            onRefresh={() => fetchCatalog(true)}
                                           />
                                         ))}
                                       </tbody>
@@ -566,7 +567,7 @@ const EquipmentCatalog = () => {
                                     categoryValue={cat.value}
                                     categoryLabel={cat.label}
                                     equipmentName={eq.equipment_name}
-                                    onAdded={fetchCatalog}
+                                    onAdded={() => fetchCatalog(true)}
                                   />
                                 </div>
                               )}
