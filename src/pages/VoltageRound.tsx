@@ -303,8 +303,10 @@ export default function VoltageRound() {
               {history.map((r) => (
                 <Card
                   key={r.id}
-                  className="cursor-pointer hover:bg-secondary/50 transition-colors"
-                  onClick={() => loadRound(r.id)}
+                  className={`${r.status !== "completed" || isAdmin ? "cursor-pointer hover:bg-secondary/50" : ""} transition-colors`}
+                  onClick={() => {
+                    if (r.status !== "completed" || isAdmin) loadRound(r.id);
+                  }}
                 >
                   <CardContent className="flex items-center gap-3 py-3 px-4">
                     <Zap className="h-4 w-4 text-primary shrink-0" />
