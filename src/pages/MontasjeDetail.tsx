@@ -188,7 +188,7 @@ const MontasjeDetail = () => {
       </main>
 
       <Dialog open={imageOpen} onOpenChange={setImageOpen}>
-        <DialogContent className="max-w-[95vw] max-h-[95vh] w-auto h-auto p-0 border-none bg-transparent shadow-none">
+        <DialogContent className="h-[95vh] w-[95vw] max-w-none gap-0 border-none bg-transparent p-0 shadow-none overflow-hidden">
           <DialogTitle className="sr-only">
             {guide.image?.caption || guide.title}
           </DialogTitle>
@@ -198,11 +198,13 @@ const MontasjeDetail = () => {
           >
             <X className="h-5 w-5" />
           </button>
-          <img
-            src={guide.image?.url}
-            alt={guide.image?.caption || guide.title}
-            className="max-w-full max-h-[90vh] object-contain rounded-lg"
-          />
+          <div className="flex h-full w-full items-center justify-center p-4">
+            <img
+              src={guide.image?.url}
+              alt={guide.image?.caption || guide.title}
+              className="h-full w-full object-contain rounded-lg"
+            />
+          </div>
         </DialogContent>
       </Dialog>
     </div>
