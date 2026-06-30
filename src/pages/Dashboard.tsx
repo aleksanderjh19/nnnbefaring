@@ -1,33 +1,24 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Cable, Landmark, Zap, ChevronRight, GraduationCap, Trash2, AlertTriangle } from "lucide-react";
+import { Tower, Cable, ChevronRight, GraduationCap, AlertTriangle } from "lucide-react";
 import heroVideo from "@/assets/hero-video.mp4";
 
 const tools = [
   {
-    id: "ledningsbefaring",
-    name: "Ledningsbefaring",
-    description: "Befaring av ledningsanlegg og master",
+    id: "stasjon",
+    name: "Stasjon",
+    description: "Verktøy, prosedyrer og fremgangsmåter for stasjon",
+    icon: Tower,
+    path: "/stasjon",
+    ready: true,
+  },
+  {
+    id: "ledning",
+    name: "Ledning",
+    description: "Verktøy, prosedyrer og fremgangsmåter for ledning",
     icon: Cable,
-    path: "/ledningsbefaring",
+    path: "/ledning",
     ready: true,
-  },
-  {
-    id: "fundamentbefaring",
-    name: "Fundamentbefaring",
-    description: "Befaring av fundamenter og forankringer",
-    icon: Landmark,
-    path: "/fundamentbefaring",
-    ready: false,
-  },
-  {
-    id: "spenningsrunde",
-    name: "Spenningsrunde",
-    description: "Kontroll av spenningstrafoer på stasjoner",
-    icon: Zap,
-    path: "/spenningsrunde",
-    ready: true,
-    wip: true,
   },
   {
     id: "dokumentert-opplaering",
@@ -38,16 +29,8 @@ const tools = [
     ready: true,
     wip: true,
   },
-  {
-    id: "avfallshandtering",
-    name: "Avfallshåndtering Bjerka",
-    description: "Sorteringsoversikt og varsling om tømming",
-    icon: Trash2,
-    path: "/avfallshandtering",
-    ready: true,
-    wip: true,
-  },
 ];
+
 
 const Dashboard = () => {
   useEffect(() => { document.title = "Statnett Verktøy"; }, []);
