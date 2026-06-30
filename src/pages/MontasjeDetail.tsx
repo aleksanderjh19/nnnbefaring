@@ -101,11 +101,19 @@ const MontasjeDetail = () => {
       <main className="mx-auto max-w-2xl px-5 py-6 space-y-6">
         {guide.image && (
           <figure className="overflow-hidden rounded-xl border border-border bg-card">
-            <img
-              src={guide.image.url}
-              alt={guide.image.caption || guide.title}
-              className="w-full object-contain bg-muted"
-            />
+            <button
+              onClick={() => setImageOpen(true)}
+              className="relative block w-full cursor-zoom-in"
+            >
+              <img
+                src={guide.image.url}
+                alt={guide.image.caption || guide.title}
+                className="w-full object-contain bg-muted"
+              />
+              <span className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white">
+                <ZoomIn className="h-4 w-4" />
+              </span>
+            </button>
             {guide.image.caption && (
               <figcaption className="px-4 py-2 font-body text-[11px] text-muted-foreground">
                 {guide.image.caption}
