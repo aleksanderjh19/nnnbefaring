@@ -203,22 +203,82 @@ const MontasjeDetail = () => {
         )}
       </main>
 
-      <Dialog open={imageOpen} onOpenChange={setImageOpen}>
-        <DialogContent className="h-[95vh] w-[95vw] max-w-none gap-0 border-none bg-transparent p-0 shadow-none overflow-hidden">
+      <Dialog open={imageOpen} onOpenChange={(open) => { setImageOpen(open); if (!open) resetZoom(); }}>
+        <DialogContent
+          className="h-[95vh] w-[95vw] max-w-none gap-0 border-none bg-transparent p-0 shadow-none overflow-hidden select-none touch-none"
+          onTouchStart={(e) => {
+            if (e.touches.length === 2) {
+              const dx = e.touches[0].clientX - e.touches[1].clientX;
+              const dy = e.touches[0].clientY - e.touches[1].clientY;
+              touchRef.current.initialDist = Math.hypot(dx, dy);
+              touchRef.current.initialScale = scale;
+            } else if (e.touches.length === 1) {
+              touchRef.current.startX = e.touches[0].clientX;
+              touchRef.current.startY = e.touches[0].clientY;
+              touchRef.current.initialPanX = pan.x;
+              touchRef.current.initialPanY = pan.y;
+
+              const now = Date.now();
+              if (now - touchRef.current.lastTouchTime < 300) {
+                if (scale > 1) {
+                  resetZoom();
+                } else {
+                  setScale(3);
+                }
+              }
+              touchRef.current.lastTouchTime = now;
+            }
+          }}
+          onTouchMove={(e) => {
+            e.preventDefault();
+            if (e.touches.length === 2) {
+              const dx = e.touches[0].clientX - e.touches[1].clientX;
+              const dy = e.touches[0].clientY - e.touches[1].clientY;
+              const dist = Math.hypot(dx, dy);
+              const newScale = Math.min(
+                Math.max(touchRef.current.initialScale * (dist / (touchRef.current.initialDist || 1)), 1),
+                8
+              );
+              setScale(newScale);
+            } else if (e.touches.length === 1 && scale > 1) {
+              const dx = e.touches[0].clientX - touchRef.current.startX;
+              const dy = e.touches[0].clientY - touchRef.current.startY;
+              setPan({
+                x: touchRef.current.initialPanX + dx,
+                y: touchRef.current.initialPanY + dy,
+              });
+            }
+          }}
+          onTouchEnd={() => {
+            if (scale < 1.1) {
+              resetZoom();
+            }
+          }}
+          onWheel={(e) => {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? -0.2 : 0.2;
+            setScale((prev) => Math.min(Math.max(prev + delta, 1), 8));
+          }}
+        >
           <DialogTitle className="sr-only">
             {guide.image?.caption || guide.title}
           </DialogTitle>
           <button
-            onClick={() => setImageOpen(false)}
+            onClick={() => { setImageOpen(false); resetZoom(); }}
             className="absolute right-4 top-4 z-50 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
           >
             <X className="h-5 w-5" />
           </button>
-          <div className="flex h-full w-full items-center justify-center p-4">
+          <div className="flex h-full w-full items-center justify-center p-4 overflow-hidden">
             <img
               src={guide.image?.url}
               alt={guide.image?.caption || guide.title}
-              className="h-full w-full object-contain rounded-lg"
+              className="max-h-full max-w-full object-contain rounded-lg"
+              style={{
+                transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
+                transition: scale === 1 && pan.x === 0 && pan.y === 0 ? "transform 0.2s ease-out" : "none",
+              }}
+              draggable={false}
             />
           </div>
         </DialogContent>
