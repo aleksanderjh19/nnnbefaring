@@ -1,0 +1,165 @@
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, AlertTriangle, Clock, Check, RotateCcw } from "lucide-react";
+import { getGuideById } from "@/data/montasjeGuides";
+
+const MontasjeDetail = () => {
+  const { guideId } = useParams<{ guideId: string }>();
+  const navigate = useNavigate();
+  const guide = guideId ? getGuideById(guideId) : undefined;
+
+  useEffect(() => {
+    document.title = guide ? `${guide.title} – Statnett` : "Veiledning – Statnett";
+  }, [guide]);
+
+  const storageKey = `montasje-checks:${guideId}`;
+  const [checked, setChecked] = useState<Record<string, boolean>>(() => {
+    if (typeof window === "undefined") return {};
+    try {
+      return JSON.parse(localStorage.getItem(storageKey) || "{}");
+    } catch {
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(storageKey, JSON.stringify(checked));
+  }, [checked, storageKey]);
+
+  if (!guide) {
+    return (
+      <div className="min-h-screen bg-background">
+        <main className="mx-auto max-w-2xl px-5 py-10 text-center">
+          <p className="font-body text-sm text-muted-foreground">Fant ikke veiledningen.</p>
+          <button
+            onClick={() => navigate("/ledning/montasje")}
+            className="mt-4 inline-flex items-center gap-1.5 font-body text-sm font-medium text-primary"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Tilbake til oversikt
+          </button>
+        </main>
+      </div>
+    );
+  }
+
+  const toggle = (key: string) =>
+    setChecked((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  const totalItems = guide.sections.reduce((n, s) => n + s.items.length, 0);
+  const doneItems = guide.sections.reduce(
+    (n, s) => n + s.items.filter((_, i) => checked[`${s.title}:${i}`]).length,
+    0
+  );
+  const pct = totalItems ? Math.round((doneItems / totalItems) * 100) : 0;
+
+  return (
+    <div className="min-h-screen bg-background pb-24">
+      <header className="sticky top-0 z-10 border-b border-border bg-card/95 backdrop-blur">
+        <div className="mx-auto max-w-2xl px-5 py-4">
+          <button
+            onClick={() => navigate("/ledning/montasje")}
+            className="mb-2 inline-flex items-center gap-1.5 font-body text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Tilbake
+          </button>
+          <h1 className="font-display text-lg font-extrabold tracking-tight text-foreground">
+            {guide.title}
+          </h1>
+          <p className="mt-0.5 font-body text-xs text-muted-foreground">
+            {guide.description}
+          </p>
+          {guide.estimatedTime && (
+            <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 font-body text-[11px] font-medium text-muted-foreground">
+              <Clock className="h-3 w-3" />
+              {guide.estimatedTime}
+            </div>
+          )}
+
+          <div className="mt-3 flex items-center gap-3">
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full bg-primary transition-all"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            <span className="font-body text-[11px] font-semibold tabular-nums text-muted-foreground">
+              {doneItems}/{totalItems}
+            </span>
+          </div>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-2xl px-5 py-6 space-y-6">
+        {guide.sections.map((section) => (
+          <section key={section.title}>
+            <h2 className="mb-3 font-display text-xs font-bold uppercase tracking-widest text-statnett">
+              {section.title}
+            </h2>
+            <ul className="space-y-2">
+              {section.items.map((item, i) => {
+                const key = `${section.title}:${i}`;
+                const isChecked = !!checked[key];
+                return (
+                  <li key={key}>
+                    <button
+                      onClick={() => toggle(key)}
+                      className={`flex w-full items-start gap-3 rounded-xl border px-4 py-3 text-left transition-colors ${
+                        isChecked
+                          ? "border-primary/40 bg-primary/5"
+                          : "border-border bg-card hover:bg-secondary"
+                      }`}
+                    >
+                      <span
+                        className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors ${
+                          isChecked
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border bg-background"
+                        }`}
+                      >
+                        {isChecked && <Check className="h-3.5 w-3.5" />}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p
+                          className={`font-body text-sm ${
+                            isChecked
+                              ? "text-muted-foreground line-through"
+                              : "text-foreground"
+                          }`}
+                        >
+                          {item.text}
+                        </p>
+                        {item.warning && (
+                          <div className="mt-1.5 flex items-start gap-1.5 rounded-md bg-amber-500/10 px-2 py-1.5">
+                            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
+                            <p className="font-body text-[11px] font-medium text-amber-700 dark:text-amber-300">
+                              {item.warning}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        ))}
+
+        {doneItems > 0 && (
+          <button
+            onClick={() => setChecked({})}
+            className="mx-auto flex items-center gap-1.5 rounded-full border border-border bg-card px-4 py-2 font-body text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            Nullstill avkrysning
+          </button>
+        )}
+      </main>
+    </div>
+  );
+};
+
+export default MontasjeDetail;

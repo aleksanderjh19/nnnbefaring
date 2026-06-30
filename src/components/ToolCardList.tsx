@@ -1,70 +1,39 @@
-import { useEffect } from "react";
+import { AlertTriangle, ChevronRight, LucideIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { Building2, Cable, ChevronRight, GraduationCap, AlertTriangle } from "lucide-react";
-import heroVideo from "@/assets/hero-video.mp4";
 
-const tools = [
-  {
-    id: "stasjon",
-    name: "Stasjon",
-    description: "Verktøy, prosedyrer og fremgangsmåter for stasjon",
-    icon: Building2,
-    path: "/stasjon",
-    ready: true,
-  },
-  {
-    id: "ledning",
-    name: "Ledning",
-    description: "Verktøy, prosedyrer og fremgangsmåter for ledning",
-    icon: Cable,
-    path: "/ledning",
-    ready: true,
-  },
-  {
-    id: "dokumentert-opplaering",
-    name: "Dokumentert opplæring",
-    description: "Registrering og oppfølging av opplæring",
-    icon: GraduationCap,
-    path: "/dokumentert-opplaering",
-    ready: true,
-    wip: true,
-  },
-];
+export type ToolCard = {
+  id: string;
+  name: string;
+  description: string;
+  icon: LucideIcon;
+  path: string;
+  ready: boolean;
+  wip?: boolean;
+};
 
+type Props = {
+  heading?: string;
+  tools: ToolCard[];
+  emptyText?: string;
+};
 
-const Dashboard = () => {
-  useEffect(() => { document.title = "Statnett Verktøy"; }, []);
+const ToolCardList = ({ heading, tools, emptyText }: Props) => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card">
-        <div className="mx-auto max-w-2xl px-5 py-6 space-y-4">
-          <div className="relative w-full overflow-hidden rounded-xl shadow-lg" style={{ aspectRatio: "4/1" }}>
-            <video
-              src={heroVideo}
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="absolute inset-0 h-full w-full scale-150 object-cover"
-            />
-          </div>
-          <div>
-            <h1 className="font-display text-xl font-extrabold tracking-tight text-foreground">
-              NNN Verktøy
-            </h1>
-            <p className="font-body text-xs text-muted-foreground">
-              Velg et verktøy for å komme i gang
-            </p>
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-2xl px-5 py-6">
+    <section>
+      {heading && (
         <h2 className="mb-4 font-display text-xs font-bold uppercase tracking-widest text-statnett">
-          Verktøy
+          {heading}
         </h2>
+      )}
+      {tools.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-border bg-card/50 px-5 py-8 text-center">
+          <p className="font-body text-sm text-muted-foreground">
+            {emptyText ?? "Ingen verktøy lagt til ennå"}
+          </p>
+        </div>
+      ) : (
         <div className="space-y-3">
           {tools.map((tool) => (
             <button
@@ -89,21 +58,21 @@ const Dashboard = () => {
                   </span>
                 )}
               </div>
-              {'wip' in tool && tool.wip && (
+              {tool.wip && (
                 <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-3 py-1 font-body text-xs font-semibold text-amber-600 dark:text-amber-400">
                   <AlertTriangle className="h-3.5 w-3.5" />
                   OBS! Under bygging
                 </span>
               )}
-              {tool.ready && (
+              {tool.ready && !tool.wip && (
                 <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
               )}
             </button>
           ))}
         </div>
-      </main>
-    </div>
+      )}
+    </section>
   );
 };
 
-export default Dashboard;
+export default ToolCardList;
