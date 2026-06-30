@@ -186,6 +186,25 @@ const MontasjeDetail = () => {
           </button>
         )}
       </main>
+
+      <Dialog open={imageOpen} onOpenChange={setImageOpen}>
+        <DialogContent className="max-w-[95vw] max-h-[95vh] w-auto h-auto p-0 border-none bg-transparent shadow-none">
+          <DialogTitle className="sr-only">
+            {guide.image?.caption || guide.title}
+          </DialogTitle>
+          <button
+            onClick={() => setImageOpen(false)}
+            className="absolute right-4 top-4 z-50 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <img
+            src={guide.image?.url}
+            alt={guide.image?.caption || guide.title}
+            className="max-w-full max-h-[90vh] object-contain rounded-lg"
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
