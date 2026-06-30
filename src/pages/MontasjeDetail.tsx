@@ -58,6 +58,7 @@ const MontasjeDetail = () => {
     0
   );
   const pct = totalItems ? Math.round((doneItems / totalItems) * 100) : 0;
+  const [imageOpen, setImageOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-background pb-24">
