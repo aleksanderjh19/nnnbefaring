@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, AlertTriangle, Clock, Check, RotateCcw } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Clock, Check, RotateCcw, X, ZoomIn } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { getGuideById } from "@/data/montasjeGuides";
 
 const MontasjeDetail = () => {
@@ -53,6 +58,7 @@ const MontasjeDetail = () => {
     0
   );
   const pct = totalItems ? Math.round((doneItems / totalItems) * 100) : 0;
+  const [imageOpen, setImageOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -95,11 +101,19 @@ const MontasjeDetail = () => {
       <main className="mx-auto max-w-2xl px-5 py-6 space-y-6">
         {guide.image && (
           <figure className="overflow-hidden rounded-xl border border-border bg-card">
-            <img
-              src={guide.image.url}
-              alt={guide.image.caption || guide.title}
-              className="w-full object-contain bg-muted"
-            />
+            <button
+              onClick={() => setImageOpen(true)}
+              className="relative block w-full cursor-zoom-in"
+            >
+              <img
+                src={guide.image.url}
+                alt={guide.image.caption || guide.title}
+                className="w-full object-contain bg-muted"
+              />
+              <span className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white">
+                <ZoomIn className="h-4 w-4" />
+              </span>
+            </button>
             {guide.image.caption && (
               <figcaption className="px-4 py-2 font-body text-[11px] text-muted-foreground">
                 {guide.image.caption}
@@ -172,6 +186,25 @@ const MontasjeDetail = () => {
           </button>
         )}
       </main>
+
+      <Dialog open={imageOpen} onOpenChange={setImageOpen}>
+        <DialogContent className="max-w-[95vw] max-h-[95vh] w-auto h-auto p-0 border-none bg-transparent shadow-none">
+          <DialogTitle className="sr-only">
+            {guide.image?.caption || guide.title}
+          </DialogTitle>
+          <button
+            onClick={() => setImageOpen(false)}
+            className="absolute right-4 top-4 z-50 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <img
+            src={guide.image?.url}
+            alt={guide.image?.caption || guide.title}
+            className="max-w-full max-h-[90vh] object-contain rounded-lg"
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
