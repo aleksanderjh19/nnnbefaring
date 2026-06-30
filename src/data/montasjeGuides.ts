@@ -1,3 +1,5 @@
+import isolatorAakImage from "@/assets/isolator-aak-2s21.jpeg.asset.json";
+
 export type ChecklistItem = {
   text: string;
   warning?: string;
@@ -14,6 +16,7 @@ export type MontasjeGuide = {
   description: string;
   category: string;
   estimatedTime?: string;
+  image?: { url: string; caption?: string };
   sections: GuideSection[];
 };
 
@@ -21,54 +24,69 @@ export const montasjeGuides: MontasjeGuide[] = [
   {
     id: "isolator-skifte-aak",
     title: "Montasje – Isolator skifte åk",
-    description: "Huskeliste og fremgangsmåte for skifte av isolator i åk",
+    description:
+      "Skifte av isolatorkjede 2S21 med dobbelt åkplater og lask – bruk av skifteverktøy (eks. DP 18).",
     category: "Isolator",
     estimatedTime: "ca. 2–4 timer",
+    image: {
+      url: isolatorAakImage.url,
+      caption:
+        "Statnett-tegning: 2S21 mod dobbelt åkplater og med lask. Eksempel på bruk av skifteverktøyet på kjede 2S21 DP 18.",
+    },
     sections: [
       {
-        title: "Før arbeidet starter",
+        title: "Forberedelse",
         items: [
-          { text: "Sjekk at ledningen er frakoblet og jordet" },
-          { text: "Kontroller at SJA er gjennomgått med hele laget" },
-          { text: "Verifiser værmelding – ikke arbeid i tordenvær", warning: "Stopp arbeidet ved tordenvær innen 20 km" },
-          { text: "Sjekk at alt løfteutstyr er sertifisert og innen kontrollfrist" },
+          { text: "Bekreft riktig kjedetype (2S21) og verktøyspesifikasjon (f.eks. DP 18) mot Statnett spesifikasjon" },
+          { text: "Kontroller at ledning er frakoblet, utladet og jordet på begge sider" },
+          { text: "Gjennomgå SJA med hele laget og avklar roller" },
+          {
+            text: "Sjekk værmelding og vindgrenser før klatring",
+            warning: "Stopp arbeidet ved tordenvær innen 20 km",
+          },
+          { text: "Verifiser at alt løfte- og skifteverktøy er sertifisert og innen kontrollfrist" },
         ],
       },
       {
-        title: "Utstyr som trengs",
+        title: "Demontering av koronaring",
         items: [
-          { text: "Ny isolatorstreng med korrekt spesifikasjon" },
-          { text: "Løfteline / kjettingtalje (min. 2 tonn)" },
-          { text: "Sjakler i riktig WLL" },
-          { text: "Splinttang og momentnøkkel" },
-          { text: "Sikringsline / fallsele" },
+          {
+            text: "Demonter koronaring FØR skifteverktøyet settes på kjedet",
+            warning: "Koronaring må alltid av først – ellers kan verktøyet ikke settes korrekt på kjedet",
+          },
+          { text: "Sikre koronaring med line og senk kontrollert ned" },
         ],
       },
       {
-        title: "Demontering",
+        title: "Montering av skifteverktøy (pos. 1, 2, 3)",
         items: [
-          { text: "Avlast strengen med kjettingtalje før splint fjernes" },
-          { text: "Fjern låsesplint i toppfeste" },
-          { text: "Senk gammel isolator kontrollert ned" },
-          { text: "Inspiser åkfeste for slitasje eller skader" },
+          { text: "Sett øvre åkplate (pos. 3) på toppfestet over isolatorkjedet" },
+          { text: "Monter nedre åkplate (pos. 1) på bunnfestet under kjedet" },
+          { text: "Koble inn lask (pos. 2) mellom åkplatene slik tegningen viser" },
+          { text: "Kontroller at alle bolter, splinter og sjakler er i riktig posisjon og WLL" },
+          { text: "Koble til kjettingtalje / strekkverktøy mellom åkplatene" },
         ],
       },
       {
-        title: "Montering av ny isolator",
+        title: "Avlastning og skifte av isolator",
         items: [
-          { text: "Kontroller at isolatoren er ren og uten transportskader" },
-          { text: "Heis opp og fest i toppen med ny splint" },
-          { text: "Trekk til iht. tiltrekkingsmoment i datablad" },
-          { text: "Sett inn ny låsesplint og bøy korrekt" },
-          { text: "Slipp lasten gradvis over på ny streng" },
+          { text: "Stram opp skifteverktøyet gradvis til lasten er tatt av isolatorkjedet" },
+          { text: "Bekreft visuelt at kjedet er helt avlastet før splint/bolt løsnes" },
+          { text: "Fjern låsesplint og demonter gammel isolatorstreng" },
+          { text: "Inspiser åk, lask og festepunkter for slitasje eller skader" },
+          { text: "Heng opp ny isolatorstreng iht. spesifikasjon og sett ny låsesplint" },
+          { text: "Trekk til iht. tiltrekkingsmoment fra datablad" },
         ],
       },
       {
-        title: "Avslutning",
+        title: "Tilbakeføring og avslutning",
         items: [
-          { text: "Visuell kontroll fra bakken med kikkert" },
+          { text: "Slipp lasten gradvis tilbake på ny isolatorstreng via skifteverktøyet" },
+          { text: "Demonter skifteverktøy (lask, åkplater) i motsatt rekkefølge" },
+          { text: "Monter koronaring tilbake på kjedet" },
+          { text: "Visuell sluttkontroll fra bakken med kikkert" },
           { text: "Rydd alt utstyr og emballasje fra mastefot" },
-          { text: "Fyll ut arbeidsrapport og logg serienummer" },
+          { text: "Fyll ut arbeidsrapport og logg serienummer på ny isolator" },
         ],
       },
     ],

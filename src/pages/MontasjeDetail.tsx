@@ -93,6 +93,20 @@ const MontasjeDetail = () => {
       </header>
 
       <main className="mx-auto max-w-2xl px-5 py-6 space-y-6">
+        {guide.image && (
+          <figure className="overflow-hidden rounded-xl border border-border bg-card">
+            <img
+              src={guide.image.url}
+              alt={guide.image.caption || guide.title}
+              className="w-full object-contain bg-muted"
+            />
+            {guide.image.caption && (
+              <figcaption className="px-4 py-2 font-body text-[11px] text-muted-foreground">
+                {guide.image.caption}
+              </figcaption>
+            )}
+          </figure>
+        )}
         {guide.sections.map((section) => (
           <section key={section.title}>
             <h2 className="mb-3 font-display text-xs font-bold uppercase tracking-widest text-statnett">
