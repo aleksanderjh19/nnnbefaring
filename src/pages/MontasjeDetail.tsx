@@ -59,6 +59,22 @@ const MontasjeDetail = () => {
   );
   const pct = totalItems ? Math.round((doneItems / totalItems) * 100) : 0;
   const [imageOpen, setImageOpen] = useState(false);
+  const [scale, setScale] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const touchRef = useRef({
+    initialDist: 0,
+    initialScale: 1,
+    startX: 0,
+    startY: 0,
+    initialPanX: 0,
+    initialPanY: 0,
+    lastTouchTime: 0,
+  });
+
+  const resetZoom = () => {
+    setScale(1);
+    setPan({ x: 0, y: 0 });
+  };
 
   return (
     <div className="min-h-screen bg-background pb-24">
