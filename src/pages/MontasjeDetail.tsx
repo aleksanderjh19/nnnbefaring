@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, AlertTriangle, Clock, Check, RotateCcw, X, ZoomIn } from "lucide-react";
 import {
