@@ -25,6 +25,10 @@ import AdminEmployeeList from "./pages/AdminEmployeeList.tsx";
 import VoltageRound from "./pages/VoltageRound.tsx";
 import VoltageRoundPrint from "./pages/VoltageRoundPrint.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import Stasjon from "./pages/Stasjon.tsx";
+import Ledning from "./pages/Ledning.tsx";
+import Montasje from "./pages/Montasje.tsx";
+import MontasjeDetail from "./pages/MontasjeDetail.tsx";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +53,10 @@ const App = () => (
 
             {/* Protected routes */}
             <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/stasjon" element={<ProtectedRoute><Stasjon /></ProtectedRoute>} />
+            <Route path="/ledning" element={<ProtectedRoute><Ledning /></ProtectedRoute>} />
+            <Route path="/ledning/montasje" element={<ProtectedRoute><Montasje /></ProtectedRoute>} />
+            <Route path="/ledning/montasje/:guideId" element={<ProtectedRoute><MontasjeDetail /></ProtectedRoute>} />
             <Route path="/ledningsbefaring" element={<ProtectedRoute><Home /></ProtectedRoute>} />
             <Route path="/ledningsbefaring/linje/:lineId" element={<ProtectedRoute><LinePage /></ProtectedRoute>} />
             <Route path="/dokumentert-opplaering" element={<ProtectedRoute><TrainingHome /></ProtectedRoute>} />
