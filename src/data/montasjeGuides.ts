@@ -23,7 +23,7 @@ export type MontasjeGuide = {
 export const montasjeGuides: MontasjeGuide[] = [
   {
     id: "isolator-skifte-aak",
-    title: "Montasje – Isolator skifte åk",
+    title: "Montasje - Isolatorbytte med dobbelt åkplater",
     description:
       "Skifte av isolatorkjede 2S21 med dobbelt åkplater og lask – bruk av skifteverktøy (eks. DP 18).",
     category: "Isolator",
