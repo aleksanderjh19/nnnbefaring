@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, AlertTriangle, Clock, Check, RotateCcw } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Clock, Check, RotateCcw, X, ZoomIn } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { getGuideById } from "@/data/montasjeGuides";
 
 const MontasjeDetail = () => {
