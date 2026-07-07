@@ -82,7 +82,7 @@ const DroneRules = () => {
             <span className="font-body text-xs text-muted-foreground">Se samlet oversikt over klasser</span>
           </button>
         </section>
-
+        <div className="flex items-start gap-3 rounded-xl border border-border bg-card/50 px-4 py-3">
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
           <p className="font-body text-xs text-muted-foreground">
             Dette er en forenklet oversikt. Ved tvil skal fullt regelverk fra
