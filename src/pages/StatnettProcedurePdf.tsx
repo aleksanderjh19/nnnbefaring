@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { AlertCircle, Download, Loader2 } from "lucide-react";
 import * as pdfjsLib from "pdfjs-dist";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.mjs?url";
-import type { PDFDocumentProxy } from "pdfjs-dist";
+import type { PDFDocumentProxy, RenderTask } from "pdfjs-dist";
 import CategoryHeader from "@/components/CategoryHeader";
 import { statnettProcedures } from "@/data/statnettProcedures";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,7 +26,7 @@ const PdfPage = ({ pdf, pageNumber }: PdfPageProps) => {
     if (!wrapper || !canvas) return;
 
     let cancelled = false;
-    let activeTask: { cancel: () => void } | null = null;
+    let activeTask: RenderTask | null = null;
 
     const renderPage = async () => {
       try {
