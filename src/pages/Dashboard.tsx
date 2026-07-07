@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Building2, Cable, ChevronRight, GraduationCap, AlertTriangle } from "lucide-react";
+import { Building2, Cable, ChevronRight, GraduationCap, AlertTriangle, Plane } from "lucide-react";
 import heroVideo from "@/assets/hero-video.mp4";
 
 const tools = [
