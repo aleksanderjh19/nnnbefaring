@@ -71,11 +71,26 @@ const StatnettProcedures = () => {
   const openPdf = async (p: StatnettProcedure) => {
     setLoadingPdf(p.sdokId);
     try {
+      // Last ned som blob og åpne via blob:-URL. Dette unngår at sporingsvern/
+      // annonseblokkere i nettleseren blokkerer direkte signerte Supabase-URL-er.
       const { data, error } = await supabase.storage
         .from("statnett-drone-docs")
-        .createSignedUrl(p.pdfPath, 3600);
-      if (error || !data?.signedUrl) throw error ?? new Error("Kunne ikke hente PDF");
-      window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+        .download(p.pdfPath);
+      if (error || !data) throw error ?? new Error("Kunne ikke hente PDF");
+      const blob = new Blob([data], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const win = window.open(url, "_blank", "noopener,noreferrer");
+      if (!win) {
+        // Popup blokkert – tving nedlasting i stedet
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${p.sdokId}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+      // Rydd opp blob-URL etter litt tid
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (e) {
       toast.error("Kunne ikke åpne PDF", {
         description: e instanceof Error ? e.message : "Ukjent feil",
