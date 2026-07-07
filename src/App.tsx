@@ -33,6 +33,8 @@ import Drone from "./pages/Drone.tsx";
 import DroneRules from "./pages/DroneRules.tsx";
 import DroneRuleDetail from "./pages/DroneRuleDetail.tsx";
 import DroneGuide from "./pages/DroneGuide.tsx";
+import DroneClasses from "./pages/DroneClasses.tsx";
+import DroneClassDetail from "./pages/DroneClassDetail.tsx";
 
 const queryClient = new QueryClient();
 
@@ -65,6 +67,8 @@ const App = () => (
             <Route path="/drone/regler" element={<ProtectedRoute><DroneRules /></ProtectedRoute>} />
             <Route path="/drone/regler/:ruleId" element={<ProtectedRoute><DroneRuleDetail /></ProtectedRoute>} />
             <Route path="/drone/guide/:guideId" element={<ProtectedRoute><DroneGuide /></ProtectedRoute>} />
+            <Route path="/drone/klasser" element={<ProtectedRoute><DroneClasses /></ProtectedRoute>} />
+            <Route path="/drone/klasser/:classId" element={<ProtectedRoute><DroneClassDetail /></ProtectedRoute>} />
             <Route path="/ledningsbefaring" element={<ProtectedRoute><Home /></ProtectedRoute>} />
             <Route path="/ledningsbefaring/linje/:lineId" element={<ProtectedRoute><LinePage /></ProtectedRoute>} />
             <Route path="/dokumentert-opplaering" element={<ProtectedRoute><TrainingHome /></ProtectedRoute>} />
