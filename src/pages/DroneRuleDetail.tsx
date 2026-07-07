@@ -118,6 +118,32 @@ const DroneRuleDetail = () => {
           </section>
         ))}
 
+        {relatedProcedures.length > 0 && (
+          <section>
+            <h2 className="mb-3 font-display text-xs font-bold uppercase tracking-widest text-statnett">
+              Relaterte Statnett-prosedyrer
+            </h2>
+            <div className="space-y-2">
+              {relatedProcedures.map((p) => (
+                <button
+                  key={p.sdokId}
+                  onClick={() => navigate("/drone/prosedyrer")}
+                  className="group flex w-full items-start gap-3 rounded-xl border border-border bg-card px-4 py-3 text-left transition-colors hover:bg-secondary"
+                >
+                  <FileText className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-display text-sm font-bold text-foreground">{p.title}</p>
+                    <p className="font-body text-[11px] text-muted-foreground">
+                      {p.sdokId} · Rev. {p.revision}
+                    </p>
+                  </div>
+                  <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
         <section>
           <h2 className="mb-3 font-display text-xs font-bold uppercase tracking-widest text-statnett">
             Kilder
