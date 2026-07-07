@@ -29,6 +29,10 @@ import Stasjon from "./pages/Stasjon.tsx";
 import Ledning from "./pages/Ledning.tsx";
 import Montasje from "./pages/Montasje.tsx";
 import MontasjeDetail from "./pages/MontasjeDetail.tsx";
+import Drone from "./pages/Drone.tsx";
+import DroneRules from "./pages/DroneRules.tsx";
+import DroneRuleDetail from "./pages/DroneRuleDetail.tsx";
+import DroneGuide from "./pages/DroneGuide.tsx";
 
 const queryClient = new QueryClient();
 
