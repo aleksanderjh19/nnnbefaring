@@ -61,6 +61,10 @@ const App = () => (
             <Route path="/ledning" element={<ProtectedRoute><Ledning /></ProtectedRoute>} />
             <Route path="/ledning/montasje" element={<ProtectedRoute><Montasje /></ProtectedRoute>} />
             <Route path="/ledning/montasje/:guideId" element={<ProtectedRoute><MontasjeDetail /></ProtectedRoute>} />
+            <Route path="/drone" element={<ProtectedRoute><Drone /></ProtectedRoute>} />
+            <Route path="/drone/regler" element={<ProtectedRoute><DroneRules /></ProtectedRoute>} />
+            <Route path="/drone/regler/:ruleId" element={<ProtectedRoute><DroneRuleDetail /></ProtectedRoute>} />
+            <Route path="/drone/guide/:guideId" element={<ProtectedRoute><DroneGuide /></ProtectedRoute>} />
             <Route path="/ledningsbefaring" element={<ProtectedRoute><Home /></ProtectedRoute>} />
             <Route path="/ledningsbefaring/linje/:lineId" element={<ProtectedRoute><LinePage /></ProtectedRoute>} />
             <Route path="/dokumentert-opplaering" element={<ProtectedRoute><TrainingHome /></ProtectedRoute>} />
