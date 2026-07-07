@@ -196,7 +196,7 @@ export const statnettProcedures: StatnettProcedure[] = [
     sdokId: "SDOK-839-88",
     title: "Sjekkliste DJI Dock 3 + Matrice 4D",
     revision: "1.0",
-    themes: ["sjekkliste"],
+    themes: ["sjekkliste", "sora-bvlos"],
     summary:
       "Sjekkliste for pre-flight og drift av DJI Dock 3 med Matrice 4D-serien.",
     keyPoints: [
@@ -233,7 +233,7 @@ export const statnettProcedures: StatnettProcedure[] = [
     title: "Vedlegg 241 – Reduksjon av luftrisiko og konflikt",
     revision: "4.0",
     approvedDate: "16.03.2026",
-    themes: ["normale", "sora-bvlos"],
+    themes: ["sop", "sora-bvlos"],
     summary:
       "Håndtering av luftrisiko i kontrollert (C/D) og ukontrollert (G) luftrom, inkludert koordinering med lufttrafikktjenesten og NOTAM.",
     keyPoints: [
@@ -326,7 +326,7 @@ export const statnettProcedures: StatnettProcedure[] = [
     title: "Vedlegg 260 – Løfteoperasjoner med DJI FlyCart 30/100",
     revision: "1.0",
     approvedDate: "25.03.2026",
-    themes: ["sop"],
+    themes: ["sop", "roller"],
     summary:
       "Prosedyre for løfteoperasjoner (hengende last) med DJI FlyCart 30/100. Krever egen rolle som lasteansvarlig/signalgiver.",
     keyPoints: [
@@ -422,7 +422,7 @@ export const statnettProcedures: StatnettProcedure[] = [
     title: "Vedlegg 356 – Teknisk informasjon DJI Dock 2 + Matrice 3(T)D",
     revision: "1.0",
     approvedDate: "25.06.2025",
-    themes: ["manual"],
+    themes: ["sora-bvlos", "vedlikehold"],
     summary:
       "Teknisk spesifikasjon for DJI Dock 2 med Matrice 3D/3TD – automatisk dock for kontinuerlige BVLOS-inspeksjoner.",
     keyPoints: [
@@ -728,7 +728,7 @@ export const statnettProcedures: StatnettProcedure[] = [
     title: "Vedlegg 800 – Selskapets kvalitetssystem",
     revision: "2.0",
     approvedDate: "08.04.2024",
-    themes: ["manual"],
+    themes: ["manual", "roller"],
     summary:
       "Statnetts overordnede kvalitetssystem for RPAS-virksomheten. ISO 55001 og ISO 14001 sertifisert.",
     keyPoints: [
