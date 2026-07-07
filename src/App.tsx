@@ -35,6 +35,7 @@ import DroneRuleDetail from "./pages/DroneRuleDetail.tsx";
 import DroneGuide from "./pages/DroneGuide.tsx";
 import DroneClasses from "./pages/DroneClasses.tsx";
 import DroneClassDetail from "./pages/DroneClassDetail.tsx";
+import StatnettProcedures from "./pages/StatnettProcedures.tsx";
 
 const queryClient = new QueryClient();
 
