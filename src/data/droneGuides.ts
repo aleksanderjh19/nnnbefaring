@@ -22,132 +22,223 @@ export type ExternalGuide = {
 export const airdataGuide: ExternalGuide = {
   id: "airdata",
   title: "Airdata UAV",
-  tagline: "Flyloggføring, batterihelse og flåtestyring for droneoperatører.",
+  tagline: "Praktisk bruksanvisning – hvordan gjøre de vanligste oppgavene.",
   overview:
-    "Airdata UAV brukes for automatisk synkronisering av flylogger, oppfølging av batterier og vedlikehold, samt rapporter til oppdragsgiver. Under er de viktigste funksjonene du bruker i felt og på kontoret.",
+    "Kort oppslagsverk for det du gjør oftest i Airdata: håndtere flights, fikse manglende checklists, samle flights under samme oppdrag, og holde batterier og vedlikehold i orden. Åpnes på app.airdata.com.",
   chapters: [
     {
-      title: "Kom i gang",
+      title: "Flights – daglig bruk",
       steps: [
         {
-          title: "Opprett konto og synk",
+          title: "Åpne og se én flight",
           bullets: [
-            "Registrer konto på app.airdata.com",
-            "Koble til DJI-konto (DJI Sync) for automatisk opplasting fra fjernkontrollen",
-            "Installer Airdata-appen på mobil for manuell opplasting fra SD-kort",
+            "Gå til «Flight List» i venstremenyen",
+            "Filtrer på pilot, drone eller dato",
+            "Klikk på raden for å åpne detaljer (kart, høyde, batteri, hendelser)",
           ],
         },
         {
-          title: "Legg til droner og batterier",
+          title: "Legge til pilot, sted og notat",
           bullets: [
-            "Registrer hver drone under 'Aircraft' med serienummer",
-            "Registrer hvert batteri under 'Batteries' med serienummer",
-            "Airdata knytter automatisk flygninger til riktig drone/batteri via serienummer",
+            "Åpne flighten → «Edit Flight» øverst til høyre",
+            "Sett Pilot, Location og Notes",
+            "Lagre – feltene brukes i rapporter og filtre",
+          ],
+        },
+        {
+          title: "Sette riktig flight-type",
+          bullets: [
+            "I «Edit Flight» velg Type: Mission, Training, Test eller Maintenance",
+            "Kun «Mission» teller som oppdrag i rapporter til kunde",
+            "Training/Test holdes utenfor kundestatistikk",
           ],
         },
       ],
     },
     {
-      title: "Flight Logs (flylogger)",
-      intro: "Kjernefunksjonen – alle flygninger lagres automatisk.",
+      title: "Fikse flights uten checklist",
+      intro: "Skjer når checklist ikke ble kvittert ut i appen før take-off.",
       steps: [
         {
-          title: "Se detaljer per flygning",
+          title: "Legge til checklist på én flight",
           bullets: [
-            "Kart med flyspor, høyde, hastighet og batterinivå",
-            "Advarsler og hendelser (signal-tap, vindkast, geofence)",
-            "Play back-modus for gjennomgang av flygningen",
+            "Åpne flighten → scroll til «Checklists»-boksen",
+            "Klikk «Add Checklist» → velg riktig mal",
+            "Fyll ut punktene i etterkant og lagre",
           ],
         },
         {
-          title: "Merking og notater",
+          title: "Bulk: fikse mange flights samtidig",
           bullets: [
-            "Legg til pilot, oppdrag og notater per flygning",
-            "Bruk tags (f.eks. 'Statnett-linjeinspeksjon') for enkel filtrering",
+            "Gå til Flight List → huk av flere flights",
+            "Velg «Actions» → «Assign Checklist»",
+            "Velg mal og bekreft – legges på alle valgte",
+          ],
+        },
+        {
+          title: "Unngå problemet neste gang",
+          bullets: [
+            "Settings → Checklists → åpne malen",
+            "Sett «Auto-assign» til aktuell drone eller pilot",
+            "Nye flights får da checklisten automatisk",
           ],
         },
       ],
     },
     {
-      title: "Battery Health",
-      intro: "Følg helsen til hvert enkelt batteri over tid.",
+      title: "Samle flights under samme oppdrag",
       steps: [
         {
-          title: "Battery Details",
+          title: "Bruk Missions",
           bullets: [
-            "Se antall sykluser, kapasitet og indre motstand",
-            "Rødt/gult varsel når celler avviker",
-            "Historisk graf viser degradering",
+            "Meny: «Missions» → «New Mission»",
+            "Gi navn (f.eks. «Linje 300kV Sylling–Tegneby»), sett dato og kunde",
+            "Åpne Mission → «Add Flights» → velg fra liste eller dra inn",
+            "Alle flights får felles rapport og statistikk",
           ],
         },
         {
-          title: "Vedlikeholdsrutiner",
+          title: "Bruk Tags som alternativ",
           bullets: [
-            "Airdata anbefaler kalibrering hver 50. syklus",
-            "Merk batterier som pensjonert når kapasitet < 80 %",
+            "I «Edit Flight» legg til en Tag (samme tekst på alle)",
+            "Filtrer Flight List på taggen for å se dem samlet",
+            "Raskere enn Mission når du ikke trenger felles rapport",
+          ],
+        },
+        {
+          title: "Slå sammen delflygninger",
+          bullets: [
+            "Marker flightene i listen → «Merge Flights»",
+            "Brukes når batteribytte delte opp én sammenhengende jobb",
+            "Resultatet vises som én flight med sammenhengende spor",
           ],
         },
       ],
     },
     {
-      title: "Maintenance",
+      title: "Checklists – lage og styre maler",
       steps: [
         {
-          title: "Vedlikeholdsplan",
+          title: "Lage ny mal",
           bullets: [
-            "Sett opp intervaller (per flytimer, per antall flygninger eller kalendertid)",
-            "Airdata varsler når vedlikehold forfaller",
-            "Logg utført vedlikehold med notater og bilder",
+            "Settings → Checklists → «New Checklist»",
+            "Velg type: Pre-flight, Post-flight eller Maintenance",
+            "Legg til punkter (tekst, ja/nei, tall, signatur)",
+          ],
+        },
+        {
+          title: "Tildele mal automatisk",
+          bullets: [
+            "Åpne malen → «Auto-assign to»",
+            "Velg drone(r), pilot(er) eller alle",
+            "Malen dukker opp på nye flights uten manuell handling",
           ],
         },
       ],
     },
     {
-      title: "Fleet & piloter",
+      title: "Batterier",
       steps: [
         {
-          title: "Flåteoversikt",
+          title: "Registrere nytt batteri",
           bullets: [
-            "Se alle droner, batterier og piloter i én oversikt",
-            "Total flytid, antall flygninger og siste aktivitet",
+            "Meny: «Batteries» → «Add Battery»",
+            "Skriv inn serienummer (står på batteriet / i DJI-appen)",
+            "Airdata knytter framtidige flights automatisk via serienummer",
           ],
         },
         {
-          title: "Piloter og roller",
+          title: "Sjekke helse på ett batteri",
           bullets: [
-            "Legg til piloter og tildel roller (viewer, pilot, admin)",
-            "Pilotens flytimer summeres automatisk",
+            "Åpne batteriet i listen",
+            "Se sykluser, kapasitet (%) og celleavvik",
+            "Rød/gul indikator = handling anbefalt",
+          ],
+        },
+        {
+          title: "Pensjonere et batteri",
+          bullets: [
+            "Åpne batteriet → «Edit» → sett Status til «Retired»",
+            "Batteriet skjules fra aktiv flåte, men historikk beholdes",
           ],
         },
       ],
     },
     {
-      title: "Rapporter og eksport",
+      title: "Vedlikehold",
       steps: [
         {
-          title: "Flight Reports",
+          title: "Sette opp intervall",
           bullets: [
-            "PDF-rapport per flygning med kart, data og notater",
-            "Kan sendes direkte til oppdragsgiver",
+            "Meny: «Maintenance» → «New Service»",
+            "Velg drone, sett intervall (flytimer, antall flygninger eller dager)",
+            "Airdata varsler når intervallet nærmer seg",
           ],
         },
         {
-          title: "CSV-eksport",
+          title: "Logge utført vedlikehold",
           bullets: [
-            "Eksporter rådata for videre analyse",
-            "Nyttig for KPI-rapportering til Statnett",
+            "Åpne varselet → «Mark as Done»",
+            "Legg til notat og evt. bilder",
+            "Neste forfall regnes ut automatisk",
           ],
         },
       ],
     },
     {
-      title: "Streaming (live)",
+      title: "Rapporter og deling",
       steps: [
         {
-          title: "Live Stream",
+          title: "PDF-rapport til kunde",
           bullets: [
-            "Del pågående flygning med kollega eller kunde via lenke",
-            "Viser posisjon, høyde, batteri og kamera-preview i sanntid",
+            "Åpne én flight eller en Mission → «Export» → «PDF Report»",
+            "Velg hva som skal med (kart, checklist, notater)",
+            "Last ned og send til oppdragsgiver",
+          ],
+        },
+        {
+          title: "CSV-eksport av mange flights",
+          bullets: [
+            "Flight List → filtrer fram det du vil ha",
+            "«Export» → «CSV»",
+            "Bruk for KPI-oppfølging og timeregnskap",
+          ],
+        },
+        {
+          title: "Dele én flight via lenke",
+          bullets: [
+            "Åpne flighten → «Share» øverst",
+            "Velg om kart, data og checklist skal være synlig",
+            "Kopier lenken – kan åpnes uten Airdata-konto",
+          ],
+        },
+      ],
+    },
+    {
+      title: "Piloter og flåte",
+      steps: [
+        {
+          title: "Legge til pilot",
+          bullets: [
+            "Settings → Pilots → «Add Pilot»",
+            "Fyll inn navn og e-post, velg rolle (Viewer / Pilot / Admin)",
+            "Send invitasjon hvis piloten skal logge inn selv",
+          ],
+        },
+        {
+          title: "Se flytimer per pilot",
+          bullets: [
+            "Meny: «Fleet» → «Pilots»",
+            "Kolonner viser totalt antall flygninger og timer",
+            "Klikk på pilot for detaljer og siste aktivitet",
+          ],
+        },
+        {
+          title: "Flytte flight til riktig pilot",
+          bullets: [
+            "Åpne flighten → «Edit Flight»",
+            "Endre Pilot-feltet og lagre",
+            "Statistikk oppdateres på begge piloter",
           ],
         },
       ],
