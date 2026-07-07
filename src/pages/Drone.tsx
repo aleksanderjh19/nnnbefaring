@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { BookOpen, LineChart, Thermometer } from "lucide-react";
+import { BookOpen, LineChart, Thermometer, Layers } from "lucide-react";
 import CategoryHeader from "@/components/CategoryHeader";
 import ToolCardList, { ToolCard } from "@/components/ToolCardList";
 
@@ -10,6 +10,14 @@ const tools: ToolCard[] = [
     description: "Åpen kategori A1/A2/A3 og Spesifikk kategori (STS/SORA)",
     icon: BookOpen,
     path: "/drone/regler",
+    ready: true,
+  },
+  {
+    id: "klasser",
+    name: "Droneklasser (C0–C6)",
+    description: "Klassemerking, vekt, hastighet og krav per klasse",
+    icon: Layers,
+    path: "/drone/klasser",
     ready: true,
   },
   {

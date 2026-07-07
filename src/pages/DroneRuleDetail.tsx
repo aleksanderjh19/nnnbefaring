@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { ExternalLink, Scale, Users, User } from "lucide-react";
+import { ExternalLink, Scale, Users, User, Ruler } from "lucide-react";
+
 import CategoryHeader from "@/components/CategoryHeader";
 import { getDroneRuleById } from "@/data/droneRules";
 
@@ -57,6 +58,44 @@ const DroneRuleDetail = () => {
                 </div>
               </div>
             ))}
+          </section>
+        )}
+
+        {rule.distanceRule && (
+          <section>
+            <h2 className="mb-3 font-display text-xs font-bold uppercase tracking-widest text-statnett">
+              Avstand og 1:1-regel
+            </h2>
+            <div className="flex items-start gap-3 rounded-xl border-2 border-primary/30 bg-primary/5 px-5 py-4">
+              <Ruler className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+              <p className="font-body text-sm text-foreground">{rule.distanceRule}</p>
+            </div>
+          </section>
+        )}
+
+        {rule.images && rule.images.length > 0 && (
+          <section>
+            <h2 className="mb-3 font-display text-xs font-bold uppercase tracking-widest text-statnett">
+              Illustrasjoner
+            </h2>
+            <div className="space-y-3">
+              {rule.images.map((img) => (
+                <figure key={img.src} className="overflow-hidden rounded-xl border border-border bg-card">
+                  <img
+                    src={img.src}
+                    alt={img.caption}
+                    className="w-full"
+                    onError={(e) => {
+                      const fig = (e.currentTarget as HTMLImageElement).closest("figure");
+                      if (fig) (fig as HTMLElement).style.display = "none";
+                    }}
+                  />
+                  <figcaption className="border-t border-border px-4 py-2 font-body text-xs text-muted-foreground">
+                    {img.caption}
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
           </section>
         )}
 
