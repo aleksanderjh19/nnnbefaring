@@ -47,12 +47,6 @@ export const droneRules: DroneRule[] = [
           "Følg NOTAM og respekter restriksjonsområder",
         ],
       },
-      {
-        title: "Aldersgrense",
-        items: [
-          "Minimum 15 år (kan fravikes for droner < 250 g uten kamera eller som er leketøy)",
-        ],
-      },
     ],
     sources: [
       { label: "Luftfartstilsynet – Åpen kategori A1", url: "https://luftfartstilsynet.no/droner/apen-kategori/" },
