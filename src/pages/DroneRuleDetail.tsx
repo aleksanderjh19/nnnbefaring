@@ -8,7 +8,9 @@ import { getProceduresForRule } from "@/data/statnettProcedures";
 
 const DroneRuleDetail = () => {
   const { ruleId } = useParams<{ ruleId: string }>();
+  const navigate = useNavigate();
   const rule = ruleId ? getDroneRuleById(ruleId) : undefined;
+  const relatedProcedures = ruleId ? getProceduresForRule(ruleId) : [];
 
   useEffect(() => {
     document.title = rule ? `${rule.code} – Drone` : "Regel – Drone";
