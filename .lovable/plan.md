@@ -1,68 +1,125 @@
 
 ## Mål
-Gjøre Drone-seksjonen brukbar som **veiledning i arbeid** – 100 % korrekt mot Luftfartstilsynet / EU 2019/947, med visuelle avstandskrav og komplett C-klasse-oversikt.
+Bygge en egen underseksjon `/drone/prosedyrer` som samler Statnetts interne droneprosedyrer (44 SDOK-dokumenter totalt), med søk, tema-gruppering, sammendrag og lenke til original-PDF. Kryssreferanser fra A1/A2/A3/STS-kortene til relevante prosedyrer.
 
-## 1. Faktasjekk og korrigering av `droneRules.ts`
+## 1. Datamodell (statisk TS-fil, ikke database)
 
-Feil/uklarheter i dagens data som rettes:
+Ny `src/data/statnettProcedures.ts`:
 
-- **A1**: legge til at C1 må ha ≤ 900 g **og** kinetisk energi < 80 J, og at overflyging av enkeltpersoner er *tillatt men skal minimeres* (ikke forbudt). Presisere at privatbygd < 250 g ikke krever kompetansebevis, men operatør må fortsatt registreres hvis dronen har kamera.
-- **A2**: minsteavstand er **30 m horisontalt**, kan reduseres til **5 m** i lavhastighetsmodus (≤ 3 m/s). Legge til at C2 må ha lavhastighetsmodus for at 5 m skal gjelde. Aldersgrense fjernpilot 16 år (kan senkes lokalt).
-- **A3**: her legges **1:1-regelen** eksplisitt inn: *«Horisontal avstand til uinvolverte personer og til bolig-/forretnings-/industri-/rekreasjonsområder skal minst tilsvare dronens flyhøyde over bakken.»* – dette er EASA/LTs anbefaling for trygg avstand.
-- **Alle underkategorier**: Legge til at 120 m er over *nærmeste punkt på jordoverflaten* (terrengfølging), ikke startpunktet. Presisere krav om Remote ID for C1/C2/C3/C5/C6.
-- **STS**: Presisere at STS-01/02 gjelder fra 1.1.2024 (overgang ferdig), krever LUC eller deklarasjon, og at nasjonale RO1/RO2/RO3 er utfaset.
-- Kildelenker verifiseres og oppdateres til de faktiske sidene på luftfartstilsynet.no.
+```ts
+type ProcedureTheme =
+  | "normale" | "nod" | "beredskap" | "vedlikehold"
+  | "gdpr" | "miljo" | "sora-bvlos" | "roller" | "sjekkliste" | "sop" | "manual";
 
-## 2. Ny 1:1-regel-seksjon
-
-Legge til et eget felt `distanceRule` på A2 og A3 som rendres tydelig (eget kort) på detaljsiden, med kort tekst + henvisning til illustrasjon.
-
-## 3. C-klasser (C0–C6) – detaljerte kort
-
-Ny fil `src/data/droneClasses.ts` med ett objekt per klasse:
-
-| Felt | Innhold |
-|---|---|
-| `code` | C0, C1, C2, C3, C4, C5, C6 |
-| `maxWeight` | MTOM |
-| `maxSpeed` | horisontal maks |
-| `maxHeight` | (der aktuelt, f.eks. C0 begrenset høyde over startpunkt) |
-| `kineticEnergy` | maks (C1: 80 J) |
-| `subcategories` | hvilken A/STS klassen kan flys i |
-| `requirements` | Remote ID, geo-awareness, lavhastighetsmodus, lydnivå, klassemerking |
-| `notes` | fritekst |
-
-Ny side `src/pages/DroneClasses.tsx` som lister alle klassene som kort, og `DroneClassDetail.tsx` for enkeltklassen. Legges som et tredje kort på `/drone` (ved siden av Regler og Guides).
-
-## 4. Illustrasjoner fra Luftfartstilsynet
-
-Du laster ned bildene selv og legger dem i `public/drone/`. Jeg lager `src/data/droneImages.ts` som mapper filnavn → tittel + hvilken regel de tilhører, og viser dem på detaljsiden med `<img>`+figcaption.
-
-Illustrasjonene jeg legger opp for (du henter fra luftfartstilsynet.no):
-
-```text
-public/drone/
-  a1-avstand.png            (A1 – nær mennesker)
-  a2-30m-5m.png             (A2 – 30 m / 5 m lavhastighet)
-  a3-150m.png               (A3 – 150 m til bebyggelse)
-  regel-1til1.png           (1:1-regelen, høyde = horisontal avstand)
-  maks-hoyde-120m.png       (120 m over terreng)
-  klasser-c0-c6.png         (klasseoversikt)
+type StatnettProcedure = {
+  sdokId: string;              // "SDOK-839-63"
+  title: string;               // Norsk tittel fra SDOK.csv
+  revision: string;            // "9.0"
+  approvedDate: string;        // "25.03.2026"
+  themes: ProcedureTheme[];    // kan ha flere
+  summary: string;             // 1-2 setninger
+  keyPoints: string[];         // 3-8 operative kulepunkter
+  relatedRuleIds?: string[];   // ["a3","sts"] for kryssref
+  pdfUrl?: string;             // Cloud Storage public URL
+};
 ```
 
-Hvis en fil mangler, vises kortet uten bilde (ingen krasj). README-note i `public/drone/README.md` med lenker til hvor på luftfartstilsynet.no bildene finnes, så du vet hva som skal lastes ned.
+Alle 44 dokumenter samles her etter hvert som du sender batcher.
 
-## 5. UI-endringer
+## 2. Opplasting av PDF-er (Lovable Cloud Storage)
 
-- `DroneRuleDetail.tsx`: legge til seksjon «Avstand og 1:1-regel» og «Illustrasjoner» øverst under short description. Behold eksisterende designstil (kort med Statnett-grønn header).
-- `Drone.tsx`: tredje kort «Droneklasser (C0–C6)».
-- `App.tsx`: nye ruter `/drone/klasser` og `/drone/klasser/:id`.
+- Ny bøtte: `statnett-drone-docs` (public, read-only for authenticated).
+- For hver batch parser jeg PDF-ene med `document--parse_document`, laster opp originalen til bøtta med `supabase--storage_upload`, og noterer public URL i `pdfUrl`.
+- Migrering trengs kun én gang for å opprette bøtta + RLS-policy (read for authenticated).
+
+## 3. Batching-arbeidsflyt (samle først, bygg til slutt)
+
+Denne runden = **batch 1 (10 filer)**. Fremgangsmåte:
+
+1. Batch 1–4 (10–14 filer per runde): jeg parser hver PDF, skriver et JSON-utkast per dokument til `/tmp/statnett-batch-N.json` og laster opp PDF. Ingen UI-endringer enda, bare framdriftsmelding: "Batch N ferdig, X/44 dokumenter behandlet".
+2. Etter siste batch: jeg konsoliderer alt til `src/data/statnettProcedures.ts` og bygger UI.
+3. Hvis vi mister sandbox-state mellom meldinger, gjenoppretter jeg fra opplastede PDF-URLer i Storage.
+
+**Ikke unødvendig info:** for hver PDF plukker jeg kun ut:
+- Formål/scope
+- Operative krav (avstand, høyde, vær, bemanning)
+- Kritiske sjekkpunkter / go-no-go
+- Referanser til A/STS-kategori og andre SDOK
+Alt av signaturlister, revisjonshistorikk, formalia, generisk EASA-tekst utelates.
+
+## 4. UI
+
+**Ny side `/drone/prosedyrer` (`src/pages/StatnettProcedures.tsx`)**
+
+Layout (kombinasjon som avtalt):
+
+```text
+┌─────────────────────────────────────────┐
+│ Header: "Statnett-prosedyrer"           │
+│ Søkefelt (fritekst mot tittel+summary)  │
+│ Chips: [Alle] [Normale] [Nød] [SORA]…   │
+├─────────────────────────────────────────┤
+│ ▾ Normale prosedyrer (3)                │
+│   ├─ SDOK-839-15 Normale prosedyrer     │
+│   │   rev 10.0 · [Åpne PDF]             │
+│   │   Sammendrag…                       │
+│   │   • Punkt 1  • Punkt 2  …           │
+│   └─ …                                   │
+│ ▸ Nødprosedyrer (2)                     │
+│ ▸ Beredskap (1)                         │
+│ ▸ Sjekklister (5)                       │
+│ …                                        │
+└─────────────────────────────────────────┘
+```
+
+- Accordions bygd på eksisterende shadcn `Accordion`.
+- Sjekklister (Vedlegg 142 DJI Dock 3 osv.): rendres som lesbar sjekkliste med tydelige avkryssingsbokser (ikke interaktive), gruppert per fase (pre-flight / under flight / post-flight).
+- Alle PDF-lenker åpnes i ny fane fra Storage.
+
+**Kryssref på eksisterende regelkort (`DroneRuleDetail.tsx`)**
+
+Ny seksjon "Relaterte Statnett-prosedyrer" nederst som lister prosedyrer der `relatedRuleIds` inneholder gjeldende regel-id, med hopp til `/drone/prosedyrer#<sdokId>`.
+
+**Drone-forsiden (`Drone.tsx`)**
+
+Nytt kort under eksisterende: "Statnett-prosedyrer – Interne SOP, sjekklister, SORA og nødprosedyrer".
+
+## 5. Denne runden (batch 1)
+
+Jeg behandler de 10 vedlagte filene:
+
+1. `Operasjonsmanual SDOK-839-2 v15.0` (hovedmanual – ekstraher nøkkelkapitler)
+2. `Vedlegg 201 SOP` (SDOK-839-63)
+3. `Vedlegg 203 UAS luftdyktighet` (SDOK-839-6)
+4. `Vedlegg 211 Normale prosedyrer` (SDOK-839-15)
+5. `Vedlegg 213 Beredskap` (SDOK-839-17)
+6. `Vedlegg 214 Nødprosedyrer` (SDOK-839-18)
+7. `Vedlegg 217 GDPR` (SDOK-839-21)
+8. `Vedlegg 218 Miljø/sjenanse` (SDOK-839-22)
+9. `Vedlegg 142 Sjekkliste DJI Dock 3 / Matrice 4D` (SDOK-839-88)
+10. `SDOK.csv` (brukes som fasit for revisjonsnr og full liste over 91 dokumenter – jeg krysser av hvilke 44 du planlegger å laste opp)
+
+Etter denne batchen får du: "Batch 1/~5 ferdig – 10 dokumenter parset og lastet opp. Send neste batch."
+
+## 6. Etter siste batch – build-fase
+
+1. Opprett Storage-bøtte (én migrering).
+2. Skriv `src/data/statnettProcedures.ts` med alle 44 innslag.
+3. Ny side `StatnettProcedures.tsx` + rute `/drone/prosedyrer`.
+4. Kryssref-seksjon i `DroneRuleDetail.tsx`.
+5. Nytt kort i `Drone.tsx`.
+6. Typecheck.
+
+## Ikke-mål
+- Ingen versjonshåndtering av dokumenter (nyeste PDF viser).
+- Ingen redigering i appen – rent leseverktøy.
+- Ingen godkjenning/signatur-flyt.
+- Ikke duplisere Luftfartstilsynets regelverk – kun Statnett-spesifikk info.
 
 ## Tekniske detaljer
-- Ren frontend – ingen DB/edge functions.
-- All tekst på norsk, kilder lenkes til luftfartstilsynet.no.
-- Bruker kun eksisterende shadcn-komponenter (Card, Badge, Separator) og Statnett-grønn.
-- Ingen bilder committes; kun README + kode som forventer filene.
+- Storage-bøtte `statnett-drone-docs`, public read for authenticated (RLS på `storage.objects`).
+- PDF-filnavn i bøtta: `<sdok-id>-v<rev>.pdf`.
+- Ingen edge functions nødvendig.
+- Frontend: eksisterende shadcn (Accordion, Input, Badge, Card).
 
-## Etter implementering
-Du legger de 6 PNG-ene i `public/drone/` (jeg gir deg direkte URL-referanse i README), så vises alt.
+Bekreft planen, så starter jeg batch 1 så snart mode bytter til build.
