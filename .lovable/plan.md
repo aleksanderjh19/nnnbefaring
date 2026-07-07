@@ -1,39 +1,58 @@
-## Gjennomgang av kategorisering
+## Mål
 
-Jeg gikk gjennom alle 43 prosedyrene mot temaene (Operasjonsmanual, SOP, Normale, Beredskap, Nød, Vedlikehold, GDPR, Miljø, SORA/BVLOS, Roller & kompetanse, Sjekklister). Ca. 38 er riktig kategorisert. Under er de jeg mener bør justeres, med begrunnelse.
+Erstatte dagens Airdata UAV-seksjon (som er mer "hva kan du gjøre") med en kort, praktisk bruksanvisning: **"hvordan gjør jeg X"** for de mest brukte funksjonene i felt og på kontoret.
 
-### Foreslåtte endringer
+Ingen UI-endringer — kun innhold i `airdataGuide` i `src/data/droneGuides.ts`. Eksisterende `DroneGuide.tsx` rendrer kapitler, steg og bullets uendret.
 
-**1. Vedlegg 241 – Reduksjon av luftrisiko (SDOK-839-66)**
-- Nå: `normale`, `sora-bvlos`
-- Foreslått: `sop`, `sora-bvlos`
-- Hvorfor: Dokumentet handler om koordinering med lufttrafikktjeneste, NINOX og NOTAM — det er en standard operasjonell prosedyre, ikke en "normal flyprosedyre" (som er Vedlegg 211).
+## Ny struktur (kapitler → korte "hvordan"-oppskrifter)
 
-**2. Vedlegg 356 – Teknisk info DJI Dock 2 + Matrice 3(T)D (SDOK-839-99)**
-- Nå: `manual`
-- Foreslått: `sora-bvlos`, `vedlikehold`
-- Hvorfor: Dette er en teknisk spesifikasjon for et dock-system, ikke en del av Operasjonsmanualen. Hører hjemme sammen med øvrig dock-/BVLOS-materiell og teknisk vedlikeholdsinformasjon.
+Hvert steg = én konkret oppgave, 3–6 bullets med klikk-for-klikk.
 
-**3. Sjekkliste DJI Dock 3 + Matrice 4D (SDOK-839-88)**
-- Nå: `sjekkliste`
-- Foreslått: `sjekkliste`, `sora-bvlos`
-- Hvorfor: Selv om det er en sjekkliste, gjelder den utelukkende dock-BVLOS-operasjoner og bør dukke opp når man filtrerer på SORA/BVLOS.
+**1. Flights – daglig bruk**
+- Åpne og se en enkelt flight (Flight List → filter på pilot/drone/dato)
+- Legge til pilot, drone, sted og notat på en flight
+- Endre flight-type (mission / training / test) og hvorfor det matters for rapporter
 
-**4. Vedlegg 260 – Løfteoperasjoner FlyCart (SDOK-839-112)**
-- Nå: `sop`
-- Foreslått: `sop`, `roller`
-- Hvorfor: Prosedyren innfører en ny rolle (lasteansvarlig/signalgiver) med egne kompetansekrav, så den er relevant også under Roller & kompetanse.
+**2. Fikse flights som mangler checklist**
+- Hvorfor det skjer (checklist ikke fylt ut i app før take-off)
+- Åpne flight → "Edit" → knytt til riktig checklist-mal
+- Bulk: velg flere flights i listen → "Assign checklist" → velg mal
+- Sette default checklist per drone så nye flights får den automatisk
 
-**5. Vedlegg 800 – Selskapets kvalitetssystem (SDOK-839-55)**
-- Nå: `manual`
-- Foreslått: `manual`, `roller`
-- Hvorfor: ISO-sertifisering, PDCA og HMS/ansvar hører også naturlig hjemme under organisasjons-/rolle-relatert innhold, ikke bare under Operasjonsmanual.
+**3. Samle flere flights under samme checklist / oppdrag**
+- Bruk **Missions**: opprett Mission → dra flights inn / velg fra liste
+- Alternativ: felles **Tag** (f.eks. "Statnett-linje 300kV Sylling–Tegneby") og filtrer på tag
+- Slå sammen delflygninger fra samme dag/sted til én rapport
 
-### Ikke endret (bevisst)
-- Vedlegg 201 SOP har både `sop` og `normale` — beholdes fordi den faktisk inneholder normale flyprosedyre-elementer.
-- Vedlegg 803 UAS støttesystemer har både `vedlikehold` og `manual` — beholdes, dekker flåtestyring og er referert fra Operasjonsmanualen.
-- Vedlegg 881 Definisjoner under `manual` — beholdes, er integrert del av manualen.
+**4. Checklists**
+- Lage egen checklist-mal (Settings → Checklists → New)
+- Sette pre-flight / post-flight / maintenance-type
+- Tildele checklist til drone eller pilot som default
 
-### Teknisk
+**5. Batterier**
+- Registrere nytt batteri (Battery → Add, serienummer fra DJI)
+- Se helse på ett batteri (sykluser, kapasitet, celleavvik)
+- Merke batteri som pensjonert / bytte status
 
-Kun endring av `themes`-arrayet på 5 objekter i `src/data/statnettProcedures.ts`. Ingen andre filer berøres — UI, filtre og relasjoner leser dette feltet direkte.
+**6. Vedlikehold**
+- Sette opp vedlikeholdsintervall per drone (timer / flygninger / dager)
+- Logge utført vedlikehold med notat
+- Kvittere ut varsel når jobb er gjort
+
+**7. Rapporter og deling**
+- Generere PDF-flightrapport til oppdragsgiver
+- Eksportere CSV for flere flights (filter → Export)
+- Dele én flight via lenke (public link, med/uten kart)
+
+**8. Piloter og flåte**
+- Legge til pilot og tildele rolle
+- Se flytimer per pilot
+- Overføre en flight til riktig pilot hvis feil ble registrert
+
+Kilder: beholder lenke til Airdata Wiki.
+
+## Teknisk
+
+- Kun `airdataGuide`-objektet i `src/data/droneGuides.ts` endres.
+- `ninoxGuide`, `externalGuides`, typer og `DroneGuide.tsx` er urørt.
+- Hvert steg holdes til 3–6 korte bullets på norsk.
