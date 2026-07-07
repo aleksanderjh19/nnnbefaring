@@ -21,6 +21,14 @@ const tools = [
     ready: true,
   },
   {
+    id: "drone",
+    name: "Drone",
+    description: "Regelverk, sjekklister og operatørverktøy",
+    icon: Plane,
+    path: "/drone",
+    ready: true,
+  },
+  {
     id: "dokumentert-opplaering",
     name: "Dokumentert opplæring",
     description: "Registrering og oppfølging av opplæring",
