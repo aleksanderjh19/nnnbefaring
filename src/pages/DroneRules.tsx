@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, ShieldCheck, Layers } from "lucide-react";
+import { ChevronRight, ShieldCheck, Layers, FileText } from "lucide-react";
 import CategoryHeader from "@/components/CategoryHeader";
 import { droneRules } from "@/data/droneRules";
 import { droneClasses } from "@/data/droneClasses";
