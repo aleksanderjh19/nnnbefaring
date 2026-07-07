@@ -1,9 +1,10 @@
 import { useEffect } from "react";
-import { useParams } from "react-router-dom";
-import { ExternalLink, Scale, Users, User, Ruler } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
+import { ExternalLink, Scale, Users, User, Ruler, FileText, ChevronRight } from "lucide-react";
 
 import CategoryHeader from "@/components/CategoryHeader";
 import { getDroneRuleById } from "@/data/droneRules";
+import { getProceduresForRule } from "@/data/statnettProcedures";
 
 const DroneRuleDetail = () => {
   const { ruleId } = useParams<{ ruleId: string }>();
