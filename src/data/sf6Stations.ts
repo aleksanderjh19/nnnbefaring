@@ -44,7 +44,7 @@ export const sf6Stations: Sf6Station[] = [
           { name: "T9BE" },
           { name: "Ma1BE" },
           { name: "T7BE" },
-          { name: "Kb1BE" },
+          { name: "Kb2BE" },
           { name: "T11BE" },
           { name: "T10BE" },
         ],
