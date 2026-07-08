@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { BookOpen, LineChart, Thermometer, FileText } from "lucide-react";
+import { BookOpen, LineChart, FileText } from "lucide-react";
 import CategoryHeader from "@/components/CategoryHeader";
 import ToolCardList, { ToolCard } from "@/components/ToolCardList";
 
