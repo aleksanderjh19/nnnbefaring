@@ -195,7 +195,7 @@ export default function Sf6Round() {
     if (!saved) return;
     toast({ title: "Lagret", description: "SF6-runden er fullført." });
     setViewingRound(saved);
-    setCheckedBreakers(new Set());
+    resetBreakerMarks();
     setView("view");
     fetchHistory();
   };
