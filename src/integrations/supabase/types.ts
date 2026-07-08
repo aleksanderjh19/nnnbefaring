@@ -143,6 +143,48 @@ export type Database = {
         }
         Relationships: []
       }
+      sf6_rounds: {
+        Row: {
+          created_at: string
+          id: string
+          measurements: Json
+          month_label: string
+          station_id: string
+          station_name: string
+          technician_name: string
+          temperature: number
+          unit: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          measurements?: Json
+          month_label: string
+          station_id: string
+          station_name: string
+          technician_name: string
+          temperature: number
+          unit?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          measurements?: Json
+          month_label?: string
+          station_id?: string
+          station_name?: string
+          technician_name?: string
+          temperature?: number
+          unit?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       training_records: {
         Row: {
           confirmation_type: string
