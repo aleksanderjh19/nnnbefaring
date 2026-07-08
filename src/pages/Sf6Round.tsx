@@ -239,6 +239,7 @@ export default function Sf6Round() {
       setActiveRoundId(r.id);
       setMonthLabel(r.month_label);
       setTemperature(r.temperature == null ? "" : String(r.temperature));
+      setTempError(null);
       // Sørg for at alle brytere finnes i measurements-objektet
       const base = createEmptyMeasurements(s);
       const merged: Sf6Measurements = { ...base };
