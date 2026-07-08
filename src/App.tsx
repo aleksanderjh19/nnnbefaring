@@ -87,6 +87,8 @@ const App = () => (
             <Route path="/avfallshandtering" element={<ProtectedRoute><WasteManagement /></ProtectedRoute>} />
             <Route path="/spenningsrunde" element={<ProtectedRoute><VoltageRound /></ProtectedRoute>} />
             <Route path="/spenningsrunde/:roundId/print" element={<ProtectedRoute><VoltageRoundPrint /></ProtectedRoute>} />
+            <Route path="/sf6-runde" element={<ProtectedRoute><Sf6Round /></ProtectedRoute>} />
+
 
             {/* Admin routes */}
             <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminPanel /></ProtectedRoute>} />
