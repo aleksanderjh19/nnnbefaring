@@ -1,64 +1,66 @@
-## SF6 Gassrunde – nytt verktøy under Stasjon
+## SF6 Gassrunde – pågående runder & delvis fullførte steg
 
-Nytt verktøy `/sf6-runde` som lar montør registrere SF6-gassnivå på brytere per stasjon og spenningsnivå, og lagre runden med dato + innlogget montør.
+### 1. Ny statuskolonne + auto-lagring ved start
 
-### Brukerflyt
+**Migration** – legg til kolonne `status` i `sf6_rounds`:
+- `status text NOT NULL DEFAULT 'in_progress'` (verdier: `in_progress`, `completed`).
+- Fjern `NOT NULL` på `temperature` (default `0`) så runder kan lagres før temperatur er fylt inn.
 
-1. **Stasjon → SF6 gassrunde** åpner listevisning:
-   - Knapp «Ny runde» + kort for hver stasjon (kun **Nedre Røssåga** i første omgang).
-   - Under: Historikk over lagrede runder (dato, stasjon, montør). Trykk for å se i fremvisningsmodus.
-2. **Trykk på stasjonskort** → oppretter ny runde med:
-   - Måned/år forhåndsutfylt (dagens måned, redigerbart tekstfelt f.eks. "Januar 2026").
-   - Temperatur-felt (°C, én gang for hele runden, obligatorisk).
-   - Montør = innlogget bruker (auto, vises).
-3. **Spenningsnivå-oversikt**: Ett kort per nivå (420 / 300 / 220 / 132 kV). Kort viser antall brytere og status (0/8 utført). Fullført nivå får grønn hake + grønn ramme.
-4. **Trykk på nivå-kort** → skjema med alle brytere for det nivået:
-   - Standard: tre inputfelt (L1, L2, L3) i **MPa** per bryter, bryternavn til venstre.
-   - **Enfase-brytere** (T9E og T7E på 132 kV): kun ett inputfelt (samlet verdi), ingen L1/L2/L3-splitt.
-   - «Fullfør steg» nederst → tilbake til nivå-oversikt.
-5. Når alle nivåer er grønne → knapp **«Fullfør runde»** blir aktiv → lagres i DB → åpner **fremvisningsmodus** (read-only oversikt: alle nivåer/brytere/verdier + temperatur + montør + dato). Runden kan ikke redigeres etter fullføring.
+Nå-runden opprettes i DB umiddelbart når brukeren trykker «Ny runde» på et stasjonskort, med tomme målinger og status `in_progress`. Runde-id lagres i state (`activeRoundId`), og alle videre endringer oppdaterer samme rad.
 
-### Data / brytere (Nedre Røssåga)
+### 2. Auto-lagring mens man jobber
 
-- **420 kV** (3-fase): T10AE, T13AE, Ra1AE, Tu1AE, Tu1BE, Ra1BE, T13BE, T10BE
-- **300 kV** (3-fase): T10AE, T11AE, Kb1AE, T7AE, Ma1AE, T9AE, T9BE, Ma1BE, T7BE, Kb1BE, T11BE, T10BE
-- **220 kV** (3-fase): Aj1E
-- **132 kV**: T9E *(enfase)*, T7E *(enfase)*
+Endringer synkroniseres tilbake til DB på disse punktene:
+- Månedslabel / temperatur mister fokus (`onBlur`).
+- Bruker trykker «Fullfør steg» i et nivå-skjema (lagrer målingene før man går tilbake).
+- Bruker trykker tilbake-pil fra nivå-skjema eller runde-oversikt (lagre, deretter naviger).
+- «Fullfør runde» setter status = `completed` og går til fremvisning.
 
-Enhet: **MPa** (kan endres senere hvis noen brytere bruker annen benevnelse).
+Ingen kompleks debouncing – én lagring per hendelse er nok.
 
-Ingen automatisk grenseverdi-vurdering – kun registrering.
+### 3. RLS – tillat alle å oppdatere/slette pågående runder
 
-### Teknisk
+Utvid policyene på `sf6_rounds`:
+- `UPDATE`: alle authenticated kan oppdatere en rad **hvis** `status = 'in_progress'`. Egne fullførte runder kan fortsatt oppdateres av eier (i praksis ikke brukt, men beholdes for konsistens).
+- `DELETE`: alle authenticated kan slette – med bekreftelses-dialog i UI (`AlertDialog` med tekst «Er du helt sikker på at du vil slette denne runden? Dette kan ikke angres.»). Gjelder både pågående og fullførte runder.
+- `SELECT`: uendret (alle ser alle).
 
-**Ny fil `src/data/sf6Stations.ts`** – statisk template:
-```ts
-{ id: "nedre-rossaga", name: "Nedre Røssåga",
-  levels: [
-    { kV: "420", breakers: [ { name: "T10AE", singlePhase: false }, ... ] },
-    { kV: "132", breakers: [ { name: "T9E", singlePhase: true }, { name: "T7E", singlePhase: true } ] },
-  ] }
-```
+### 4. Fullfør steg – tillat delvis utfylte nivåer
 
-**Ny tabell `sf6_rounds`** (migration):
-- `station_id` text, `station_name` text
-- `month_label` text (fri tekst, f.eks. "Januar 2026")
-- `temperature` numeric
-- `technician_name` text, `user_id` uuid (auth.uid())
-- `measurements` jsonb – 3-fase: `{ L1, L2, L3 }`, enfase: `{ value }`. Struktur: `{ "132": { "T9E": { value: 0.5 }, ... }, "420": { "T10AE": { L1, L2, L3 }, ... } }`
-- `unit` text default `'MPa'`
-- `created_at`, `updated_at`
-- RLS: authenticated kan SELECT alt, INSERT/UPDATE/DELETE egne rader (via user_id). Standard GRANTs.
+`isLevelComplete` beholdes, i tillegg ny helper `getLevelStatus(level, m)`:
+- `complete`: alle celler fylt inn.
+- `partial`: minst én celle fylt inn, men ikke alle.
+- `empty`: ingen celler fylt inn.
 
-**Nye sider**:
-- `src/pages/Sf6Round.tsx` – liste + wizard (stasjonsvalg → nivåkort → per-nivå skjema → fullfør), samme mønster som `VoltageRound.tsx`.
-- `src/pages/Sf6RoundView.tsx` – fremvisningsmodus (read-only), også brukt fra historikk.
+I nivå-oversikt-kortene:
+- `complete` → grønn ramme + grønn hake (som i dag).
+- `partial` → oransj ramme + oransj «Delvis utført»-etikett.
+- `empty` → nøytralt (som i dag).
 
-**Ruter** i `src/App.tsx`: `/sf6-runde`, `/sf6-runde/:id`.
+«Fullfør steg» kan alltid trykkes (også uten noen felt fylt inn) – den bare lagrer + går tilbake.
 
-**Stasjon.tsx**: nytt `ToolCard` «SF6 gassrunde» (ikon: `Gauge`), path `/sf6-runde`, `wip: true`.
+### 5. Fullfør runde – tillat delvis
 
-### Åpne punkter (kan avklares senere)
+Knappen «Fullfør runde» er alltid aktiv når temperatur + måned er fylt inn (ikke lenger avhengig av at alle nivåer er komplette). Tomme felter vises som `—` i fremvisningen (allerede tilfelle).
 
-- Om andre brytere har annen enhet enn MPa.
-- Ekstra stasjoner – legges til i `sf6Stations.ts` etterhvert.
+### 6. Historikk-visning
+
+Historikklisten viser status-badge per rad:
+- **Pågående** – oransj pill, trykk på rad = gjenoppta runden (åpner samme redigerbare visning som ny runde, med `activeRoundId` satt).
+- **Fullført** – grønn pill, trykk = fremvisningsmodus (som i dag).
+
+Slette-knapp: alltid synlig, alltid åpner AlertDialog med bekreftelse før DELETE utføres.
+
+Sorteringsrekkefølge: pågående øverst (nyeste først), deretter fullførte (nyeste først).
+
+### 7. Filer som endres
+
+- `supabase/migrations/…` – ny migration for `status` + `temperature` nullbar.
+- `src/pages/Sf6Round.tsx`:
+  - `startRound` blir async: INSERT i DB → sett `activeRoundId` → naviger til round-view.
+  - `resumeRound(SavedRound)` – laster tilbake state fra rad, setter `activeRoundId`.
+  - `saveProgress()` helper som gjør UPDATE på `activeRoundId`.
+  - `finishRound` blir UPDATE med `status='completed'` i stedet for INSERT.
+  - Nivå-status via `getLevelStatus` styrer farge på kortene.
+  - AlertDialog for sletting.
+- `src/data/sf6Stations.ts` – legg til `getLevelStatus` helper.

@@ -151,8 +151,9 @@ export type Database = {
           month_label: string
           station_id: string
           station_name: string
+          status: string
           technician_name: string
-          temperature: number
+          temperature: number | null
           unit: string
           updated_at: string
           user_id: string
@@ -164,8 +165,9 @@ export type Database = {
           month_label: string
           station_id: string
           station_name: string
+          status?: string
           technician_name: string
-          temperature: number
+          temperature?: number | null
           unit?: string
           updated_at?: string
           user_id: string
@@ -177,8 +179,9 @@ export type Database = {
           month_label?: string
           station_id?: string
           station_name?: string
+          status?: string
           technician_name?: string
-          temperature?: number
+          temperature?: number | null
           unit?: string
           updated_at?: string
           user_id?: string
