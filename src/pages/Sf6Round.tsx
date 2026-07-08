@@ -465,7 +465,9 @@ export default function Sf6Round() {
             </CardContent>
           </Card>
 
-          {s?.levels.map((lvl) => (
+          {s?.levels.map((lvl) => {
+            const allSingle = lvl.breakers.every((b) => b.singlePhase);
+            return (
             <div key={lvl.kV}>
               <h2 className="mb-2 font-display text-sm font-bold">{lvl.kV} kV</h2>
               <div className="rounded-lg border border-border bg-card overflow-hidden">
@@ -475,9 +477,17 @@ export default function Sf6Round() {
                       <th className="text-left px-3 py-2 font-medium text-xs uppercase tracking-wider text-muted-foreground">
                         Bryter
                       </th>
-                      <th className="text-right px-3 py-2 font-medium text-xs uppercase tracking-wider text-muted-foreground">L1</th>
-                      <th className="text-right px-3 py-2 font-medium text-xs uppercase tracking-wider text-muted-foreground">L2</th>
-                      <th className="text-right px-3 py-2 font-medium text-xs uppercase tracking-wider text-muted-foreground">L3</th>
+                      {allSingle ? (
+                        <th className="text-center px-3 py-2 font-medium text-xs uppercase tracking-wider text-muted-foreground" colSpan={3}>
+                          Felles gasskammer
+                        </th>
+                      ) : (
+                        <>
+                          <th className="text-right px-3 py-2 font-medium text-xs uppercase tracking-wider text-muted-foreground">L1</th>
+                          <th className="text-right px-3 py-2 font-medium text-xs uppercase tracking-wider text-muted-foreground">L2</th>
+                          <th className="text-right px-3 py-2 font-medium text-xs uppercase tracking-wider text-muted-foreground">L3</th>
+                        </>
+                      )}
                     </tr>
                   </thead>
                   <tbody>
@@ -487,8 +497,8 @@ export default function Sf6Round() {
                         return (
                           <tr key={b.name} className="border-t border-border">
                             <td className="px-3 py-2 font-medium">{b.name}</td>
-                            <td className="px-3 py-2 text-center text-muted-foreground" colSpan={3}>
-                              {v.value ?? "—"} <span className="text-xs">MPa</span> <span className="text-[10px] uppercase ml-1">enfase</span>
+                            <td className="px-3 py-2 text-center tabular-nums" colSpan={3}>
+                              {v.value ?? "—"} <span className="text-xs text-muted-foreground">MPa</span>
                             </td>
                           </tr>
                         );
@@ -507,7 +517,8 @@ export default function Sf6Round() {
               </div>
               <p className="mt-1 text-[10px] text-muted-foreground text-right">Verdier i {r.unit}</p>
             </div>
-          ))}
+            );
+          })}
         </main>
       </div>
     );
