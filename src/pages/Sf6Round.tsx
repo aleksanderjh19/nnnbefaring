@@ -506,9 +506,15 @@ export default function Sf6Round() {
                       return (
                         <tr key={b.name} className="border-t border-border">
                           <td className="px-3 py-2 font-medium">{b.name}</td>
-                          <td className="px-3 py-2 text-right tabular-nums">{v.L1 ?? "—"}</td>
-                          <td className="px-3 py-2 text-right tabular-nums">{v.L2 ?? "—"}</td>
-                          <td className="px-3 py-2 text-right tabular-nums">{v.L3 ?? "—"}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">
+                            {v.L1 ?? "—"} <span className="text-xs text-muted-foreground">MPa</span>
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums">
+                            {v.L2 ?? "—"} <span className="text-xs text-muted-foreground">MPa</span>
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums">
+                            {v.L3 ?? "—"} <span className="text-xs text-muted-foreground">MPa</span>
+                          </td>
                         </tr>
                       );
                     })}
