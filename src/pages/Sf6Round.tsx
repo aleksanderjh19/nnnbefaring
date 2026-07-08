@@ -365,29 +365,41 @@ export default function Sf6Round() {
                   </div>
                   {b.singlePhase ? (
                     <div>
-                      <Label className="text-xs mb-1 block">MPa</Label>
-                      <Input
-                        type="number"
-                        inputMode="decimal"
-                        step="0.01"
-                        value={vals.value ?? ""}
-                        onChange={(e) => setPhase(activeLevel.kV, b.name, "value", e.target.value)}
-                        placeholder="0.00"
-                      />
+                      <Label className="text-xs mb-1 block">Trykk</Label>
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          inputMode="decimal"
+                          step="0.01"
+                          value={vals.value ?? ""}
+                          onChange={(e) => setPhase(activeLevel.kV, b.name, "value", e.target.value)}
+                          placeholder="0.00"
+                          className="pr-14"
+                        />
+                        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted-foreground/60">
+                          MPa
+                        </span>
+                      </div>
                     </div>
                   ) : (
                     <div className="grid grid-cols-3 gap-2">
                       {(["L1", "L2", "L3"] as const).map((p) => (
                         <div key={p}>
                           <Label className="text-xs mb-1 block">{p}</Label>
-                          <Input
-                            type="number"
-                            inputMode="decimal"
-                            step="0.01"
-                            value={vals[p] ?? ""}
-                            onChange={(e) => setPhase(activeLevel.kV, b.name, p, e.target.value)}
-                            placeholder="0.00"
-                          />
+                          <div className="relative">
+                            <Input
+                              type="number"
+                              inputMode="decimal"
+                              step="0.01"
+                              value={vals[p] ?? ""}
+                              onChange={(e) => setPhase(activeLevel.kV, b.name, p, e.target.value)}
+                              placeholder="0.00"
+                              className="pr-12"
+                            />
+                            <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-xs text-muted-foreground/60">
+                              MPa
+                            </span>
+                          </div>
                         </div>
                       ))}
                     </div>
