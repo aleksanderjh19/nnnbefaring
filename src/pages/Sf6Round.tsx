@@ -499,12 +499,13 @@ export default function Sf6Round() {
         <div className="fixed bottom-0 inset-x-0 border-t border-border bg-card">
           <div className="mx-auto max-w-2xl px-5 py-3 flex items-center gap-3">
             <div className="flex-1 text-xs text-muted-foreground">
-              {canFinish
+              {temperature.trim() === "" || Number.isNaN(Number(temperature.replace(",", ".")))
+                ? "Temperatur er påkrevd."
+                : canFinish
                 ? "Klar til å fullføre. Delvis utfylte nivåer lagres som de er."
                 : "Fyll inn måned for å fullføre"}
-
             </div>
-            <Button onClick={finishRound} disabled={!canFinish || saving} size="sm">
+            <Button onClick={finishRound} disabled={saving} size="sm">
               <Check className="mr-1.5 h-4 w-4" /> Fullfør runde
             </Button>
           </div>
