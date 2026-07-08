@@ -72,16 +72,24 @@ export default function Sf6Round() {
   const [viewingRound, setViewingRound] = useState<SavedRound | null>(null);
   const [saving, setSaving] = useState(false);
   const [starting, setStarting] = useState(false);
-  const [checkedBreakers, setCheckedBreakers] = useState<Set<string>>(new Set());
+  const [greenBreakers, setGreenBreakers] = useState<Set<string>>(new Set());
+  const [activeBreaker, setActiveBreaker] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<SavedRound | null>(null);
 
-  const toggleChecked = (key: string) => {
-    setCheckedBreakers((prev) => {
+  const handleBreakerClick = (key: string) => {
+    if (activeBreaker === key) return;
+    setGreenBreakers((prev) => {
       const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
+      if (activeBreaker) next.add(activeBreaker);
+      next.delete(key);
       return next;
     });
+    setActiveBreaker(key);
+  };
+
+  const resetBreakerMarks = () => {
+    setGreenBreakers(new Set());
+    setActiveBreaker(null);
   };
 
   useEffect(() => {
