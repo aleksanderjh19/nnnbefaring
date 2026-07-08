@@ -149,6 +149,7 @@ export default function Sf6Round() {
     setActiveRoundId((data as any).id);
     setMonthLabel(initialMonth);
     setTemperature("");
+    setTempError(null);
     setMeasurements(initialMeas);
     setView("round");
     fetchHistory();
