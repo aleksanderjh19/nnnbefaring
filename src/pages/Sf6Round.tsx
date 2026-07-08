@@ -59,6 +59,16 @@ export default function Sf6Round() {
   const [activeLevel, setActiveLevel] = useState<Sf6Level | null>(null);
   const [viewingRound, setViewingRound] = useState<SavedRound | null>(null);
   const [saving, setSaving] = useState(false);
+  const [checkedBreakers, setCheckedBreakers] = useState<Set<string>>(new Set());
+
+  const toggleChecked = (key: string) => {
+    setCheckedBreakers((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   useEffect(() => {
     document.title = "SF6 gassrunde – Statnett Verktøy";
@@ -128,6 +138,7 @@ export default function Sf6Round() {
     }
     toast({ title: "Lagret", description: "SF6-runden er fullført." });
     setViewingRound(data as unknown as SavedRound);
+    setCheckedBreakers(new Set());
     setView("view");
     fetchHistory();
   };
@@ -142,6 +153,7 @@ export default function Sf6Round() {
     setViewingRound(r);
     const s = findSf6Station(r.station_id);
     if (s) setStation(s);
+    setCheckedBreakers(new Set());
     setView("view");
   };
 
@@ -493,9 +505,16 @@ export default function Sf6Round() {
                   <tbody>
                     {lvl.breakers.map((b) => {
                       const v = r.measurements?.[lvl.kV]?.[b.name] ?? {};
+                      const key = `${lvl.kV}::${b.name}`;
+                      const checked = checkedBreakers.has(key);
+                      const rowClass = `border-t border-border cursor-pointer transition-colors ${
+                        checked
+                          ? "bg-green-500/25 hover:bg-green-500/30"
+                          : "hover:bg-secondary/50"
+                      }`;
                       if (b.singlePhase) {
                         return (
-                          <tr key={b.name} className="border-t border-border">
+                          <tr key={b.name} className={rowClass} onClick={() => toggleChecked(key)}>
                             <td className="px-3 py-2 font-medium">{b.name}</td>
                             <td className="px-3 py-2 text-center tabular-nums" colSpan={3}>
                               {v.value ?? "—"} <span className="text-xs text-muted-foreground">MPa</span>
@@ -504,7 +523,7 @@ export default function Sf6Round() {
                         );
                       }
                       return (
-                        <tr key={b.name} className="border-t border-border">
+                        <tr key={b.name} className={rowClass} onClick={() => toggleChecked(key)}>
                           <td className="px-3 py-2 font-medium">{b.name}</td>
                           <td className="px-3 py-2 text-right tabular-nums">
                             {v.L1 ?? "—"} <span className="text-xs text-muted-foreground">MPa</span>
