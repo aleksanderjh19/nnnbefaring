@@ -365,6 +365,6 @@ export const ninoxGuide: ExternalGuide = {
   ],
 };
 
-export const externalGuides = [airdataGuide, ninoxGuide];
+export const externalGuides = [airdataGuide];
 export const getExternalGuideById = (id: string) =>
   externalGuides.find((g) => g.id === id);

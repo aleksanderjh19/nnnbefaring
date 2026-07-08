@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { BookOpen, LineChart, Thermometer, FileText } from "lucide-react";
+import { BookOpen, LineChart, FileText } from "lucide-react";
 import CategoryHeader from "@/components/CategoryHeader";
 import ToolCardList, { ToolCard } from "@/components/ToolCardList";
 
@@ -26,14 +26,6 @@ const tools: ToolCard[] = [
     description: "Viktigste funksjoner for logg, batteri og flåte",
     icon: LineChart,
     path: "/drone/guide/airdata",
-    ready: true,
-  },
-  {
-    id: "ninox",
-    name: "Ninox 2",
-    description: "Termisk kamera – bruk og innstillinger",
-    icon: Thermometer,
-    path: "/drone/guide/ninox",
     ready: true,
   },
 ];
