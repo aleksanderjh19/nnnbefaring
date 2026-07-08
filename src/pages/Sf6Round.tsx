@@ -426,17 +426,23 @@ export default function Sf6Round() {
               />
             </div>
             <div>
-              <Label htmlFor="temp">Temperatur (°C)</Label>
+              <Label htmlFor="temp">Temperatur (°C) <span className="text-destructive">*</span></Label>
               <Input
                 id="temp"
                 type="number"
                 inputMode="decimal"
                 step="0.1"
                 value={temperature}
-                onChange={(e) => setTemperature(e.target.value)}
+                onChange={(e) => { setTemperature(e.target.value); setTempError(null); }}
                 onBlur={() => saveProgress()}
                 placeholder="f.eks. -5"
+                className={tempError ? "border-destructive focus-visible:ring-destructive" : ""}
               />
+              {tempError && (
+                <p className="mt-1 text-xs text-destructive flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" /> {tempError}
+                </p>
+              )}
             </div>
           </div>
           <p className="text-xs text-muted-foreground">
