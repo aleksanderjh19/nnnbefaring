@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Zap, Trash2 } from "lucide-react";
+import { Zap, Trash2, Wind } from "lucide-react";
 import CategoryHeader from "@/components/CategoryHeader";
 import ToolCardList, { ToolCard } from "@/components/ToolCardList";
 
@@ -10,6 +10,15 @@ const tools: ToolCard[] = [
     description: "Kontroll av spenningstrafoer på stasjoner",
     icon: Zap,
     path: "/spenningsrunde",
+    ready: true,
+    wip: true,
+  },
+  {
+    id: "sf6-runde",
+    name: "SF6 gassrunde",
+    description: "Registrer SF6-gassnivå på brytere per stasjon",
+    icon: Wind,
+    path: "/sf6-runde",
     ready: true,
     wip: true,
   },
