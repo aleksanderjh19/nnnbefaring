@@ -59,6 +59,16 @@ export default function Sf6Round() {
   const [activeLevel, setActiveLevel] = useState<Sf6Level | null>(null);
   const [viewingRound, setViewingRound] = useState<SavedRound | null>(null);
   const [saving, setSaving] = useState(false);
+  const [checkedBreakers, setCheckedBreakers] = useState<Set<string>>(new Set());
+
+  const toggleChecked = (key: string) => {
+    setCheckedBreakers((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   useEffect(() => {
     document.title = "SF6 gassrunde – Statnett Verktøy";
