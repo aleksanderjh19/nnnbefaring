@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Zap, Trash2 } from "lucide-react";
+import { Zap, Trash2, Wind } from "lucide-react";
 import CategoryHeader from "@/components/CategoryHeader";
 import ToolCardList, { ToolCard } from "@/components/ToolCardList";
 
