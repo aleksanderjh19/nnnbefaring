@@ -24,6 +24,7 @@ import WasteManagement from "./pages/WasteManagement.tsx";
 import AdminEmployeeList from "./pages/AdminEmployeeList.tsx";
 import VoltageRound from "./pages/VoltageRound.tsx";
 import VoltageRoundPrint from "./pages/VoltageRoundPrint.tsx";
+import Sf6Round from "./pages/Sf6Round.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import Stasjon from "./pages/Stasjon.tsx";
 import Ledning from "./pages/Ledning.tsx";
