@@ -106,6 +106,30 @@ export function isLevelComplete(level: Sf6Level, m: Sf6Measurements): boolean {
   });
 }
 
+export type LevelStatus = "empty" | "partial" | "complete";
+
+export function getLevelStatus(level: Sf6Level, m: Sf6Measurements): LevelStatus {
+  const lvl = m[level.kV];
+  if (!lvl) return "empty";
+  let filled = 0;
+  let total = 0;
+  for (const b of level.breakers) {
+    const v = lvl[b.name];
+    if (b.singlePhase) {
+      total += 1;
+      if (v?.value != null && !Number.isNaN(v.value)) filled += 1;
+    } else {
+      total += 3;
+      for (const p of ["L1", "L2", "L3"] as const) {
+        if (v?.[p] != null && !Number.isNaN(v[p] as number)) filled += 1;
+      }
+    }
+  }
+  if (filled === 0) return "empty";
+  if (filled === total) return "complete";
+  return "partial";
+}
+
 export function currentMonthLabel(date = new Date()): string {
   const months = [
     "Januar", "Februar", "Mars", "April", "Mai", "Juni",
