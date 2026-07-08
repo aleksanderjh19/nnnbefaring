@@ -72,6 +72,7 @@ export default function Sf6Round() {
   const [activeRoundId, setActiveRoundId] = useState<string | null>(null);
   const [monthLabel, setMonthLabel] = useState(currentMonthLabel());
   const [temperature, setTemperature] = useState<string>("");
+  const [tempError, setTempError] = useState<string | null>(null);
   const [measurements, setMeasurements] = useState<Sf6Measurements>({});
   const [activeLevel, setActiveLevel] = useState<Sf6Level | null>(null);
   const [viewingRound, setViewingRound] = useState<SavedRound | null>(null);
