@@ -1,58 +1,64 @@
-## Mål
+## SF6 Gassrunde – nytt verktøy under Stasjon
 
-Erstatte dagens Airdata UAV-seksjon (som er mer "hva kan du gjøre") med en kort, praktisk bruksanvisning: **"hvordan gjør jeg X"** for de mest brukte funksjonene i felt og på kontoret.
+Nytt verktøy `/sf6-runde` som lar montør registrere SF6-gassnivå på brytere per stasjon og spenningsnivå, og lagre runden med dato + innlogget montør.
 
-Ingen UI-endringer — kun innhold i `airdataGuide` i `src/data/droneGuides.ts`. Eksisterende `DroneGuide.tsx` rendrer kapitler, steg og bullets uendret.
+### Brukerflyt
 
-## Ny struktur (kapitler → korte "hvordan"-oppskrifter)
+1. **Stasjon → SF6 gassrunde** åpner listevisning:
+   - Knapp «Ny runde» + kort for hver stasjon (kun **Nedre Røssåga** i første omgang).
+   - Under: Historikk over lagrede runder (dato, stasjon, montør). Trykk for å se i fremvisningsmodus.
+2. **Trykk på stasjonskort** → oppretter ny runde med:
+   - Måned/år forhåndsutfylt (dagens måned, redigerbart tekstfelt f.eks. "Januar 2026").
+   - Temperatur-felt (°C, én gang for hele runden, obligatorisk).
+   - Montør = innlogget bruker (auto, vises).
+3. **Spenningsnivå-oversikt**: Ett kort per nivå (420 / 300 / 220 / 132 kV). Kort viser antall brytere og status (0/8 utført). Fullført nivå får grønn hake + grønn ramme.
+4. **Trykk på nivå-kort** → skjema med alle brytere for det nivået:
+   - Standard: tre inputfelt (L1, L2, L3) i **MPa** per bryter, bryternavn til venstre.
+   - **Enfase-brytere** (T9E og T7E på 132 kV): kun ett inputfelt (samlet verdi), ingen L1/L2/L3-splitt.
+   - «Fullfør steg» nederst → tilbake til nivå-oversikt.
+5. Når alle nivåer er grønne → knapp **«Fullfør runde»** blir aktiv → lagres i DB → åpner **fremvisningsmodus** (read-only oversikt: alle nivåer/brytere/verdier + temperatur + montør + dato). Runden kan ikke redigeres etter fullføring.
 
-Hvert steg = én konkret oppgave, 3–6 bullets med klikk-for-klikk.
+### Data / brytere (Nedre Røssåga)
 
-**1. Flights – daglig bruk**
-- Åpne og se en enkelt flight (Flight List → filter på pilot/drone/dato)
-- Legge til pilot, drone, sted og notat på en flight
-- Endre flight-type (mission / training / test) og hvorfor det matters for rapporter
+- **420 kV** (3-fase): T10AE, T13AE, Ra1AE, Tu1AE, Tu1BE, Ra1BE, T13BE, T10BE
+- **300 kV** (3-fase): T10AE, T11AE, Kb1AE, T7AE, Ma1AE, T9AE, T9BE, Ma1BE, T7BE, Kb1BE, T11BE, T10BE
+- **220 kV** (3-fase): Aj1E
+- **132 kV**: T9E *(enfase)*, T7E *(enfase)*
 
-**2. Fikse flights som mangler checklist**
-- Hvorfor det skjer (checklist ikke fylt ut i app før take-off)
-- Åpne flight → "Edit" → knytt til riktig checklist-mal
-- Bulk: velg flere flights i listen → "Assign checklist" → velg mal
-- Sette default checklist per drone så nye flights får den automatisk
+Enhet: **MPa** (kan endres senere hvis noen brytere bruker annen benevnelse).
 
-**3. Samle flere flights under samme checklist / oppdrag**
-- Bruk **Missions**: opprett Mission → dra flights inn / velg fra liste
-- Alternativ: felles **Tag** (f.eks. "Statnett-linje 300kV Sylling–Tegneby") og filtrer på tag
-- Slå sammen delflygninger fra samme dag/sted til én rapport
+Ingen automatisk grenseverdi-vurdering – kun registrering.
 
-**4. Checklists**
-- Lage egen checklist-mal (Settings → Checklists → New)
-- Sette pre-flight / post-flight / maintenance-type
-- Tildele checklist til drone eller pilot som default
+### Teknisk
 
-**5. Batterier**
-- Registrere nytt batteri (Battery → Add, serienummer fra DJI)
-- Se helse på ett batteri (sykluser, kapasitet, celleavvik)
-- Merke batteri som pensjonert / bytte status
+**Ny fil `src/data/sf6Stations.ts`** – statisk template:
+```ts
+{ id: "nedre-rossaga", name: "Nedre Røssåga",
+  levels: [
+    { kV: "420", breakers: [ { name: "T10AE", singlePhase: false }, ... ] },
+    { kV: "132", breakers: [ { name: "T9E", singlePhase: true }, { name: "T7E", singlePhase: true } ] },
+  ] }
+```
 
-**6. Vedlikehold**
-- Sette opp vedlikeholdsintervall per drone (timer / flygninger / dager)
-- Logge utført vedlikehold med notat
-- Kvittere ut varsel når jobb er gjort
+**Ny tabell `sf6_rounds`** (migration):
+- `station_id` text, `station_name` text
+- `month_label` text (fri tekst, f.eks. "Januar 2026")
+- `temperature` numeric
+- `technician_name` text, `user_id` uuid (auth.uid())
+- `measurements` jsonb – 3-fase: `{ L1, L2, L3 }`, enfase: `{ value }`. Struktur: `{ "132": { "T9E": { value: 0.5 }, ... }, "420": { "T10AE": { L1, L2, L3 }, ... } }`
+- `unit` text default `'MPa'`
+- `created_at`, `updated_at`
+- RLS: authenticated kan SELECT alt, INSERT/UPDATE/DELETE egne rader (via user_id). Standard GRANTs.
 
-**7. Rapporter og deling**
-- Generere PDF-flightrapport til oppdragsgiver
-- Eksportere CSV for flere flights (filter → Export)
-- Dele én flight via lenke (public link, med/uten kart)
+**Nye sider**:
+- `src/pages/Sf6Round.tsx` – liste + wizard (stasjonsvalg → nivåkort → per-nivå skjema → fullfør), samme mønster som `VoltageRound.tsx`.
+- `src/pages/Sf6RoundView.tsx` – fremvisningsmodus (read-only), også brukt fra historikk.
 
-**8. Piloter og flåte**
-- Legge til pilot og tildele rolle
-- Se flytimer per pilot
-- Overføre en flight til riktig pilot hvis feil ble registrert
+**Ruter** i `src/App.tsx`: `/sf6-runde`, `/sf6-runde/:id`.
 
-Kilder: beholder lenke til Airdata Wiki.
+**Stasjon.tsx**: nytt `ToolCard` «SF6 gassrunde» (ikon: `Gauge`), path `/sf6-runde`, `wip: true`.
 
-## Teknisk
+### Åpne punkter (kan avklares senere)
 
-- Kun `airdataGuide`-objektet i `src/data/droneGuides.ts` endres.
-- `ninoxGuide`, `externalGuides`, typer og `DroneGuide.tsx` er urørt.
-- Hvert steg holdes til 3–6 korte bullets på norsk.
+- Om andre brytere har annen enhet enn MPa.
+- Ekstra stasjoner – legges til i `sf6Stations.ts` etterhvert.
