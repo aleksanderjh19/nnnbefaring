@@ -505,9 +505,16 @@ export default function Sf6Round() {
                   <tbody>
                     {lvl.breakers.map((b) => {
                       const v = r.measurements?.[lvl.kV]?.[b.name] ?? {};
+                      const key = `${lvl.kV}::${b.name}`;
+                      const checked = checkedBreakers.has(key);
+                      const rowClass = `border-t border-border cursor-pointer transition-colors ${
+                        checked
+                          ? "bg-green-500/25 hover:bg-green-500/30"
+                          : "hover:bg-secondary/50"
+                      }`;
                       if (b.singlePhase) {
                         return (
-                          <tr key={b.name} className="border-t border-border">
+                          <tr key={b.name} className={rowClass} onClick={() => toggleChecked(key)}>
                             <td className="px-3 py-2 font-medium">{b.name}</td>
                             <td className="px-3 py-2 text-center tabular-nums" colSpan={3}>
                               {v.value ?? "—"} <span className="text-xs text-muted-foreground">MPa</span>
@@ -516,7 +523,7 @@ export default function Sf6Round() {
                         );
                       }
                       return (
-                        <tr key={b.name} className="border-t border-border">
+                        <tr key={b.name} className={rowClass} onClick={() => toggleChecked(key)}>
                           <td className="px-3 py-2 font-medium">{b.name}</td>
                           <td className="px-3 py-2 text-right tabular-nums">
                             {v.L1 ?? "—"} <span className="text-xs text-muted-foreground">MPa</span>
