@@ -14,6 +14,15 @@ const tools: ToolCard[] = [
     wip: true,
   },
   {
+    id: "sf6-runde",
+    name: "SF6 gassrunde",
+    description: "Registrer SF6-gassnivå på brytere per stasjon",
+    icon: Wind,
+    path: "/sf6-runde",
+    ready: true,
+    wip: true,
+  },
+  {
     id: "avfallshandtering",
     name: "Avfallshåndtering Bjerka",
     description: "Sorteringsoversikt og varsling om tømming",
