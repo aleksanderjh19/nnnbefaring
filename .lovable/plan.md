@@ -1,66 +1,28 @@
-## SF6 Gassrunde – pågående runder & delvis fullførte steg
+## SF6 fremvisning – aktiv (oransj) vs fullført (grønn) bryter
 
-### 1. Ny statuskolonne + auto-lagring ved start
+### Ny oppførsel
 
-**Migration** – legg til kolonne `status` i `sf6_rounds`:
-- `status text NOT NULL DEFAULT 'in_progress'` (verdier: `in_progress`, `completed`).
-- Fjern `NOT NULL` på `temperature` (default `0`) så runder kan lagres før temperatur er fylt inn.
+To states på hver bryter-rad i fremvisningen:
+- **Aktiv** (oransj bakgrunn): bryteren du sist trykket på – kun én om gangen.
+- **Fullført** (grønn bakgrunn): brytere du har trykket på tidligere.
 
-Nå-runden opprettes i DB umiddelbart når brukeren trykker «Ny runde» på et stasjonskort, med tomme målinger og status `in_progress`. Runde-id lagres i state (`activeRoundId`), og alle videre endringer oppdaterer samme rad.
+Regler når du trykker på en bryter-rad:
+1. Hvis en annen bryter er aktiv fra før → den blir grønn (fullført).
+2. Bryteren du nettopp trykket på blir aktiv (oransj).
+3. Hvis bryteren allerede var grønn, fjernes den grønne markeringen samtidig som den blir oransj.
+4. Trykk på den samme bryteren som allerede er aktiv gjør ingenting (den forblir oransj).
 
-### 2. Auto-lagring mens man jobber
+Slik kan montøren jobbe seg gjennom lista én bryter av gangen: aktiv oransj = «denne holder jeg på å legge inn», grønn = «denne er ferdig lagt inn i systemet».
 
-Endringer synkroniseres tilbake til DB på disse punktene:
-- Månedslabel / temperatur mister fokus (`onBlur`).
-- Bruker trykker «Fullfør steg» i et nivå-skjema (lagrer målingene før man går tilbake).
-- Bruker trykker tilbake-pil fra nivå-skjema eller runde-oversikt (lagre, deretter naviger).
-- «Fullfør runde» setter status = `completed` og går til fremvisning.
+### Teknisk
 
-Ingen kompleks debouncing – én lagring per hendelse er nok.
+I `src/pages/Sf6Round.tsx`:
+- Erstatt `checkedBreakers: Set<string>` med to states: `greenBreakers: Set<string>` og `activeBreaker: string | null`.
+- Ny `handleBreakerClick(key)` implementerer reglene over.
+- Reset begge når man åpner en ny runde eller lukker fremvisning (samme steder som i dag).
+- Rad-klasser:
+  - active → `bg-amber-500/25 hover:bg-amber-500/30`
+  - green → `bg-green-500/25 hover:bg-green-500/30`
+  - annet → `hover:bg-secondary/50`
 
-### 3. RLS – tillat alle å oppdatere/slette pågående runder
-
-Utvid policyene på `sf6_rounds`:
-- `UPDATE`: alle authenticated kan oppdatere en rad **hvis** `status = 'in_progress'`. Egne fullførte runder kan fortsatt oppdateres av eier (i praksis ikke brukt, men beholdes for konsistens).
-- `DELETE`: alle authenticated kan slette – med bekreftelses-dialog i UI (`AlertDialog` med tekst «Er du helt sikker på at du vil slette denne runden? Dette kan ikke angres.»). Gjelder både pågående og fullførte runder.
-- `SELECT`: uendret (alle ser alle).
-
-### 4. Fullfør steg – tillat delvis utfylte nivåer
-
-`isLevelComplete` beholdes, i tillegg ny helper `getLevelStatus(level, m)`:
-- `complete`: alle celler fylt inn.
-- `partial`: minst én celle fylt inn, men ikke alle.
-- `empty`: ingen celler fylt inn.
-
-I nivå-oversikt-kortene:
-- `complete` → grønn ramme + grønn hake (som i dag).
-- `partial` → oransj ramme + oransj «Delvis utført»-etikett.
-- `empty` → nøytralt (som i dag).
-
-«Fullfør steg» kan alltid trykkes (også uten noen felt fylt inn) – den bare lagrer + går tilbake.
-
-### 5. Fullfør runde – tillat delvis
-
-Knappen «Fullfør runde» er alltid aktiv når temperatur + måned er fylt inn (ikke lenger avhengig av at alle nivåer er komplette). Tomme felter vises som `—` i fremvisningen (allerede tilfelle).
-
-### 6. Historikk-visning
-
-Historikklisten viser status-badge per rad:
-- **Pågående** – oransj pill, trykk på rad = gjenoppta runden (åpner samme redigerbare visning som ny runde, med `activeRoundId` satt).
-- **Fullført** – grønn pill, trykk = fremvisningsmodus (som i dag).
-
-Slette-knapp: alltid synlig, alltid åpner AlertDialog med bekreftelse før DELETE utføres.
-
-Sorteringsrekkefølge: pågående øverst (nyeste først), deretter fullførte (nyeste først).
-
-### 7. Filer som endres
-
-- `supabase/migrations/…` – ny migration for `status` + `temperature` nullbar.
-- `src/pages/Sf6Round.tsx`:
-  - `startRound` blir async: INSERT i DB → sett `activeRoundId` → naviger til round-view.
-  - `resumeRound(SavedRound)` – laster tilbake state fra rad, setter `activeRoundId`.
-  - `saveProgress()` helper som gjør UPDATE på `activeRoundId`.
-  - `finishRound` blir UPDATE med `status='completed'` i stedet for INSERT.
-  - Nivå-status via `getLevelStatus` styrer farge på kortene.
-  - AlertDialog for sletting.
-- `src/data/sf6Stations.ts` – legg til `getLevelStatus` helper.
+Ingen DB-endringer, ingen andre filer.
