@@ -1,12 +1,22 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ArrowLeft, Check, Wind, Plus, History, Trash2, ChevronRight,
+  ArrowLeft, Check, Wind, Plus, History, Trash2, ChevronRight, AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -14,7 +24,7 @@ import {
   sf6Stations,
   findSf6Station,
   createEmptyMeasurements,
-  isLevelComplete,
+  getLevelStatus,
   currentMonthLabel,
   type Sf6Station,
   type Sf6Level,
@@ -28,11 +38,12 @@ interface SavedRound {
   station_id: string;
   station_name: string;
   month_label: string;
-  temperature: number;
+  temperature: number | null;
   technician_name: string;
   measurements: Sf6Measurements;
   unit: string;
   user_id: string;
+  status: string;
   created_at: string;
 }
 
@@ -53,13 +64,16 @@ export default function Sf6Round() {
   const [loadingHistory, setLoadingHistory] = useState(true);
 
   const [station, setStation] = useState<Sf6Station | null>(null);
+  const [activeRoundId, setActiveRoundId] = useState<string | null>(null);
   const [monthLabel, setMonthLabel] = useState(currentMonthLabel());
   const [temperature, setTemperature] = useState<string>("");
   const [measurements, setMeasurements] = useState<Sf6Measurements>({});
   const [activeLevel, setActiveLevel] = useState<Sf6Level | null>(null);
   const [viewingRound, setViewingRound] = useState<SavedRound | null>(null);
   const [saving, setSaving] = useState(false);
+  const [starting, setStarting] = useState(false);
   const [checkedBreakers, setCheckedBreakers] = useState<Set<string>>(new Set());
+  const [deleteTarget, setDeleteTarget] = useState<SavedRound | null>(null);
 
   const toggleChecked = (key: string) => {
     setCheckedBreakers((prev) => {
@@ -80,18 +94,73 @@ export default function Sf6Round() {
       .from("sf6_rounds")
       .select("*")
       .order("created_at", { ascending: false });
-    setHistory((data as unknown as SavedRound[]) ?? []);
+    const rows = (data as unknown as SavedRound[]) ?? [];
+    // Pågående øverst, deretter fullførte
+    rows.sort((a, b) => {
+      if (a.status !== b.status) return a.status === "in_progress" ? -1 : 1;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+    setHistory(rows);
     setLoadingHistory(false);
   }, []);
 
   useEffect(() => { fetchHistory(); }, [fetchHistory]);
 
-  const startRound = (s: Sf6Station) => {
+  const startRound = async (s: Sf6Station) => {
+    if (!user || starting) return;
+    setStarting(true);
+    const initialMonth = currentMonthLabel();
+    const initialMeas = createEmptyMeasurements(s);
+    const { data, error } = await supabase
+      .from("sf6_rounds")
+      .insert({
+        user_id: user.id,
+        station_id: s.id,
+        station_name: s.name,
+        month_label: initialMonth,
+        temperature: null,
+        technician_name: nameFromEmail(user.email),
+        measurements: initialMeas as any,
+        unit: "MPa",
+        status: "in_progress",
+      })
+      .select("*")
+      .single();
+    setStarting(false);
+    if (error || !data) {
+      toast({ title: "Feil", description: "Kunne ikke starte runden.", variant: "destructive" });
+      return;
+    }
     setStation(s);
-    setMonthLabel(currentMonthLabel());
+    setActiveRoundId((data as any).id);
+    setMonthLabel(initialMonth);
     setTemperature("");
-    setMeasurements(createEmptyMeasurements(s));
+    setMeasurements(initialMeas);
     setView("round");
+    fetchHistory();
+  };
+
+  const saveProgress = async (extra?: Partial<{ status: string }>) => {
+    if (!activeRoundId) return null;
+    setSaving(true);
+    const payload: any = {
+      month_label: monthLabel.trim() || currentMonthLabel(),
+      temperature: temperature.trim() === "" ? null : Number(temperature.replace(",", ".")),
+      measurements: measurements as any,
+      ...(extra ?? {}),
+    };
+    const { data, error } = await supabase
+      .from("sf6_rounds")
+      .update(payload)
+      .eq("id", activeRoundId)
+      .select("*")
+      .single();
+    setSaving(false);
+    if (error) {
+      toast({ title: "Feil", description: "Kunne ikke lagre.", variant: "destructive" });
+      return null;
+    }
+    return data as unknown as SavedRound;
   };
 
   const openLevel = (lvl: Sf6Level) => {
@@ -110,143 +179,193 @@ export default function Sf6Round() {
     }));
   };
 
-  const allComplete = station?.levels.every((l) => isLevelComplete(l, measurements)) ?? false;
-  const canFinish = allComplete && temperature.trim() !== "" && monthLabel.trim() !== "";
+  const canFinish = temperature.trim() !== "" && monthLabel.trim() !== "";
 
   const finishRound = async () => {
     if (!station || !user) return;
-    setSaving(true);
-    const payload = {
-      user_id: user.id,
-      station_id: station.id,
-      station_name: station.name,
-      month_label: monthLabel.trim(),
-      temperature: Number(temperature.replace(",", ".")),
-      technician_name: nameFromEmail(user.email),
-      measurements: measurements as any,
-      unit: "MPa",
-    };
-    const { data, error } = await supabase
-      .from("sf6_rounds")
-      .insert(payload)
-      .select("*")
-      .single();
-    setSaving(false);
-    if (error) {
-      toast({ title: "Feil", description: "Kunne ikke lagre runden.", variant: "destructive" });
-      return;
-    }
+    const saved = await saveProgress({ status: "completed" });
+    if (!saved) return;
     toast({ title: "Lagret", description: "SF6-runden er fullført." });
-    setViewingRound(data as unknown as SavedRound);
+    setViewingRound(saved);
     setCheckedBreakers(new Set());
     setView("view");
     fetchHistory();
   };
 
-  const deleteRound = async (id: string) => {
-    await supabase.from("sf6_rounds").delete().eq("id", id);
+  const requestDelete = (r: SavedRound) => setDeleteTarget(r);
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    await supabase.from("sf6_rounds").delete().eq("id", deleteTarget.id);
+    setDeleteTarget(null);
     fetchHistory();
     toast({ title: "Slettet", description: "Runden er slettet." });
   };
 
   const openSaved = (r: SavedRound) => {
-    setViewingRound(r);
     const s = findSf6Station(r.station_id);
-    if (s) setStation(s);
+    if (!s) return;
+    setStation(s);
     setCheckedBreakers(new Set());
-    setView("view");
+    if (r.status === "in_progress") {
+      // Gjenoppta redigering
+      setActiveRoundId(r.id);
+      setMonthLabel(r.month_label);
+      setTemperature(r.temperature == null ? "" : String(r.temperature));
+      // Sørg for at alle brytere finnes i measurements-objektet
+      const base = createEmptyMeasurements(s);
+      const merged: Sf6Measurements = { ...base };
+      for (const kV of Object.keys(base)) {
+        merged[kV] = { ...base[kV], ...(r.measurements?.[kV] ?? {}) };
+      }
+      setMeasurements(merged);
+      setView("round");
+    } else {
+      setViewingRound(r);
+      setView("view");
+    }
+  };
+
+  const backFromRound = async () => {
+    await saveProgress();
+    setActiveRoundId(null);
+    setView("list");
+  };
+
+  const backFromLevel = async () => {
+    await saveProgress();
+    setView("round");
   };
 
   // ─── LIST VIEW ──────────────────────────────────────────
   if (view === "list") {
     return (
-      <div className="min-h-screen bg-background">
-        <header className="border-b border-border bg-card">
-          <div className="mx-auto max-w-2xl px-5 py-4 flex items-center gap-3">
-            <button onClick={() => navigate("/stasjon")} className="text-muted-foreground hover:text-foreground">
-              <ArrowLeft className="h-5 w-5" />
-            </button>
-            <div className="flex items-center gap-2">
-              <Wind className="h-5 w-5 text-primary" />
-              <h1 className="font-display text-lg font-bold">SF6 gassrunde</h1>
+      <>
+        <div className="min-h-screen bg-background">
+          <header className="border-b border-border bg-card">
+            <div className="mx-auto max-w-2xl px-5 py-4 flex items-center gap-3">
+              <button onClick={() => navigate("/stasjon")} className="text-muted-foreground hover:text-foreground">
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+              <div className="flex items-center gap-2">
+                <Wind className="h-5 w-5 text-primary" />
+                <h1 className="font-display text-lg font-bold">SF6 gassrunde</h1>
+              </div>
             </div>
-          </div>
-        </header>
-        <main className="mx-auto max-w-2xl px-5 py-6 space-y-6">
-          <div>
-            <h2 className="mb-3 font-display text-xs font-bold uppercase tracking-widest text-muted-foreground">
-              Velg stasjon – ny runde
-            </h2>
-            <div className="space-y-2">
-              {sf6Stations.map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => startRound(s)}
-                  className="group flex w-full items-center gap-4 rounded-xl border border-border bg-card px-5 py-5 text-left transition-colors hover:bg-secondary"
-                >
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <Plus className="h-5 w-5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-display text-sm font-bold">{s.name}</p>
-                    <p className="font-body text-xs text-muted-foreground">
-                      {s.levels.length} spenningsnivå ·{" "}
-                      {s.levels.reduce((n, l) => n + l.breakers.length, 0)} brytere
-                    </p>
-                  </div>
-                  <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <h2 className="mb-3 font-display text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-              <History className="h-3.5 w-3.5" /> Historikk
-            </h2>
-            {loadingHistory ? (
-              <p className="text-sm text-muted-foreground text-center py-8">Laster...</p>
-            ) : history.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                Ingen runder registrert ennå.
-              </p>
-            ) : (
+          </header>
+          <main className="mx-auto max-w-2xl px-5 py-6 space-y-6">
+            <div>
+              <h2 className="mb-3 font-display text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                Velg stasjon – ny runde
+              </h2>
               <div className="space-y-2">
-                {history.map((r) => {
-                  const ownRound = r.user_id === user?.id;
-                  return (
-                    <Card
-                      key={r.id}
-                      className="cursor-pointer hover:bg-secondary/50 transition-colors"
-                      onClick={() => openSaved(r)}
-                    >
-                      <CardContent className="flex items-center gap-3 py-3 px-4">
-                        <Wind className="h-4 w-4 text-primary shrink-0" />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium truncate">
-                            {r.station_name} · {r.month_label}
-                          </p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {r.technician_name} · {new Date(r.created_at).toLocaleDateString("no-NO")} · {r.temperature}°C
-                          </p>
-                        </div>
-                        {ownRound && (
+                {sf6Stations.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => startRound(s)}
+                    disabled={starting}
+                    className="group flex w-full items-center gap-4 rounded-xl border border-border bg-card px-5 py-5 text-left transition-colors hover:bg-secondary disabled:opacity-60"
+                  >
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <Plus className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-display text-sm font-bold">{s.name}</p>
+                      <p className="font-body text-xs text-muted-foreground">
+                        {s.levels.length} spenningsnivå ·{" "}
+                        {s.levels.reduce((n, l) => n + l.breakers.length, 0)} brytere
+                      </p>
+                    </div>
+                    <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h2 className="mb-3 font-display text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                <History className="h-3.5 w-3.5" /> Historikk
+              </h2>
+              {loadingHistory ? (
+                <p className="text-sm text-muted-foreground text-center py-8">Laster...</p>
+              ) : history.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  Ingen runder registrert ennå.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {history.map((r) => {
+                    const inProgress = r.status === "in_progress";
+                    return (
+                      <Card
+                        key={r.id}
+                        className={`cursor-pointer hover:bg-secondary/50 transition-colors ${
+                          inProgress ? "border-amber-500/60" : ""
+                        }`}
+                        onClick={() => openSaved(r)}
+                      >
+                        <CardContent className="flex items-center gap-3 py-3 px-4">
+                          <Wind className="h-4 w-4 text-primary shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium truncate">
+                              {r.station_name} · {r.month_label}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {r.technician_name} · {new Date(r.created_at).toLocaleDateString("no-NO")}
+                              {r.temperature != null && ` · ${r.temperature}°C`}
+                            </p>
+                          </div>
+                          <span
+                            className={`shrink-0 text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                              inProgress
+                                ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                                : "bg-green-500/15 text-green-700 dark:text-green-400"
+                            }`}
+                          >
+                            {inProgress ? "Pågående" : "Fullført"}
+                          </span>
                           <button
-                            onClick={(e) => { e.stopPropagation(); deleteRound(r.id); }}
+                            onClick={(e) => { e.stopPropagation(); requestDelete(r); }}
                             className="text-muted-foreground hover:text-destructive"
+                            aria-label="Slett runde"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
-                        )}
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </main>
-      </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </main>
+        </div>
+
+        <AlertDialog open={deleteTarget !== null} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Er du helt sikker på at du vil slette runden?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {deleteTarget && (
+                  <>
+                    {deleteTarget.station_name} · {deleteTarget.month_label} ({deleteTarget.status === "in_progress" ? "Pågående" : "Fullført"}).
+                    Dette kan ikke angres.
+                  </>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Avbryt</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmDelete}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Slett runde
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </>
     );
   }
 
@@ -256,13 +375,16 @@ export default function Sf6Round() {
       <div className="min-h-screen bg-background pb-24">
         <header className="border-b border-border bg-card">
           <div className="mx-auto max-w-2xl px-5 py-4 flex items-center gap-3">
-            <button onClick={() => setView("list")} className="text-muted-foreground hover:text-foreground">
+            <button onClick={backFromRound} className="text-muted-foreground hover:text-foreground">
               <ArrowLeft className="h-5 w-5" />
             </button>
             <div className="flex items-center gap-2 min-w-0">
               <Wind className="h-5 w-5 text-primary shrink-0" />
               <h1 className="font-display text-lg font-bold truncate">{station.name}</h1>
             </div>
+            <span className="ml-auto shrink-0 text-[10px] px-2 py-0.5 rounded-full font-medium bg-amber-500/15 text-amber-600 dark:text-amber-400">
+              Pågående
+            </span>
           </div>
         </header>
 
@@ -270,7 +392,12 @@ export default function Sf6Round() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label htmlFor="month">Måned</Label>
-              <Input id="month" value={monthLabel} onChange={(e) => setMonthLabel(e.target.value)} />
+              <Input
+                id="month"
+                value={monthLabel}
+                onChange={(e) => setMonthLabel(e.target.value)}
+                onBlur={() => saveProgress()}
+              />
             </div>
             <div>
               <Label htmlFor="temp">Temperatur (°C)</Label>
@@ -281,12 +408,16 @@ export default function Sf6Round() {
                 step="0.1"
                 value={temperature}
                 onChange={(e) => setTemperature(e.target.value)}
+                onBlur={() => saveProgress()}
                 placeholder="f.eks. -5"
               />
             </div>
           </div>
           <p className="text-xs text-muted-foreground">
             Montør: <span className="font-medium text-foreground">{nameFromEmail(user?.email)}</span>
+            <span className="ml-2 text-muted-foreground/70">
+              (Auto-lagres som pågående)
+            </span>
           </p>
 
           <div>
@@ -295,27 +426,36 @@ export default function Sf6Round() {
             </h2>
             <div className="grid grid-cols-2 gap-3">
               {station.levels.map((lvl) => {
-                const done = isLevelComplete(lvl, measurements);
+                const status = getLevelStatus(lvl, measurements);
+                const styles =
+                  status === "complete"
+                    ? "border-green-600 bg-green-50 dark:bg-green-950/30"
+                    : status === "partial"
+                    ? "border-amber-500 bg-amber-50 dark:bg-amber-950/30"
+                    : "border-border bg-card hover:bg-secondary";
                 return (
                   <button
                     key={lvl.kV}
                     onClick={() => openLevel(lvl)}
-                    className={`rounded-xl border-2 px-4 py-5 text-left transition-colors ${
-                      done
-                        ? "border-green-600 bg-green-50 dark:bg-green-950/30"
-                        : "border-border bg-card hover:bg-secondary"
-                    }`}
+                    className={`rounded-xl border-2 px-4 py-5 text-left transition-colors ${styles}`}
                   >
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-display text-xl font-bold">{lvl.kV} kV</span>
-                      {done && (
+                      {status === "complete" && (
                         <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green-600 text-white">
                           <Check className="h-4 w-4" />
                         </span>
                       )}
+                      {status === "partial" && (
+                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500 text-white">
+                          <AlertCircle className="h-4 w-4" />
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {lvl.breakers.length} brytere {done && "· Fullført"}
+                      {lvl.breakers.length} brytere
+                      {status === "complete" && " · Fullført"}
+                      {status === "partial" && " · Delvis utført"}
                     </p>
                   </button>
                 );
@@ -327,7 +467,9 @@ export default function Sf6Round() {
         <div className="fixed bottom-0 inset-x-0 border-t border-border bg-card">
           <div className="mx-auto max-w-2xl px-5 py-3 flex items-center gap-3">
             <div className="flex-1 text-xs text-muted-foreground">
-              {allComplete ? "Alle nivåer fylt inn" : "Fyll inn alle nivåer for å fullføre"}
+              {canFinish
+                ? "Klar til å fullføre. Delvis utfylte nivåer lagres som de er."
+                : "Fyll inn måned og temperatur for å fullføre"}
             </div>
             <Button onClick={finishRound} disabled={!canFinish || saving} size="sm">
               <Check className="mr-1.5 h-4 w-4" /> Fullfør runde
@@ -340,12 +482,12 @@ export default function Sf6Round() {
 
   // ─── LEVEL FORM ─────────────────────────────────────────
   if (view === "level" && station && activeLevel) {
-    const done = isLevelComplete(activeLevel, measurements);
+    const status = getLevelStatus(activeLevel, measurements);
     return (
       <div className="min-h-screen bg-background pb-24">
         <header className="border-b border-border bg-card">
           <div className="mx-auto max-w-2xl px-5 py-4 flex items-center gap-3">
-            <button onClick={() => setView("round")} className="text-muted-foreground hover:text-foreground">
+            <button onClick={backFromLevel} className="text-muted-foreground hover:text-foreground">
               <ArrowLeft className="h-5 w-5" />
             </button>
             <div className="flex items-center gap-2 min-w-0">
@@ -359,7 +501,7 @@ export default function Sf6Round() {
 
         <main className="mx-auto max-w-2xl px-5 py-6">
           <p className="text-xs text-muted-foreground mb-3">
-            Fyll inn SF6-nivå i MPa per fase (L1, L2, L3) for hver bryter.
+            Fyll inn SF6-nivå i MPa per fase (L1, L2, L3) for hver bryter. Du kan fullføre steget selv om noen felt er tomme.
           </p>
           <div className="space-y-2">
             {activeLevel.breakers.map((b) => {
@@ -425,9 +567,11 @@ export default function Sf6Round() {
         <div className="fixed bottom-0 inset-x-0 border-t border-border bg-card">
           <div className="mx-auto max-w-2xl px-5 py-3 flex items-center gap-3">
             <div className="flex-1 text-xs text-muted-foreground">
-              {done ? "Alle brytere er fylt inn" : "Fyll inn alle felt for å markere som fullført"}
+              {status === "complete" && "Alle brytere er fylt inn"}
+              {status === "partial" && "Delvis utfylt – lagres som «Delvis utført»"}
+              {status === "empty" && "Ingen felt utfylt ennå"}
             </div>
-            <Button onClick={() => setView("round")} size="sm">
+            <Button onClick={backFromLevel} size="sm" disabled={saving}>
               <Check className="mr-1.5 h-4 w-4" /> Fullfør steg
             </Button>
           </div>
@@ -472,7 +616,7 @@ export default function Sf6Round() {
               </div>
               <div>
                 <p className="text-[10px] uppercase text-muted-foreground">Temperatur</p>
-                <p className="font-medium">{r.temperature}°C</p>
+                <p className="font-medium">{r.temperature != null ? `${r.temperature}°C` : "—"}</p>
               </div>
             </CardContent>
           </Card>
@@ -480,68 +624,68 @@ export default function Sf6Round() {
           {s?.levels.map((lvl) => {
             const allSingle = lvl.breakers.every((b) => b.singlePhase);
             return (
-            <div key={lvl.kV}>
-              <h2 className="mb-2 font-display text-sm font-bold">{lvl.kV} kV</h2>
-              <div className="rounded-lg border border-border bg-card overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/50">
-                    <tr>
-                      <th className="text-left px-3 py-2 font-medium text-xs uppercase tracking-wider text-muted-foreground">
-                        Bryter
-                      </th>
-                      {allSingle ? (
-                        <th className="text-center px-3 py-2 font-medium text-xs uppercase tracking-wider text-muted-foreground" colSpan={3}>
-                          Felles gasskammer
+              <div key={lvl.kV}>
+                <h2 className="mb-2 font-display text-sm font-bold">{lvl.kV} kV</h2>
+                <div className="rounded-lg border border-border bg-card overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/50">
+                      <tr>
+                        <th className="text-left px-3 py-2 font-medium text-xs uppercase tracking-wider text-muted-foreground">
+                          Bryter
                         </th>
-                      ) : (
-                        <>
-                          <th className="text-right px-3 py-2 font-medium text-xs uppercase tracking-wider text-muted-foreground">L1</th>
-                          <th className="text-right px-3 py-2 font-medium text-xs uppercase tracking-wider text-muted-foreground">L2</th>
-                          <th className="text-right px-3 py-2 font-medium text-xs uppercase tracking-wider text-muted-foreground">L3</th>
-                        </>
-                      )}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {lvl.breakers.map((b) => {
-                      const v = r.measurements?.[lvl.kV]?.[b.name] ?? {};
-                      const key = `${lvl.kV}::${b.name}`;
-                      const checked = checkedBreakers.has(key);
-                      const rowClass = `border-t border-border cursor-pointer transition-colors ${
-                        checked
-                          ? "bg-green-500/25 hover:bg-green-500/30"
-                          : "hover:bg-secondary/50"
-                      }`;
-                      if (b.singlePhase) {
+                        {allSingle ? (
+                          <th className="text-center px-3 py-2 font-medium text-xs uppercase tracking-wider text-muted-foreground" colSpan={3}>
+                            Felles gasskammer
+                          </th>
+                        ) : (
+                          <>
+                            <th className="text-right px-3 py-2 font-medium text-xs uppercase tracking-wider text-muted-foreground">L1</th>
+                            <th className="text-right px-3 py-2 font-medium text-xs uppercase tracking-wider text-muted-foreground">L2</th>
+                            <th className="text-right px-3 py-2 font-medium text-xs uppercase tracking-wider text-muted-foreground">L3</th>
+                          </>
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {lvl.breakers.map((b) => {
+                        const v = r.measurements?.[lvl.kV]?.[b.name] ?? {};
+                        const key = `${lvl.kV}::${b.name}`;
+                        const checked = checkedBreakers.has(key);
+                        const rowClass = `border-t border-border cursor-pointer transition-colors ${
+                          checked
+                            ? "bg-green-500/25 hover:bg-green-500/30"
+                            : "hover:bg-secondary/50"
+                        }`;
+                        if (b.singlePhase) {
+                          return (
+                            <tr key={b.name} className={rowClass} onClick={() => toggleChecked(key)}>
+                              <td className="px-3 py-2 font-medium">{b.name}</td>
+                              <td className="px-3 py-2 text-center tabular-nums" colSpan={3}>
+                                {v.value ?? "—"} <span className="text-xs text-muted-foreground">MPa</span>
+                              </td>
+                            </tr>
+                          );
+                        }
                         return (
                           <tr key={b.name} className={rowClass} onClick={() => toggleChecked(key)}>
                             <td className="px-3 py-2 font-medium">{b.name}</td>
-                            <td className="px-3 py-2 text-center tabular-nums" colSpan={3}>
-                              {v.value ?? "—"} <span className="text-xs text-muted-foreground">MPa</span>
+                            <td className="px-3 py-2 text-right tabular-nums">
+                              {v.L1 ?? "—"} <span className="text-xs text-muted-foreground">MPa</span>
+                            </td>
+                            <td className="px-3 py-2 text-right tabular-nums">
+                              {v.L2 ?? "—"} <span className="text-xs text-muted-foreground">MPa</span>
+                            </td>
+                            <td className="px-3 py-2 text-right tabular-nums">
+                              {v.L3 ?? "—"} <span className="text-xs text-muted-foreground">MPa</span>
                             </td>
                           </tr>
                         );
-                      }
-                      return (
-                        <tr key={b.name} className={rowClass} onClick={() => toggleChecked(key)}>
-                          <td className="px-3 py-2 font-medium">{b.name}</td>
-                          <td className="px-3 py-2 text-right tabular-nums">
-                            {v.L1 ?? "—"} <span className="text-xs text-muted-foreground">MPa</span>
-                          </td>
-                          <td className="px-3 py-2 text-right tabular-nums">
-                            {v.L2 ?? "—"} <span className="text-xs text-muted-foreground">MPa</span>
-                          </td>
-                          <td className="px-3 py-2 text-right tabular-nums">
-                            {v.L3 ?? "—"} <span className="text-xs text-muted-foreground">MPa</span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="mt-1 text-[10px] text-muted-foreground text-right">Verdier i {r.unit}</p>
               </div>
-              <p className="mt-1 text-[10px] text-muted-foreground text-right">Verdier i {r.unit}</p>
-            </div>
             );
           })}
         </main>
