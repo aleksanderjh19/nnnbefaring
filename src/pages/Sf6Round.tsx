@@ -192,7 +192,7 @@ export default function Sf6Round() {
     }));
   };
 
-  const canFinish = temperature.trim() !== "" && monthLabel.trim() !== "";
+  const canFinish = monthLabel.trim() !== "";
 
   const finishRound = async () => {
     if (!station || !user) return;
@@ -482,7 +482,8 @@ export default function Sf6Round() {
             <div className="flex-1 text-xs text-muted-foreground">
               {canFinish
                 ? "Klar til å fullføre. Delvis utfylte nivåer lagres som de er."
-                : "Fyll inn måned og temperatur for å fullføre"}
+                : "Fyll inn måned for å fullføre"}
+
             </div>
             <Button onClick={finishRound} disabled={!canFinish || saving} size="sm">
               <Check className="mr-1.5 h-4 w-4" /> Fullfør runde
