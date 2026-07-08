@@ -72,16 +72,24 @@ export default function Sf6Round() {
   const [viewingRound, setViewingRound] = useState<SavedRound | null>(null);
   const [saving, setSaving] = useState(false);
   const [starting, setStarting] = useState(false);
-  const [checkedBreakers, setCheckedBreakers] = useState<Set<string>>(new Set());
+  const [greenBreakers, setGreenBreakers] = useState<Set<string>>(new Set());
+  const [activeBreaker, setActiveBreaker] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<SavedRound | null>(null);
 
-  const toggleChecked = (key: string) => {
-    setCheckedBreakers((prev) => {
+  const handleBreakerClick = (key: string) => {
+    if (activeBreaker === key) return;
+    setGreenBreakers((prev) => {
       const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
+      if (activeBreaker) next.add(activeBreaker);
+      next.delete(key);
       return next;
     });
+    setActiveBreaker(key);
+  };
+
+  const resetBreakerMarks = () => {
+    setGreenBreakers(new Set());
+    setActiveBreaker(null);
   };
 
   useEffect(() => {
@@ -187,7 +195,7 @@ export default function Sf6Round() {
     if (!saved) return;
     toast({ title: "Lagret", description: "SF6-runden er fullført." });
     setViewingRound(saved);
-    setCheckedBreakers(new Set());
+    resetBreakerMarks();
     setView("view");
     fetchHistory();
   };
@@ -206,7 +214,7 @@ export default function Sf6Round() {
     const s = findSf6Station(r.station_id);
     if (!s) return;
     setStation(s);
-    setCheckedBreakers(new Set());
+    resetBreakerMarks();
     if (r.status === "in_progress") {
       // Gjenoppta redigering
       setActiveRoundId(r.id);
@@ -650,15 +658,18 @@ export default function Sf6Round() {
                       {lvl.breakers.map((b) => {
                         const v = r.measurements?.[lvl.kV]?.[b.name] ?? {};
                         const key = `${lvl.kV}::${b.name}`;
-                        const checked = checkedBreakers.has(key);
+                        const isActive = activeBreaker === key;
+                        const isGreen = greenBreakers.has(key);
                         const rowClass = `border-t border-border cursor-pointer transition-colors ${
-                          checked
+                          isActive
+                            ? "bg-amber-500/30 hover:bg-amber-500/35"
+                            : isGreen
                             ? "bg-green-500/25 hover:bg-green-500/30"
                             : "hover:bg-secondary/50"
                         }`;
                         if (b.singlePhase) {
                           return (
-                            <tr key={b.name} className={rowClass} onClick={() => toggleChecked(key)}>
+                            <tr key={b.name} className={rowClass} onClick={() => handleBreakerClick(key)}>
                               <td className="px-3 py-2 font-medium">{b.name}</td>
                               <td className="px-3 py-2 text-center tabular-nums" colSpan={3}>
                                 {v.value ?? "—"} <span className="text-xs text-muted-foreground">MPa</span>
@@ -667,7 +678,7 @@ export default function Sf6Round() {
                           );
                         }
                         return (
-                          <tr key={b.name} className={rowClass} onClick={() => toggleChecked(key)}>
+                          <tr key={b.name} className={rowClass} onClick={() => handleBreakerClick(key)}>
                             <td className="px-3 py-2 font-medium">{b.name}</td>
                             <td className="px-3 py-2 text-right tabular-nums">
                               {v.L1 ?? "—"} <span className="text-xs text-muted-foreground">MPa</span>
