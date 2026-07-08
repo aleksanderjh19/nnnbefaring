@@ -28,14 +28,6 @@ const tools: ToolCard[] = [
     path: "/drone/guide/airdata",
     ready: true,
   },
-  {
-    id: "ninox",
-    name: "Ninox 2",
-    description: "Termisk kamera – bruk og innstillinger",
-    icon: Thermometer,
-    path: "/drone/guide/ninox",
-    ready: true,
-  },
 ];
 
 const Drone = () => {
