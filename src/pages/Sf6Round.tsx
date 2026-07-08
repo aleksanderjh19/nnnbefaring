@@ -214,7 +214,7 @@ export default function Sf6Round() {
     const s = findSf6Station(r.station_id);
     if (!s) return;
     setStation(s);
-    setCheckedBreakers(new Set());
+    resetBreakerMarks();
     if (r.status === "in_progress") {
       // Gjenoppta redigering
       setActiveRoundId(r.id);
