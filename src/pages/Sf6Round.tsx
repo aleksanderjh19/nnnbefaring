@@ -192,7 +192,7 @@ export default function Sf6Round() {
     }));
   };
 
-  const canFinish = temperature.trim() !== "" && monthLabel.trim() !== "";
+  const canFinish = monthLabel.trim() !== "";
 
   const finishRound = async () => {
     if (!station || !user) return;
