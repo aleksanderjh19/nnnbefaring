@@ -197,6 +197,18 @@ export default function Sf6Round() {
 
   const finishRound = async () => {
     if (!station || !user) return;
+    if (monthLabel.trim() === "") {
+      toast({ title: "Måned mangler", description: "Fyll inn måned for å fullføre.", variant: "destructive" });
+      return;
+    }
+    const tempNum = temperature.trim() === "" ? null : Number(temperature.replace(",", "."));
+    if (tempNum === null || Number.isNaN(tempNum)) {
+      setTempError("Temperatur er påkrevd. Fyll inn.");
+      toast({ title: "Temperatur mangler", description: "Temperatur er påkrevd. Fyll inn.", variant: "destructive" });
+      document.getElementById("temp")?.focus();
+      return;
+    }
+    setTempError(null);
     const saved = await saveProgress({ status: "completed" });
     if (!saved) return;
     toast({ title: "Lagret", description: "SF6-runden er fullført." });
