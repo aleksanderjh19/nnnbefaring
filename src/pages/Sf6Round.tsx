@@ -72,6 +72,7 @@ export default function Sf6Round() {
   const [activeRoundId, setActiveRoundId] = useState<string | null>(null);
   const [monthLabel, setMonthLabel] = useState(currentMonthLabel());
   const [temperature, setTemperature] = useState<string>("");
+  const [tempError, setTempError] = useState<string | null>(null);
   const [measurements, setMeasurements] = useState<Sf6Measurements>({});
   const [activeLevel, setActiveLevel] = useState<Sf6Level | null>(null);
   const [viewingRound, setViewingRound] = useState<SavedRound | null>(null);
@@ -148,6 +149,7 @@ export default function Sf6Round() {
     setActiveRoundId((data as any).id);
     setMonthLabel(initialMonth);
     setTemperature("");
+    setTempError(null);
     setMeasurements(initialMeas);
     setView("round");
     fetchHistory();
@@ -196,6 +198,18 @@ export default function Sf6Round() {
 
   const finishRound = async () => {
     if (!station || !user) return;
+    if (monthLabel.trim() === "") {
+      toast({ title: "Måned mangler", description: "Fyll inn måned for å fullføre.", variant: "destructive" });
+      return;
+    }
+    const tempNum = temperature.trim() === "" ? null : Number(temperature.replace(",", "."));
+    if (tempNum === null || Number.isNaN(tempNum)) {
+      setTempError("Temperatur er påkrevd. Fyll inn.");
+      toast({ title: "Temperatur mangler", description: "Temperatur er påkrevd. Fyll inn.", variant: "destructive" });
+      document.getElementById("temp")?.focus();
+      return;
+    }
+    setTempError(null);
     const saved = await saveProgress({ status: "completed" });
     if (!saved) return;
     toast({ title: "Lagret", description: "SF6-runden er fullført." });
@@ -225,6 +239,7 @@ export default function Sf6Round() {
       setActiveRoundId(r.id);
       setMonthLabel(r.month_label);
       setTemperature(r.temperature == null ? "" : String(r.temperature));
+      setTempError(null);
       // Sørg for at alle brytere finnes i measurements-objektet
       const base = createEmptyMeasurements(s);
       const merged: Sf6Measurements = { ...base };
@@ -413,17 +428,23 @@ export default function Sf6Round() {
               />
             </div>
             <div>
-              <Label htmlFor="temp">Temperatur (°C)</Label>
+              <Label htmlFor="temp">Temperatur (°C) <span className="text-destructive">*</span></Label>
               <Input
                 id="temp"
                 type="number"
                 inputMode="decimal"
                 step="0.1"
                 value={temperature}
-                onChange={(e) => setTemperature(e.target.value)}
+                onChange={(e) => { setTemperature(e.target.value); setTempError(null); }}
                 onBlur={() => saveProgress()}
                 placeholder="f.eks. -5"
+                className={tempError ? "border-destructive focus-visible:ring-destructive" : ""}
               />
+              {tempError && (
+                <p className="mt-1 text-xs text-destructive flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" /> {tempError}
+                </p>
+              )}
             </div>
           </div>
           <p className="text-xs text-muted-foreground">
@@ -480,12 +501,13 @@ export default function Sf6Round() {
         <div className="fixed bottom-0 inset-x-0 border-t border-border bg-card">
           <div className="mx-auto max-w-2xl px-5 py-3 flex items-center gap-3">
             <div className="flex-1 text-xs text-muted-foreground">
-              {canFinish
+              {temperature.trim() === "" || Number.isNaN(Number(temperature.replace(",", ".")))
+                ? "Temperatur er påkrevd."
+                : canFinish
                 ? "Klar til å fullføre. Delvis utfylte nivåer lagres som de er."
                 : "Fyll inn måned for å fullføre"}
-
             </div>
-            <Button onClick={finishRound} disabled={!canFinish || saving} size="sm">
+            <Button onClick={finishRound} disabled={saving} size="sm">
               <Check className="mr-1.5 h-4 w-4" /> Fullfør runde
             </Button>
           </div>
