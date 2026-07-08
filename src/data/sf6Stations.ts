@@ -62,6 +62,30 @@ export const sf6Stations: Sf6Station[] = [
       },
     ],
   },
+  {
+    id: "kolsvik",
+    name: "Kolsvik",
+    levels: [
+      {
+        kV: "300",
+        breakers: [
+          { name: "NS1BE" },
+          { name: "RT3BE" },
+          { name: "RT3AE" },
+          { name: "NS1AE" },
+        ],
+      },
+      {
+        kV: "132",
+        breakers: [
+          { name: "L1E", singlePhase: true },
+          { name: "Å1E", singlePhase: true },
+          { name: "P1RT3", singlePhase: true },
+          { name: "RT3", singlePhase: true },
+        ],
+      },
+    ],
+  },
 ];
 
 export function findSf6Station(id: string): Sf6Station | undefined {
