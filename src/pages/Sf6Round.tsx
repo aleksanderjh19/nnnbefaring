@@ -56,6 +56,11 @@ function nameFromEmail(email?: string): string {
     .join(" ");
 }
 
+function breakerUnit(kV: string, breakerName: string): string {
+  if (kV === "132" && breakerName === "T7E") return "Bar";
+  return "MPa";
+}
+
 export default function Sf6Round() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -509,7 +514,7 @@ export default function Sf6Round() {
 
         <main className="mx-auto max-w-2xl px-5 py-6">
           <p className="text-xs text-muted-foreground mb-3">
-            Fyll inn SF6-nivå i MPa per fase (L1, L2, L3) for hver bryter. Du kan fullføre steget selv om noen felt er tomme.
+            Fyll inn SF6-nivå per fase (L1, L2, L3) for hver bryter. Benevnelse er MPa, med unntak av T7E (132 kV) som bruker Bar. Du kan fullføre steget selv om noen felt er tomme.
           </p>
           <div className="space-y-2">
             {activeLevel.breakers.map((b) => {
@@ -539,7 +544,7 @@ export default function Sf6Round() {
                           className="pr-14"
                         />
                         <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted-foreground/60">
-                          MPa
+                          {breakerUnit(activeLevel.kV, b.name)}
                         </span>
                       </div>
                     </div>
@@ -559,7 +564,7 @@ export default function Sf6Round() {
                               className="pr-12"
                             />
                             <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-xs text-muted-foreground/60">
-                              MPa
+                              {breakerUnit(activeLevel.kV, b.name)}
                             </span>
                           </div>
                         </div>
@@ -672,7 +677,7 @@ export default function Sf6Round() {
                             <tr key={b.name} className={rowClass} onClick={() => handleBreakerClick(key)}>
                               <td className="px-3 py-2 font-medium">{b.name}</td>
                               <td className="px-3 py-2 text-center tabular-nums" colSpan={3}>
-                                {v.value ?? "—"} <span className="text-xs text-muted-foreground">MPa</span>
+                                {v.value ?? "—"} <span className="text-xs text-muted-foreground">{breakerUnit(lvl.kV, b.name)}</span>
                               </td>
                             </tr>
                           );
@@ -681,13 +686,13 @@ export default function Sf6Round() {
                           <tr key={b.name} className={rowClass} onClick={() => handleBreakerClick(key)}>
                             <td className="px-3 py-2 font-medium">{b.name}</td>
                             <td className="px-3 py-2 text-right tabular-nums">
-                              {v.L1 ?? "—"} <span className="text-xs text-muted-foreground">MPa</span>
+                              {v.L1 ?? "—"} <span className="text-xs text-muted-foreground">{breakerUnit(lvl.kV, b.name)}</span>
                             </td>
                             <td className="px-3 py-2 text-right tabular-nums">
-                              {v.L2 ?? "—"} <span className="text-xs text-muted-foreground">MPa</span>
+                              {v.L2 ?? "—"} <span className="text-xs text-muted-foreground">{breakerUnit(lvl.kV, b.name)}</span>
                             </td>
                             <td className="px-3 py-2 text-right tabular-nums">
-                              {v.L3 ?? "—"} <span className="text-xs text-muted-foreground">MPa</span>
+                              {v.L3 ?? "—"} <span className="text-xs text-muted-foreground">{breakerUnit(lvl.kV, b.name)}</span>
                             </td>
                           </tr>
                         );
@@ -695,7 +700,7 @@ export default function Sf6Round() {
                     </tbody>
                   </table>
                 </div>
-                <p className="mt-1 text-[10px] text-muted-foreground text-right">Verdier i {r.unit}</p>
+                <p className="mt-1 text-[10px] text-muted-foreground text-right">Verdier i MPa{lvl.breakers.some((b) => b.name === "T7E") ? " (T7E: Bar)" : ""}</p>
               </div>
             );
           })}
