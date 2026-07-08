@@ -153,6 +153,7 @@ export default function Sf6Round() {
     setViewingRound(r);
     const s = findSf6Station(r.station_id);
     if (s) setStation(s);
+    setCheckedBreakers(new Set());
     setView("view");
   };
 
