@@ -46,9 +46,9 @@ const Dashboard = () => {
   useEffect(() => { document.title = "NNHH Verktøy"; }, []);
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
-  const { isVisible, toggle, loaded } = useFeatureFlags("dashboard");
+  const { isVisible, isVisibleForUser, toggle, loaded } = useFeatureFlags("dashboard");
 
-  const visibleTools = tools.filter((t) => isAdmin || isVisible(t.id));
+  const visibleTools = tools.filter((t) => isVisibleForUser(t.id, isAdmin));
 
   return (
     <div className="min-h-screen bg-background">

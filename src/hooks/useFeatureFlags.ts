@@ -16,27 +16,51 @@ export function useFeatureFlags(scope: string) {
 
   useEffect(() => {
     let active = true;
-    supabase
-      .from("feature_flags")
-      .select("key, enabled")
-      .like("key", `${prefix}%`)
-      .then(({ data }) => {
-        if (!active) return;
-        const map: Record<string, boolean> = {};
-        (data ?? []).forEach((f) => {
-          map[f.key.slice(prefix.length)] = f.enabled;
+    const load = () => {
+      supabase
+        .from("feature_flags")
+        .select("key, enabled")
+        .like("key", `${prefix}%`)
+        .then(({ data }) => {
+          if (!active) return;
+          const map: Record<string, boolean> = {};
+          (data ?? []).forEach((f) => {
+            map[f.key.slice(prefix.length)] = f.enabled;
+          });
+          setFlags(map);
+          setLoaded(true);
         });
-        setFlags(map);
-        setLoaded(true);
-      });
+    };
+    load();
+
+    const channel = supabase
+      .channel(`feature_flags:${prefix}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "feature_flags" },
+        () => load()
+      )
+      .subscribe();
+
     return () => {
       active = false;
+      supabase.removeChannel(channel);
     };
   }, [prefix]);
 
   const isVisible = useCallback(
     (cardId: string) => flags[cardId] !== false,
     [flags]
+  );
+
+  /** For non-admin users: hide until loaded to avoid a flash of hidden cards. */
+  const isVisibleForUser = useCallback(
+    (cardId: string, isAdmin: boolean) => {
+      if (isAdmin) return true;
+      if (!loaded) return false;
+      return flags[cardId] !== false;
+    },
+    [flags, loaded]
   );
 
   const toggle = useCallback(
@@ -61,5 +85,5 @@ export function useFeatureFlags(scope: string) {
     [flags, prefix]
   );
 
-  return { isVisible, toggle, loaded };
+  return { isVisible, isVisibleForUser, toggle, loaded };
 }

@@ -1,28 +1,36 @@
-## SF6 fremvisning – aktiv (oransj) vs fullført (grønn) bryter
+## Problem
 
-### Ny oppførsel
+Brukere ser fortsatt kort som er skjult. Sannsynlige årsaker:
 
-To states på hver bryter-rad i fremvisningen:
-- **Aktiv** (oransj bakgrunn): bryteren du sist trykket på – kun én om gangen.
-- **Fullført** (grønn bakgrunn): brytere du har trykket på tidligere.
+1. **Flash før flagg er lastet**: `isVisible()` returnerer `true` som standard mens `feature_flags` fortsatt lastes fra databasen. Ikke-admin brukere ser derfor kortene et kort øyeblikk (eller varig hvis nettverket henger).
+2. **Inkonsistent filtrering på Dashboard, Stasjon, Ledning, Drone og Dokumentert opplæring**: Alle bruker samme mønster, men filteret venter ikke på `loaded`-flagget før det avgjør synlighet for brukere.
+3. **`realtime` mangler**: Hvis admin skjuler et kort mens en bruker er logget inn, ser brukeren fortsatt kortet til de laster siden på nytt.
 
-Regler når du trykker på en bryter-rad:
-1. Hvis en annen bryter er aktiv fra før → den blir grønn (fullført).
-2. Bryteren du nettopp trykket på blir aktiv (oransj).
-3. Hvis bryteren allerede var grønn, fjernes den grønne markeringen samtidig som den blir oransj.
-4. Trykk på den samme bryteren som allerede er aktiv gjør ingenting (den forblir oransj).
+## Løsning
 
-Slik kan montøren jobbe seg gjennom lista én bryter av gangen: aktiv oransj = «denne holder jeg på å legge inn», grønn = «denne er ferdig lagt inn i systemet».
+### 1. Fiks default-tilstand i `useFeatureFlags`
+- Endre `isVisible(cardId)` slik at den returnerer `false` (skjult) for ikke-admin *inntil* flaggene faktisk er lastet, i stedet for å defaulte til synlig.
+- Eller: la hooken returnere `loaded`, og la kall-stedene skjule kortene mens `loaded === false` for ikke-admin.
 
-### Teknisk
+Valgt tilnærming: legg til en `isVisibleForUser(cardId, isAdmin)` helper i hooken som returnerer:
+- `true` alltid for admin
+- `false` hvis `!loaded` (unngår flash)
+- `flags[cardId] !== false` når lastet
 
-I `src/pages/Sf6Round.tsx`:
-- Erstatt `checkedBreakers: Set<string>` med to states: `greenBreakers: Set<string>` og `activeBreaker: string | null`.
-- Ny `handleBreakerClick(key)` implementerer reglene over.
-- Reset begge når man åpner en ny runde eller lukker fremvisning (samme steder som i dag).
-- Rad-klasser:
-  - active → `bg-amber-500/25 hover:bg-amber-500/30`
-  - green → `bg-green-500/25 hover:bg-green-500/30`
-  - annet → `hover:bg-secondary/50`
+### 2. Bruk helperen konsekvent
+Oppdater filtreringen i:
+- `src/components/ToolCardList.tsx` (Stasjon, Ledning, Drone)
+- `src/pages/Dashboard.tsx`
+- `src/pages/TrainingHome.tsx` (fire kort: se-min, ansattes, legg-til, katalog)
 
-Ingen DB-endringer, ingen andre filer.
+Slik at brukere aldri ser et kort før vi vet om det er skjult.
+
+### 3. Realtime-oppdatering (valgfritt men anbefalt)
+Abonner på `postgres_changes` på `feature_flags`-tabellen i `useFeatureFlags`, slik at brukere som er innlogget når admin skjuler et kort får kortet fjernet umiddelbart uten refresh.
+
+## Verifisering
+
+Etter endring, test med Playwright:
+1. Logg inn som admin, skjul et kort på Dashboard.
+2. Bytt til bruker-visning via DevAdminToggle → kortet skal være borte umiddelbart.
+3. Reload som bruker → kort skal aldri "blinke" synlig før det forsvinner.
