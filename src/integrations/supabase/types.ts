@@ -167,6 +167,7 @@ export type Database = {
       sf6_round_photos: {
         Row: {
           breaker_name: string
+          comment: string | null
           created_at: string
           created_by: string
           id: string
@@ -176,6 +177,7 @@ export type Database = {
         }
         Insert: {
           breaker_name: string
+          comment?: string | null
           created_at?: string
           created_by: string
           id?: string
@@ -185,6 +187,7 @@ export type Database = {
         }
         Update: {
           breaker_name?: string
+          comment?: string | null
           created_at?: string
           created_by?: string
           id?: string

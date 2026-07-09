@@ -1,0 +1,1 @@
+ALTER TABLE public.sf6_round_photos ADD COLUMN IF NOT EXISTS comment text;
