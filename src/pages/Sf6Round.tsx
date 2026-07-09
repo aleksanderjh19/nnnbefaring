@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ArrowLeft, Check, Wind, Plus, History, Trash2, ChevronRight, AlertCircle,
+  ArrowLeft, Check, Wind, Plus, History, Trash2, ChevronRight, AlertCircle, Camera,
 } from "lucide-react";
+import Sf6BreakerPhotos, { type Sf6PhotoRow } from "@/components/sf6/Sf6BreakerPhotos";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
