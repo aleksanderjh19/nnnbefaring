@@ -80,8 +80,8 @@ export const sf6Stations: Sf6Station[] = [
         breakers: [
           { name: "L1E", singlePhase: true },
           { name: "Å1E", singlePhase: true },
-          { name: "P1RT3", singlePhase: true },
-          { name: "RT3", singlePhase: true },
+          { name: "P1RT3E", singlePhase: true },
+          { name: "RT3E", singlePhase: true },
         ],
       },
     ],
