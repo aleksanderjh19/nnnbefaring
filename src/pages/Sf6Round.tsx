@@ -294,6 +294,27 @@ export default function Sf6Round() {
     setView("round");
   };
 
+  const activeRoundIdForPhotos = activeRoundId ?? viewingRound?.id ?? null;
+  const currentStationName = station?.name ?? viewingRound?.station_name ?? "";
+
+  const renderPhotoDialog = (readOnly: boolean) => (
+    <Sf6BreakerPhotos
+      open={photoDialog !== null}
+      onOpenChange={(o) => { if (!o) setPhotoDialog(null); }}
+      roundId={activeRoundIdForPhotos}
+      stationName={currentStationName}
+      voltageLevel={photoDialog?.kV ?? ""}
+      breakerName={photoDialog?.breaker ?? ""}
+      readOnly={readOnly}
+      photos={photoDialog ? (photos[photosKey(photoDialog.kV, photoDialog.breaker)] ?? []) : []}
+      onPhotosChange={(rows) => {
+        if (!photoDialog) return;
+        const k = photosKey(photoDialog.kV, photoDialog.breaker);
+        setPhotos((prev) => ({ ...prev, [k]: rows }));
+      }}
+    />
+  );
+
   // ─── LIST VIEW ──────────────────────────────────────────
   if (view === "list") {
     return (
