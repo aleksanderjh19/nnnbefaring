@@ -144,7 +144,7 @@ const TrainingHome = () => {
         {/* Big action buttons */}
         {myEmployee && (
           <div className="space-y-4">
-            {(isAdmin || flags.isVisible("se-min")) && (
+            {flags.isVisibleForUser("se-min", isAdmin) && (
               <div className="flex items-stretch gap-3">
                 <CardToggle cardId="se-min" />
                 <button
@@ -186,7 +186,7 @@ const TrainingHome = () => {
               </div>
             )}
 
-            {(isAdmin || flags.isVisible("legg-til")) && (
+            {flags.isVisibleForUser("legg-til", isAdmin) && (
               <div className="flex items-stretch gap-3">
                 <CardToggle cardId="legg-til" />
                 <button
@@ -205,7 +205,7 @@ const TrainingHome = () => {
               </div>
             )}
 
-            {(isAdmin || flags.isVisible("katalog")) && (
+            {flags.isVisibleForUser("katalog", isAdmin) && (
               <div className="flex items-stretch gap-3">
                 <CardToggle cardId="katalog" />
                 <button
