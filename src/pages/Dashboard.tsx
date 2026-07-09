@@ -46,9 +46,7 @@ const Dashboard = () => {
   useEffect(() => { document.title = "NNHH Verktøy"; }, []);
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
-  const { isVisible, isVisibleForUser, toggle, loaded } = useFeatureFlags("dashboard");
-
-  const visibleTools = tools.filter((t) => isVisibleForUser(t.id, isAdmin));
+  const { isVisible, toggle, loaded } = useFeatureFlags("dashboard");
 
   return (
     <div className="min-h-screen bg-background">
@@ -80,8 +78,10 @@ const Dashboard = () => {
           Verktøy
         </h2>
         <div className="space-y-3">
-          {visibleTools.map((tool) => {
-            const hidden = !isVisible(tool.id);
+          {tools.map((tool) => {
+            const hidden = loaded ? !isVisible(tool.id) : false;
+            const blocked = hidden && !isAdmin;
+            const disabled = !tool.ready || blocked;
             return (
               <div key={tool.id} className="flex items-stretch gap-2">
                 {isAdmin && loaded && (
@@ -104,8 +104,8 @@ const Dashboard = () => {
                   </button>
                 )}
                 <button
-                  onClick={() => tool.ready && navigate(tool.path)}
-                  disabled={!tool.ready}
+                  onClick={() => !disabled && navigate(tool.path)}
+                  disabled={disabled}
                   className={`group flex w-full items-center gap-4 rounded-xl border border-border bg-card px-5 py-5 text-left transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-50 ${
                     hidden ? "opacity-60" : ""
                   }`}
@@ -132,7 +132,7 @@ const Dashboard = () => {
                       OBS! Under bygging
                     </span>
                   )}
-                  {tool.ready && (
+                  {tool.ready && !blocked && (
                     <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
                   )}
                 </button>
