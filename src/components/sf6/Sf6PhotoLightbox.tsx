@@ -151,6 +151,12 @@ export default function Sf6PhotoLightbox({ items, index, open, onOpenChange, onI
           </>
         )}
 
+        {current.caption && (
+          <div className="absolute bottom-16 left-1/2 z-50 -translate-x-1/2 max-w-[90vw] rounded-lg bg-black/70 px-4 py-2 text-sm text-white text-center whitespace-pre-wrap">
+            {current.caption}
+          </div>
+        )}
+
         <div className="flex h-full w-full items-center justify-center p-4 overflow-hidden">
           <img
             src={current.url}
