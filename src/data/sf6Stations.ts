@@ -69,10 +69,14 @@ export const sf6Stations: Sf6Station[] = [
       {
         kV: "300",
         breakers: [
-          { name: "NS1BE" },
-          { name: "RT3BE" },
-          { name: "RT3AE" },
-          { name: "NS1AE" },
+          { name: "NS1BEA" },
+          { name: "RT3BEA" },
+          { name: "RT3AEA" },
+          { name: "NS1AEA" },
+          { name: "NS1BEB" },
+          { name: "RT3BEB" },
+          { name: "RT3AEB" },
+          { name: "NS1AEB" },
         ],
       },
       {
