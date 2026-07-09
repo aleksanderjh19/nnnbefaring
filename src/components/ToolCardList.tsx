@@ -24,10 +24,10 @@ type Props = {
 const ToolCardList = ({ heading, tools, emptyText, visibilityScope }: Props) => {
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
-  const { isVisible, toggle, loaded } = useFeatureFlags(visibilityScope ?? "");
+  const { isVisible, isVisibleForUser, toggle, loaded } = useFeatureFlags(visibilityScope ?? "");
 
   const filtered = visibilityScope
-    ? tools.filter((t) => isAdmin || isVisible(t.id))
+    ? tools.filter((t) => isVisibleForUser(t.id, isAdmin))
     : tools;
 
   return (
