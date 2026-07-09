@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, BookOpen, ChevronRight, ClipboardPlus, User, Users, Wrench } from "lucide-react";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
+import { ArrowLeft, BookOpen, ChevronRight, ClipboardPlus, Eye, EyeOff, User, Users, Wrench } from "lucide-react";
 import heroVideo from "@/assets/hero-video.mp4";
 interface Employee {
   id: string;
