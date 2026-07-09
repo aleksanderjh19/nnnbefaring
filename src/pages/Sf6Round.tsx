@@ -571,6 +571,8 @@ export default function Sf6Round() {
           <div className="space-y-2">
             {activeLevel.breakers.map((b) => {
               const vals = measurements[activeLevel.kV]?.[b.name] ?? {};
+              const pKey = photosKey(activeLevel.kV, b.name);
+              const bPhotos = photos[pKey] ?? [];
               return (
                 <div
                   key={b.name}
@@ -582,47 +584,69 @@ export default function Sf6Round() {
                       {b.singlePhase ? "Enfase" : "3-fase"}
                     </span>
                   </div>
-                  {b.singlePhase ? (
-                    <div>
-                      <Label className="text-xs mb-1 block">Trykk</Label>
-                      <div className="relative">
-                        <Input
-                          type="number"
-                          inputMode="decimal"
-                          step="0.01"
-                          value={vals.value ?? ""}
-                          onChange={(e) => setPhase(activeLevel.kV, b.name, "value", e.target.value)}
-                          placeholder="0.00"
-                          className="pr-14"
-                        />
-                        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted-foreground/60">
-                          {breakerUnit(activeLevel.kV, b.name)}
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-3 gap-2">
-                      {(["L1", "L2", "L3"] as const).map((p) => (
-                        <div key={p}>
-                          <Label className="text-xs mb-1 block">{p}</Label>
+                  <div className="flex items-end gap-3">
+                    <div className="flex-1 min-w-0">
+                      {b.singlePhase ? (
+                        <div>
+                          <Label className="text-xs mb-1 block">Trykk</Label>
                           <div className="relative">
                             <Input
                               type="number"
                               inputMode="decimal"
                               step="0.01"
-                              value={vals[p] ?? ""}
-                              onChange={(e) => setPhase(activeLevel.kV, b.name, p, e.target.value)}
+                              value={vals.value ?? ""}
+                              onChange={(e) => setPhase(activeLevel.kV, b.name, "value", e.target.value)}
                               placeholder="0.00"
-                              className="pr-12"
+                              className="pr-14"
                             />
-                            <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-xs text-muted-foreground/60">
+                            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted-foreground/60">
                               {breakerUnit(activeLevel.kV, b.name)}
                             </span>
                           </div>
                         </div>
-                      ))}
+                      ) : (
+                        <div className="grid grid-cols-3 gap-2">
+                          {(["L1", "L2", "L3"] as const).map((p) => (
+                            <div key={p}>
+                              <Label className="text-xs mb-1 block">{p}</Label>
+                              <div className="relative">
+                                <Input
+                                  type="number"
+                                  inputMode="decimal"
+                                  step="0.01"
+                                  value={vals[p] ?? ""}
+                                  onChange={(e) => setPhase(activeLevel.kV, b.name, p, e.target.value)}
+                                  placeholder="0.00"
+                                  className="pr-12"
+                                />
+                                <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-xs text-muted-foreground/60">
+                                  {breakerUnit(activeLevel.kV, b.name)}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  )}
+                    <button
+                      type="button"
+                      onClick={() => setPhotoDialog({ kV: activeLevel.kV, breaker: b.name })}
+                      className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-md border transition-colors ${
+                        bPhotos.length > 0
+                          ? "border-primary/50 bg-primary/10 text-primary hover:bg-primary/15"
+                          : "border-border bg-background text-muted-foreground hover:bg-secondary hover:text-foreground"
+                      }`}
+                      aria-label="Bilder"
+                      title="Legg til / se bilder"
+                    >
+                      <Camera className="h-4 w-4" />
+                      {bPhotos.length > 0 && (
+                        <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                          {bPhotos.length}
+                        </span>
+                      )}
+                    </button>
+                  </div>
                 </div>
               );
             })}
