@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Camera, Upload, Trash2, Loader2, ImageOff } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Camera, Upload, Trash2, Loader2, ImageOff, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { compressImageToJpeg } from "@/lib/imageCompress";
@@ -11,6 +12,7 @@ export interface Sf6PhotoRow {
   id: string;
   storage_path: string;
   created_at: string;
+  comment?: string | null;
 }
 
 interface Props {
@@ -22,7 +24,6 @@ interface Props {
   breakerName: string;
   readOnly?: boolean;
   photos: Sf6PhotoRow[];
-  /** Called with the updated list after add/delete so caller can update cache. */
   onPhotosChange: (rows: Sf6PhotoRow[]) => void;
 }
 
@@ -40,6 +41,8 @@ export default function Sf6BreakerPhotos({
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [uploading, setUploading] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [savingId, setSavingId] = useState<string | null>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -47,56 +50,89 @@ export default function Sf6BreakerPhotos({
     const entries = await Promise.all(
       rows.map(async (r) => [r.id, (await signUrl(r.storage_path)) ?? ""] as const)
     );
-    setUrls(Object.fromEntries(entries));
+    setUrls((prev) => ({ ...prev, ...Object.fromEntries(entries) }));
   }, []);
 
   useEffect(() => {
-    if (open) loadUrls(photos);
+    if (open) {
+      loadUrls(photos);
+      setDrafts(Object.fromEntries(photos.map((p) => [p.id, p.comment ?? ""])));
+    }
   }, [open, photos, loadUrls]);
 
-  const handleFiles = async (files: FileList | null) => {
-    if (!files || !roundId) return;
-    setUploading(true);
-    const { data: sess } = await supabase.auth.getUser();
-    const uid = sess.user?.id;
-    if (!uid) {
-      toast({ title: "Ikke innlogget", variant: "destructive" });
-      setUploading(false);
-      return;
-    }
-    const inserted: Sf6PhotoRow[] = [];
-    for (const file of Array.from(files)) {
-      try {
-        const blob = await compressImageToJpeg(file);
-        const rand = Math.random().toString(36).slice(2, 8);
-        const path = `${roundId}/${voltageLevel}/${breakerName}/${Date.now()}-${rand}.jpg`;
-        const { error: upErr } = await supabase.storage
-          .from(BUCKET)
-          .upload(path, blob, { contentType: "image/jpeg", upsert: false });
-        if (upErr) throw upErr;
-        const { data: row, error: dbErr } = await supabase
-          .from("sf6_round_photos")
-          .insert({
-            round_id: roundId,
-            voltage_level: voltageLevel,
-            breaker_name: breakerName,
-            storage_path: path,
-            created_by: uid,
-          })
-          .select("id, storage_path, created_at")
-          .single();
-        if (dbErr) throw dbErr;
-        if (row) inserted.push(row as Sf6PhotoRow);
-      } catch (e: any) {
-        toast({ title: "Feil ved opplasting", description: e.message ?? String(e), variant: "destructive" });
+  const uploadFiles = useCallback(
+    async (fileArr: File[]) => {
+      if (!fileArr.length) return;
+      if (!roundId) {
+        toast({
+          title: "Lagre runden først",
+          description: "Runden må ha en id før du kan legge til bilder.",
+          variant: "destructive",
+        });
+        return;
       }
-    }
-    setUploading(false);
-    if (inserted.length) {
-      const merged = [...photos, ...inserted];
-      onPhotosChange(merged);
-      toast({ title: "Lagt til", description: `${inserted.length} bilde(r) lastet opp.` });
-    }
+      setUploading(true);
+      const { data: sess } = await supabase.auth.getUser();
+      const uid = sess.user?.id;
+      if (!uid) {
+        toast({ title: "Ikke innlogget", variant: "destructive" });
+        setUploading(false);
+        return;
+      }
+      const inserted: Sf6PhotoRow[] = [];
+      for (const file of fileArr) {
+        try {
+          let blob: Blob;
+          try {
+            blob = await compressImageToJpeg(file);
+          } catch {
+            // Fallback: last opp original hvis komprimering ikke støttes (f.eks. HEIC)
+            blob = file;
+          }
+          const rand = Math.random().toString(36).slice(2, 8);
+          const path = `${roundId}/${voltageLevel}/${breakerName}/${Date.now()}-${rand}.jpg`;
+          const { error: upErr } = await supabase.storage
+            .from(BUCKET)
+            .upload(path, blob, {
+              contentType: blob.type || "image/jpeg",
+              upsert: false,
+            });
+          if (upErr) throw upErr;
+          const { data: row, error: dbErr } = await supabase
+            .from("sf6_round_photos")
+            .insert({
+              round_id: roundId,
+              voltage_level: voltageLevel,
+              breaker_name: breakerName,
+              storage_path: path,
+              created_by: uid,
+            })
+            .select("id, storage_path, created_at, comment")
+            .single();
+          if (dbErr) throw dbErr;
+          if (row) inserted.push(row as Sf6PhotoRow);
+        } catch (e: any) {
+          toast({
+            title: "Feil ved opplasting",
+            description: e?.message ?? String(e),
+            variant: "destructive",
+          });
+        }
+      }
+      setUploading(false);
+      if (inserted.length) {
+        onPhotosChange([...photos, ...inserted]);
+        toast({ title: "Lagt til", description: `${inserted.length} bilde(r) lastet opp.` });
+      }
+    },
+    [roundId, voltageLevel, breakerName, photos, onPhotosChange]
+  );
+
+  const onInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Snapshot files BEFORE resetting the input value (which nulls the FileList).
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    e.target.value = "";
+    void uploadFiles(files);
   };
 
   const deletePhoto = async (row: Sf6PhotoRow) => {
@@ -104,6 +140,22 @@ export default function Sf6BreakerPhotos({
     await supabase.from("sf6_round_photos").delete().eq("id", row.id);
     onPhotosChange(photos.filter((p) => p.id !== row.id));
     toast({ title: "Slettet" });
+  };
+
+  const saveComment = async (row: Sf6PhotoRow) => {
+    const next = drafts[row.id] ?? "";
+    if ((row.comment ?? "") === next) return;
+    setSavingId(row.id);
+    const { error } = await supabase
+      .from("sf6_round_photos")
+      .update({ comment: next || null })
+      .eq("id", row.id);
+    setSavingId(null);
+    if (error) {
+      toast({ title: "Feil", description: "Kunne ikke lagre kommentar.", variant: "destructive" });
+      return;
+    }
+    onPhotosChange(photos.map((p) => (p.id === row.id ? { ...p, comment: next || null } : p)));
   };
 
   const filenameFor = (idx: number) =>
@@ -114,6 +166,7 @@ export default function Sf6BreakerPhotos({
   const lightboxItems: LightboxItem[] = photos.map((p, i) => ({
     url: urls[p.id] || "",
     filename: filenameFor(i),
+    caption: p.comment ?? "",
   }));
 
   return (
@@ -133,35 +186,68 @@ export default function Sf6BreakerPhotos({
               <p className="text-sm">Ingen bilder ennå.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-2 max-h-[50vh] overflow-y-auto">
+            <div className="space-y-3 max-h-[55vh] overflow-y-auto pr-1">
               {photos.map((p, i) => (
-                <div key={p.id} className="relative aspect-square rounded-md overflow-hidden bg-muted group">
-                  {urls[p.id] ? (
-                    <button
-                      type="button"
-                      onClick={() => setLightboxIndex(i)}
-                      className="block h-full w-full"
-                    >
-                      <img
-                        src={urls[p.id]}
-                        alt={`Bilde ${i + 1}`}
-                        className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                <div key={p.id} className="flex gap-3 rounded-lg border border-border p-2">
+                  <div className="relative h-24 w-24 shrink-0 rounded-md overflow-hidden bg-muted">
+                    {urls[p.id] ? (
+                      <button
+                        type="button"
+                        onClick={() => setLightboxIndex(i)}
+                        className="block h-full w-full"
+                      >
+                        <img
+                          src={urls[p.id]}
+                          alt={p.comment || `Bilde ${i + 1}`}
+                          className="h-full w-full object-cover"
+                        />
+                      </button>
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center">
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                    {readOnly ? (
+                      <p className="text-sm text-foreground whitespace-pre-wrap min-h-[1.25rem]">
+                        {p.comment || <span className="text-muted-foreground italic">Ingen kommentar</span>}
+                      </p>
+                    ) : (
+                      <Textarea
+                        value={drafts[p.id] ?? ""}
+                        onChange={(e) =>
+                          setDrafts((prev) => ({ ...prev, [p.id]: e.target.value }))
+                        }
+                        onBlur={() => saveComment(p)}
+                        placeholder="Kommentar (valgfritt)"
+                        rows={2}
+                        className="text-sm resize-none"
                       />
-                    </button>
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center">
-                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    )}
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-muted-foreground">
+                        {new Date(p.created_at).toLocaleString("no-NO")}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        {savingId === p.id && (
+                          <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                        )}
+                        {!readOnly && savingId !== p.id && (drafts[p.id] ?? "") === (p.comment ?? "") && (p.comment ?? "") !== "" && (
+                          <Check className="h-3 w-3 text-primary" />
+                        )}
+                        {!readOnly && (
+                          <button
+                            onClick={() => deletePhoto(p)}
+                            className="text-muted-foreground hover:text-destructive"
+                            aria-label="Slett bilde"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  )}
-                  {!readOnly && (
-                    <button
-                      onClick={() => deletePhoto(p)}
-                      className="absolute top-1 right-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 focus:opacity-100 hover:bg-destructive"
-                      aria-label="Slett bilde"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -192,7 +278,7 @@ export default function Sf6BreakerPhotos({
                 accept="image/*"
                 capture="environment"
                 className="hidden"
-                onChange={(e) => { handleFiles(e.target.files); e.target.value = ""; }}
+                onChange={onInputChange}
               />
               <input
                 ref={fileRef}
@@ -200,7 +286,7 @@ export default function Sf6BreakerPhotos({
                 accept="image/*"
                 multiple
                 className="hidden"
-                onChange={(e) => { handleFiles(e.target.files); e.target.value = ""; }}
+                onChange={onInputChange}
               />
             </div>
           )}

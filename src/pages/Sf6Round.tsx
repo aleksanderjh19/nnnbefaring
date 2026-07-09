@@ -92,7 +92,7 @@ export default function Sf6Round() {
   const loadPhotos = useCallback(async (roundId: string) => {
     const { data } = await supabase
       .from("sf6_round_photos")
-      .select("id, voltage_level, breaker_name, storage_path, created_at")
+      .select("id, voltage_level, breaker_name, storage_path, created_at, comment")
       .eq("round_id", roundId)
       .order("created_at", { ascending: true });
     const grouped: Record<string, Sf6PhotoRow[]> = {};
@@ -102,6 +102,7 @@ export default function Sf6Round() {
         id: row.id,
         storage_path: row.storage_path,
         created_at: row.created_at,
+        comment: row.comment ?? null,
       });
     }
     setPhotos(grouped);
