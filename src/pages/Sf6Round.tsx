@@ -733,6 +733,9 @@ export default function Sf6Round() {
                             <th className="text-right px-3 py-2 font-medium text-xs uppercase tracking-wider text-muted-foreground">L3</th>
                           </>
                         )}
+                        <th className="text-center px-3 py-2 font-medium text-xs uppercase tracking-wider text-muted-foreground w-14">
+                          Bilder
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -741,6 +744,7 @@ export default function Sf6Round() {
                         const key = `${lvl.kV}::${b.name}`;
                         const isActive = activeBreaker === key;
                         const isGreen = greenBreakers.has(key);
+                        const bPhotos = photos[photosKey(lvl.kV, b.name)] ?? [];
                         const rowClass = `border-t border-border cursor-pointer transition-colors ${
                           isActive
                             ? "bg-amber-500/30 hover:bg-amber-500/35"
@@ -748,6 +752,30 @@ export default function Sf6Round() {
                             ? "bg-green-500/25 hover:bg-green-500/30"
                             : "hover:bg-secondary/50"
                         }`;
+                        const photoCell = (
+                          <td className="px-2 py-2 text-center">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPhotoDialog({ kV: lvl.kV, breaker: b.name });
+                              }}
+                              className={`relative inline-flex h-8 w-8 items-center justify-center rounded-md border transition-colors ${
+                                bPhotos.length > 0
+                                  ? "border-primary/50 bg-primary/10 text-primary hover:bg-primary/15"
+                                  : "border-border bg-background text-muted-foreground hover:bg-secondary hover:text-foreground"
+                              }`}
+                              aria-label="Se bilder"
+                            >
+                              <Camera className="h-3.5 w-3.5" />
+                              {bPhotos.length > 0 && (
+                                <span className="absolute -top-1 -right-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
+                                  {bPhotos.length}
+                                </span>
+                              )}
+                            </button>
+                          </td>
+                        );
                         if (b.singlePhase) {
                           return (
                             <tr key={b.name} className={rowClass} onClick={() => handleBreakerClick(key)}>
@@ -755,6 +783,7 @@ export default function Sf6Round() {
                               <td className="px-3 py-2 text-center tabular-nums" colSpan={3}>
                                 {v.value ?? "—"} <span className="text-xs text-muted-foreground">{breakerUnit(lvl.kV, b.name)}</span>
                               </td>
+                              {photoCell}
                             </tr>
                           );
                         }
@@ -770,6 +799,7 @@ export default function Sf6Round() {
                             <td className="px-3 py-2 text-right tabular-nums">
                               {v.L3 ?? "—"} <span className="text-xs text-muted-foreground">{breakerUnit(lvl.kV, b.name)}</span>
                             </td>
+                            {photoCell}
                           </tr>
                         );
                       })}
