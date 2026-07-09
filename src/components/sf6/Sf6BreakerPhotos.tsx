@@ -294,6 +294,12 @@ export default function Sf6BreakerPhotos({
               />
             </div>
           )}
+
+          <DialogFooter className="pt-2">
+            <Button onClick={() => onOpenChange(false)} disabled={uploading} className="w-full sm:w-auto">
+              OK, ferdig
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
