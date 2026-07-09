@@ -5,6 +5,7 @@ import { X, Download, ChevronLeft, ChevronRight } from "lucide-react";
 export interface LightboxItem {
   url: string;
   filename: string;
+  caption?: string;
 }
 
 interface Props {
