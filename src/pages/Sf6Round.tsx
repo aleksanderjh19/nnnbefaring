@@ -83,6 +83,30 @@ export default function Sf6Round() {
   const [activeBreaker, setActiveBreaker] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<SavedRound | null>(null);
 
+  // Photos keyed by "{kV}::{breakerName}"
+  const [photos, setPhotos] = useState<Record<string, Sf6PhotoRow[]>>({});
+  const [photoDialog, setPhotoDialog] = useState<{ kV: string; breaker: string } | null>(null);
+
+  const photosKey = (kV: string, breaker: string) => `${kV}::${breaker}`;
+
+  const loadPhotos = useCallback(async (roundId: string) => {
+    const { data } = await supabase
+      .from("sf6_round_photos")
+      .select("id, voltage_level, breaker_name, storage_path, created_at")
+      .eq("round_id", roundId)
+      .order("created_at", { ascending: true });
+    const grouped: Record<string, Sf6PhotoRow[]> = {};
+    for (const row of (data ?? []) as any[]) {
+      const k = photosKey(row.voltage_level, row.breaker_name);
+      (grouped[k] ??= []).push({
+        id: row.id,
+        storage_path: row.storage_path,
+        created_at: row.created_at,
+      });
+    }
+    setPhotos(grouped);
+  }, []);
+
   const handleBreakerClick = (key: string) => {
     if (activeBreaker === key) return;
     setGreenBreakers((prev) => {
