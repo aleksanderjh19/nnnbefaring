@@ -144,69 +144,88 @@ const TrainingHome = () => {
         {/* Big action buttons */}
         {myEmployee && (
           <div className="space-y-4">
-            <button
-              onClick={() => navigate(`/dokumentert-opplaering/ansatt/${myEmployee.id}`)}
-              className="group flex w-full items-center gap-5 rounded-2xl border-2 border-border bg-card p-6 transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
-            >
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-primary/10 transition-colors group-hover:bg-primary/20">
-                <BookOpen className="h-8 w-8 text-primary" />
+            {(isAdmin || flags.isVisible("se-min")) && (
+              <div className="flex items-stretch gap-3">
+                <CardToggle cardId="se-min" />
+                <button
+                  onClick={() => navigate(`/dokumentert-opplaering/ansatt/${myEmployee.id}`)}
+                  className={`group flex w-full items-center gap-5 rounded-2xl border-2 border-border bg-card p-6 transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 ${!flags.isVisible("se-min") ? "opacity-60" : ""}`}
+                >
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-primary/10 transition-colors group-hover:bg-primary/20">
+                    <BookOpen className="h-8 w-8 text-primary" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <h3 className="font-display text-lg font-bold text-foreground">Se min opplæring</h3>
+                    <p className="font-body text-sm text-muted-foreground">
+                      Se all dokumentert opplæring registrert på deg
+                      {recordCounts[myEmployee.id] ? ` · ${recordCounts[myEmployee.id]} registrering${recordCounts[myEmployee.id] !== 1 ? "er" : ""}` : ""}
+                    </p>
+                  </div>
+                  <ChevronRight className="h-6 w-6 text-muted-foreground transition-transform group-hover:translate-x-1" />
+                </button>
               </div>
-              <div className="flex-1 text-left">
-                <h3 className="font-display text-lg font-bold text-foreground">Se min opplæring</h3>
-                <p className="font-body text-sm text-muted-foreground">
-                  Se all dokumentert opplæring registrert på deg
-                  {recordCounts[myEmployee.id] ? ` · ${recordCounts[myEmployee.id]} registrering${recordCounts[myEmployee.id] !== 1 ? "er" : ""}` : ""}
-                </p>
-              </div>
-              <ChevronRight className="h-6 w-6 text-muted-foreground transition-transform group-hover:translate-x-1" />
-            </button>
+            )}
 
             {/* Admin-only: Ansattes opplæring */}
             {isAdmin && (
-              <button
-                onClick={() => navigate("/dokumentert-opplaering/ansatte")}
-                className="group flex w-full items-center gap-5 rounded-2xl border-2 border-border bg-card p-6 transition-all hover:border-accent/40 hover:shadow-lg hover:shadow-accent/5"
-              >
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-accent/10 transition-colors group-hover:bg-accent/20">
-                  <Users className="h-8 w-8 text-accent" />
-                </div>
-                <div className="flex-1 text-left">
-                  <h3 className="font-display text-lg font-bold text-foreground">Ansattes opplæring</h3>
-                  <p className="font-body text-sm text-muted-foreground">Se og administrer opplæring for alle ansatte</p>
-                </div>
-                <ChevronRight className="h-6 w-6 text-muted-foreground transition-transform group-hover:translate-x-1" />
-              </button>
+              <div className="flex items-stretch gap-3">
+                <CardToggle cardId="ansattes" />
+                <button
+                  onClick={() => navigate("/dokumentert-opplaering/ansatte")}
+                  className={`group flex w-full items-center gap-5 rounded-2xl border-2 border-border bg-card p-6 transition-all hover:border-accent/40 hover:shadow-lg hover:shadow-accent/5 ${!flags.isVisible("ansattes") ? "opacity-60" : ""}`}
+                >
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-accent/10 transition-colors group-hover:bg-accent/20">
+                    <Users className="h-8 w-8 text-accent" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <h3 className="font-display text-lg font-bold text-foreground">Ansattes opplæring</h3>
+                    <p className="font-body text-sm text-muted-foreground">Se og administrer opplæring for alle ansatte</p>
+                  </div>
+                  <ChevronRight className="h-6 w-6 text-muted-foreground transition-transform group-hover:translate-x-1" />
+                </button>
+              </div>
             )}
 
-            <button
-              onClick={() => navigate(`/dokumentert-opplaering/ansatt/${myEmployee.id}/ny`)}
-              className="group flex w-full items-center gap-5 rounded-2xl border-2 border-border bg-card p-6 transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
-            >
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[hsl(var(--success))]/10 transition-colors group-hover:bg-[hsl(var(--success))]/20">
-                <ClipboardPlus className="h-8 w-8 text-[hsl(var(--success))]" />
+            {(isAdmin || flags.isVisible("legg-til")) && (
+              <div className="flex items-stretch gap-3">
+                <CardToggle cardId="legg-til" />
+                <button
+                  onClick={() => navigate(`/dokumentert-opplaering/ansatt/${myEmployee.id}/ny`)}
+                  className={`group flex w-full items-center gap-5 rounded-2xl border-2 border-border bg-card p-6 transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 ${!flags.isVisible("legg-til") ? "opacity-60" : ""}`}
+                >
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[hsl(var(--success))]/10 transition-colors group-hover:bg-[hsl(var(--success))]/20">
+                    <ClipboardPlus className="h-8 w-8 text-[hsl(var(--success))]" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <h3 className="font-display text-lg font-bold text-foreground">Legg til opplæring</h3>
+                    <p className="font-body text-sm text-muted-foreground">Registrer ny dokumentert opplæring</p>
+                  </div>
+                  <ChevronRight className="h-6 w-6 text-muted-foreground transition-transform group-hover:translate-x-1" />
+                </button>
               </div>
-              <div className="flex-1 text-left">
-                <h3 className="font-display text-lg font-bold text-foreground">Legg til opplæring</h3>
-                <p className="font-body text-sm text-muted-foreground">Registrer ny dokumentert opplæring</p>
-              </div>
-              <ChevronRight className="h-6 w-6 text-muted-foreground transition-transform group-hover:translate-x-1" />
-            </button>
+            )}
 
-            <button
-              onClick={() => navigate("/dokumentert-opplaering/katalog")}
-              className="group flex w-full items-center gap-5 rounded-2xl border-2 border-border bg-card p-6 transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
-            >
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-muted transition-colors group-hover:bg-muted/80">
-                <Wrench className="h-8 w-8 text-muted-foreground" />
+            {(isAdmin || flags.isVisible("katalog")) && (
+              <div className="flex items-stretch gap-3">
+                <CardToggle cardId="katalog" />
+                <button
+                  onClick={() => navigate("/dokumentert-opplaering/katalog")}
+                  className={`group flex w-full items-center gap-5 rounded-2xl border-2 border-border bg-card p-6 transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 ${!flags.isVisible("katalog") ? "opacity-60" : ""}`}
+                >
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-muted transition-colors group-hover:bg-muted/80">
+                    <Wrench className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <h3 className="font-display text-lg font-bold text-foreground">Utstyrskatalog</h3>
+                    <p className="font-body text-sm text-muted-foreground">Se oversikt over alt utstyr og spesifikasjoner</p>
+                  </div>
+                  <ChevronRight className="h-6 w-6 text-muted-foreground transition-transform group-hover:translate-x-1" />
+                </button>
               </div>
-              <div className="flex-1 text-left">
-                <h3 className="font-display text-lg font-bold text-foreground">Utstyrskatalog</h3>
-                <p className="font-body text-sm text-muted-foreground">Se oversikt over alt utstyr og spesifikasjoner</p>
-              </div>
-              <ChevronRight className="h-6 w-6 text-muted-foreground transition-transform group-hover:translate-x-1" />
-            </button>
+            )}
           </div>
         )}
+
 
         {!myEmployee && !showProfilePicker && (
           <div className="flex flex-col items-center gap-4 py-12 text-center">
