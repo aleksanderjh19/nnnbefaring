@@ -22,6 +22,29 @@ const TrainingHome = () => {
   const [myEmployee, setMyEmployee] = useState<Employee | null>(null);
   const [showProfilePicker, setShowProfilePicker] = useState(false);
   const [recordCounts, setRecordCounts] = useState<Record<string, number>>({});
+  const flags = useFeatureFlags("dokumentert-opplaering");
+
+  const CardToggle = ({ cardId }: { cardId: string }) => {
+    if (!isAdmin || !flags.loaded) return null;
+    const hidden = !flags.isVisible(cardId);
+    return (
+      <button
+        onClick={(e) => { e.stopPropagation(); flags.toggle(cardId); }}
+        title={hidden ? "Vis for brukere" : "Skjul for brukere"}
+        className={`flex w-14 shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border-2 transition-colors ${
+          hidden
+            ? "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20"
+            : "border-border bg-card text-muted-foreground hover:bg-secondary"
+        }`}
+      >
+        {hidden ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+        <span className="font-body text-[9px] font-semibold uppercase tracking-wider">
+          {hidden ? "Skjult" : "Synlig"}
+        </span>
+      </button>
+    );
+  };
+
 
   const fetchData = useCallback(async () => {
     setLoading(true);
