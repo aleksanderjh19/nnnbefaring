@@ -126,7 +126,7 @@ export default function WasteManagement() {
   }, [settingsCategory]);
 
   useEffect(() => {
-    document.title = "Avfallshåndtering – NNN Verktøy";
+    document.title = "Avfallshåndtering – NNHH Verktøy";
     fetchData();
   }, [fetchData]);
 

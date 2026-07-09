@@ -60,7 +60,7 @@ const Dashboard = () => {
           </div>
           <div>
             <h1 className="font-display text-xl font-extrabold tracking-tight text-foreground">
-              NNN Verktøy
+              NNHH Verktøy
             </h1>
             <p className="font-body text-xs text-muted-foreground">
               Velg et verktøy for å komme i gang
