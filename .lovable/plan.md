@@ -1,36 +1,32 @@
-## Problem
+## Mål
+Skjulte kort skal fortsatt vises for vanlige brukere — men grået ut og ikke-klikkbare, uten admin-toggleknappen. I dag filtreres de helt bort.
 
-Brukere ser fortsatt kort som er skjult. Sannsynlige årsaker:
+## Endringer
 
-1. **Flash før flagg er lastet**: `isVisible()` returnerer `true` som standard mens `feature_flags` fortsatt lastes fra databasen. Ikke-admin brukere ser derfor kortene et kort øyeblikk (eller varig hvis nettverket henger).
-2. **Inkonsistent filtrering på Dashboard, Stasjon, Ledning, Drone og Dokumentert opplæring**: Alle bruker samme mønster, men filteret venter ikke på `loaded`-flagget før det avgjør synlighet for brukere.
-3. **`realtime` mangler**: Hvis admin skjuler et kort mens en bruker er logget inn, ser brukeren fortsatt kortet til de laster siden på nytt.
+### 1. `src/hooks/useFeatureFlags.ts`
+- Behold `isVisible` og `loaded`.
+- Fjerne behovet for `isVisibleForUser` (eller la den bli, men ikke bruk den til filtrering). Kall-stedene skal ikke lenger filtrere bort skjulte kort for brukere.
 
-## Løsning
+### 2. `src/components/ToolCardList.tsx`
+- Ikke filtrer `tools` basert på synlighet — vis alle.
+- For ikke-admin: hvis `loaded` og kortet er skjult (`!isVisible(tool.id)`), render kortet som disabled + grået ut (samme `opacity-60` som admin ser) og gjør det ikke-klikkbart (`disabled`, ingen navigasjon, ingen hover-effekt, chevron skjult).
+- Admin-toggleknappen på venstre side vises kun for admin (uendret).
+- For å unngå "flash" før `loaded`: mens `!loaded` og ikke-admin, render kortene som skeleton/dimmet (eller vent med å vise til lastet). Enkleste: render dimmet-disabled til `loaded === true`, deretter vis normal tilstand for synlige kort.
 
-### 1. Fiks default-tilstand i `useFeatureFlags`
-- Endre `isVisible(cardId)` slik at den returnerer `false` (skjult) for ikke-admin *inntil* flaggene faktisk er lastet, i stedet for å defaulte til synlig.
-- Eller: la hooken returnere `loaded`, og la kall-stedene skjule kortene mens `loaded === false` for ikke-admin.
+### 3. `src/pages/Dashboard.tsx`
+- Samme oppførsel som `ToolCardList` (Dashboard har egen inline-rendering). Fjern `isVisibleForUser`-filteret. Render alle `tools`. For ikke-admin: skjulte kort blir disabled + `opacity-60`, ingen navigasjon.
 
-Valgt tilnærming: legg til en `isVisibleForUser(cardId, isAdmin)` helper i hooken som returnerer:
-- `true` alltid for admin
-- `false` hvis `!loaded` (unngår flash)
-- `flags[cardId] !== false` når lastet
+### 4. `src/pages/TrainingHome.tsx`
+- Samme mønster: ikke filtrer bort skjulte kort for brukere; vis dem grået ut og ikke-klikkbare.
 
-### 2. Bruk helperen konsekvent
-Oppdater filtreringen i:
-- `src/components/ToolCardList.tsx` (Stasjon, Ledning, Drone)
-- `src/pages/Dashboard.tsx`
-- `src/pages/TrainingHome.tsx` (fire kort: se-min, ansattes, legg-til, katalog)
+## Sikkerhet
+Route-nivå beskyttelse: siden brukeren fortsatt kan skrive URL-en manuelt, legger vi til en enkel guard som blokkerer direkte navigasjon til skjulte verktøy. To alternativer:
+- **A (enkel):** stole på UI-disabled. Bruker med URL kan fortsatt nå siden.
+- **B (robust):** legge til en `RequireVisibleCard`-wrapper som sjekker `feature_flags` for gitt `card:scope:id` og redirecter til forrige side hvis skjult (admin får alltid tilgang).
 
-Slik at brukere aldri ser et kort før vi vet om det er skjult.
-
-### 3. Realtime-oppdatering (valgfritt men anbefalt)
-Abonner på `postgres_changes` på `feature_flags`-tabellen i `useFeatureFlags`, slik at brukere som er innlogget når admin skjuler et kort får kortet fjernet umiddelbart uten refresh.
+Anbefaler **B** — brukeren skrev eksplisitt "Det skal ikke gå an å gå inn på dem uten at de er aktive". Wrapperen legges rundt de aktuelle rutene i `src/App.tsx` (Stasjon/Ledning/Drone/Dokumentert opplæring-underruter + hovedkategorier på Dashboard).
 
 ## Verifisering
-
-Etter endring, test med Playwright:
-1. Logg inn som admin, skjul et kort på Dashboard.
-2. Bytt til bruker-visning via DevAdminToggle → kortet skal være borte umiddelbart.
-3. Reload som bruker → kort skal aldri "blinke" synlig før det forsvinner.
+- Som admin: skjul et kort → kortet forblir synlig hos admin med amber "Skjult"-badge og fungerende toggle.
+- Som bruker (via DevAdminToggle): samme kort vises grået ut, ingen chevron, ingen admin-knapp, klikk gjør ingenting, direkte URL redirecter tilbake.
+- Ingen "flash" ved sideinnlasting.

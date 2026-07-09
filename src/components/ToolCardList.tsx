@@ -24,11 +24,7 @@ type Props = {
 const ToolCardList = ({ heading, tools, emptyText, visibilityScope }: Props) => {
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
-  const { isVisible, isVisibleForUser, toggle, loaded } = useFeatureFlags(visibilityScope ?? "");
-
-  const filtered = visibilityScope
-    ? tools.filter((t) => isVisibleForUser(t.id, isAdmin))
-    : tools;
+  const { isVisible, toggle, loaded } = useFeatureFlags(visibilityScope ?? "");
 
   return (
     <section>
@@ -37,7 +33,7 @@ const ToolCardList = ({ heading, tools, emptyText, visibilityScope }: Props) => 
           {heading}
         </h2>
       )}
-      {filtered.length === 0 ? (
+      {tools.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-card/50 px-5 py-8 text-center">
           <p className="font-body text-sm text-muted-foreground">
             {emptyText ?? "Ingen verktøy lagt til ennå"}
@@ -45,8 +41,10 @@ const ToolCardList = ({ heading, tools, emptyText, visibilityScope }: Props) => 
         </div>
       ) : (
         <div className="space-y-3">
-          {filtered.map((tool) => {
-            const hidden = visibilityScope ? !isVisible(tool.id) : false;
+          {tools.map((tool) => {
+            const hidden = visibilityScope && loaded ? !isVisible(tool.id) : false;
+            const blocked = hidden && !isAdmin;
+            const disabled = !tool.ready || blocked;
             return (
               <div key={tool.id} className="flex items-stretch gap-2">
                 {isAdmin && visibilityScope && loaded && (
@@ -69,8 +67,8 @@ const ToolCardList = ({ heading, tools, emptyText, visibilityScope }: Props) => 
                   </button>
                 )}
                 <button
-                  onClick={() => tool.ready && navigate(tool.path)}
-                  disabled={!tool.ready}
+                  onClick={() => !disabled && navigate(tool.path)}
+                  disabled={disabled}
                   className={`group flex w-full items-center gap-4 rounded-xl border border-border bg-card px-5 py-5 text-left transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-50 ${
                     hidden ? "opacity-60" : ""
                   }`}
@@ -97,7 +95,7 @@ const ToolCardList = ({ heading, tools, emptyText, visibilityScope }: Props) => 
                       OBS! Under bygging
                     </span>
                   )}
-                  {tool.ready && !tool.wip && (
+                  {tool.ready && !tool.wip && !blocked && (
                     <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
                   )}
                 </button>
