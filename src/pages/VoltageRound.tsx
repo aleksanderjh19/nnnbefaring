@@ -111,7 +111,7 @@ export default function VoltageRound() {
   const [loadingHistory, setLoadingHistory] = useState(true);
 
   useEffect(() => {
-    document.title = "Spenningsrunde – NNN Verktøy";
+    document.title = "Spenningsrunde – NNHH Verktøy";
   }, []);
 
   const fetchHistory = useCallback(async () => {

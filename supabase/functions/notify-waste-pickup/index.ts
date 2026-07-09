@@ -86,7 +86,7 @@ serve(async (req) => {
     Tidspunkt: ${new Date().toLocaleString("nb-NO", { timeZone: "Europe/Oslo" })}
   </p>
   <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
-  <p style="color: #999; font-size: 12px;">NNN Verktøy – Avfallshåndtering</p>
+  <p style="color: #999; font-size: 12px;">NNHH Verktøy – Avfallshåndtering</p>
 </div>`.trim();
 
     // Send via Resend
@@ -98,7 +98,7 @@ serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: "NNN Verktøy <onboarding@resend.dev>",
+          from: "NNHH Verktøy <onboarding@resend.dev>",
           to,
           subject: `Tømmevarsel: ${categoryLabels}`,
           html: emailHtml,
