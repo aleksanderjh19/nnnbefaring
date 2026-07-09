@@ -85,5 +85,5 @@ export function useFeatureFlags(scope: string) {
     [flags, prefix]
   );
 
-  return { isVisible, toggle, loaded };
+  return { isVisible, isVisibleForUser, toggle, loaded };
 }
