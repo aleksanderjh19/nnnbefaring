@@ -665,6 +665,7 @@ export default function Sf6Round() {
             </Button>
           </div>
         </div>
+        {renderPhotoDialog(false)}
       </div>
     );
   }
