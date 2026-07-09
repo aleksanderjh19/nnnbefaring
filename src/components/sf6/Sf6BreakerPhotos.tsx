@@ -90,7 +90,11 @@ export default function Sf6BreakerPhotos({
             blob = file;
           }
           const rand = Math.random().toString(36).slice(2, 8);
-          const path = `${roundId}/${voltageLevel}/${breakerName}/${Date.now()}-${rand}.jpg`;
+          const safeBreaker = breakerName
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-zA-Z0-9._-]/g, "_");
+          const path = `${roundId}/${voltageLevel}/${safeBreaker}/${Date.now()}-${rand}.jpg`;
           const { error: upErr } = await supabase.storage
             .from(BUCKET)
             .upload(path, blob, {
