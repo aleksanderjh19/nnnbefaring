@@ -176,6 +176,8 @@ export default function Sf6Round() {
     setTemperature("");
     setTempError(null);
     setMeasurements(initialMeas);
+    setPhotos({});
+    loadPhotos((data as any).id);
     setView("round");
     fetchHistory();
   };
