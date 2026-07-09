@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ArrowLeft, Check, Wind, Plus, History, Trash2, ChevronRight, AlertCircle,
+  ArrowLeft, Check, Wind, Plus, History, Trash2, ChevronRight, AlertCircle, Camera,
 } from "lucide-react";
+import Sf6BreakerPhotos, { type Sf6PhotoRow } from "@/components/sf6/Sf6BreakerPhotos";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -82,6 +83,30 @@ export default function Sf6Round() {
   const [activeBreaker, setActiveBreaker] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<SavedRound | null>(null);
 
+  // Photos keyed by "{kV}::{breakerName}"
+  const [photos, setPhotos] = useState<Record<string, Sf6PhotoRow[]>>({});
+  const [photoDialog, setPhotoDialog] = useState<{ kV: string; breaker: string } | null>(null);
+
+  const photosKey = (kV: string, breaker: string) => `${kV}::${breaker}`;
+
+  const loadPhotos = useCallback(async (roundId: string) => {
+    const { data } = await supabase
+      .from("sf6_round_photos")
+      .select("id, voltage_level, breaker_name, storage_path, created_at")
+      .eq("round_id", roundId)
+      .order("created_at", { ascending: true });
+    const grouped: Record<string, Sf6PhotoRow[]> = {};
+    for (const row of (data ?? []) as any[]) {
+      const k = photosKey(row.voltage_level, row.breaker_name);
+      (grouped[k] ??= []).push({
+        id: row.id,
+        storage_path: row.storage_path,
+        created_at: row.created_at,
+      });
+    }
+    setPhotos(grouped);
+  }, []);
+
   const handleBreakerClick = (key: string) => {
     if (activeBreaker === key) return;
     setGreenBreakers((prev) => {
@@ -151,6 +176,8 @@ export default function Sf6Round() {
     setTemperature("");
     setTempError(null);
     setMeasurements(initialMeas);
+    setPhotos({});
+    loadPhotos((data as any).id);
     setView("round");
     fetchHistory();
   };
@@ -247,9 +274,11 @@ export default function Sf6Round() {
         merged[kV] = { ...base[kV], ...(r.measurements?.[kV] ?? {}) };
       }
       setMeasurements(merged);
+      loadPhotos(r.id);
       setView("round");
     } else {
       setViewingRound(r);
+      loadPhotos(r.id);
       setView("view");
     }
   };
@@ -264,6 +293,27 @@ export default function Sf6Round() {
     await saveProgress();
     setView("round");
   };
+
+  const activeRoundIdForPhotos = activeRoundId ?? viewingRound?.id ?? null;
+  const currentStationName = station?.name ?? viewingRound?.station_name ?? "";
+
+  const renderPhotoDialog = (readOnly: boolean) => (
+    <Sf6BreakerPhotos
+      open={photoDialog !== null}
+      onOpenChange={(o) => { if (!o) setPhotoDialog(null); }}
+      roundId={activeRoundIdForPhotos}
+      stationName={currentStationName}
+      voltageLevel={photoDialog?.kV ?? ""}
+      breakerName={photoDialog?.breaker ?? ""}
+      readOnly={readOnly}
+      photos={photoDialog ? (photos[photosKey(photoDialog.kV, photoDialog.breaker)] ?? []) : []}
+      onPhotosChange={(rows) => {
+        if (!photoDialog) return;
+        const k = photosKey(photoDialog.kV, photoDialog.breaker);
+        setPhotos((prev) => ({ ...prev, [k]: rows }));
+      }}
+    />
+  );
 
   // ─── LIST VIEW ──────────────────────────────────────────
   if (view === "list") {
@@ -542,6 +592,8 @@ export default function Sf6Round() {
           <div className="space-y-2">
             {activeLevel.breakers.map((b) => {
               const vals = measurements[activeLevel.kV]?.[b.name] ?? {};
+              const pKey = photosKey(activeLevel.kV, b.name);
+              const bPhotos = photos[pKey] ?? [];
               return (
                 <div
                   key={b.name}
@@ -553,47 +605,69 @@ export default function Sf6Round() {
                       {b.singlePhase ? "Enfase" : "3-fase"}
                     </span>
                   </div>
-                  {b.singlePhase ? (
-                    <div>
-                      <Label className="text-xs mb-1 block">Trykk</Label>
-                      <div className="relative">
-                        <Input
-                          type="number"
-                          inputMode="decimal"
-                          step="0.01"
-                          value={vals.value ?? ""}
-                          onChange={(e) => setPhase(activeLevel.kV, b.name, "value", e.target.value)}
-                          placeholder="0.00"
-                          className="pr-14"
-                        />
-                        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted-foreground/60">
-                          {breakerUnit(activeLevel.kV, b.name)}
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-3 gap-2">
-                      {(["L1", "L2", "L3"] as const).map((p) => (
-                        <div key={p}>
-                          <Label className="text-xs mb-1 block">{p}</Label>
+                  <div className="flex items-end gap-3">
+                    <div className="flex-1 min-w-0">
+                      {b.singlePhase ? (
+                        <div>
+                          <Label className="text-xs mb-1 block">Trykk</Label>
                           <div className="relative">
                             <Input
                               type="number"
                               inputMode="decimal"
                               step="0.01"
-                              value={vals[p] ?? ""}
-                              onChange={(e) => setPhase(activeLevel.kV, b.name, p, e.target.value)}
+                              value={vals.value ?? ""}
+                              onChange={(e) => setPhase(activeLevel.kV, b.name, "value", e.target.value)}
                               placeholder="0.00"
-                              className="pr-12"
+                              className="pr-14"
                             />
-                            <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-xs text-muted-foreground/60">
+                            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted-foreground/60">
                               {breakerUnit(activeLevel.kV, b.name)}
                             </span>
                           </div>
                         </div>
-                      ))}
+                      ) : (
+                        <div className="grid grid-cols-3 gap-2">
+                          {(["L1", "L2", "L3"] as const).map((p) => (
+                            <div key={p}>
+                              <Label className="text-xs mb-1 block">{p}</Label>
+                              <div className="relative">
+                                <Input
+                                  type="number"
+                                  inputMode="decimal"
+                                  step="0.01"
+                                  value={vals[p] ?? ""}
+                                  onChange={(e) => setPhase(activeLevel.kV, b.name, p, e.target.value)}
+                                  placeholder="0.00"
+                                  className="pr-12"
+                                />
+                                <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-xs text-muted-foreground/60">
+                                  {breakerUnit(activeLevel.kV, b.name)}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  )}
+                    <button
+                      type="button"
+                      onClick={() => setPhotoDialog({ kV: activeLevel.kV, breaker: b.name })}
+                      className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-md border transition-colors ${
+                        bPhotos.length > 0
+                          ? "border-primary/50 bg-primary/10 text-primary hover:bg-primary/15"
+                          : "border-border bg-background text-muted-foreground hover:bg-secondary hover:text-foreground"
+                      }`}
+                      aria-label="Bilder"
+                      title="Legg til / se bilder"
+                    >
+                      <Camera className="h-4 w-4" />
+                      {bPhotos.length > 0 && (
+                        <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                          {bPhotos.length}
+                        </span>
+                      )}
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -612,6 +686,7 @@ export default function Sf6Round() {
             </Button>
           </div>
         </div>
+        {renderPhotoDialog(false)}
       </div>
     );
   }
@@ -680,6 +755,9 @@ export default function Sf6Round() {
                             <th className="text-right px-3 py-2 font-medium text-xs uppercase tracking-wider text-muted-foreground">L3</th>
                           </>
                         )}
+                        <th className="text-center px-3 py-2 font-medium text-xs uppercase tracking-wider text-muted-foreground w-14">
+                          Bilder
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -688,6 +766,7 @@ export default function Sf6Round() {
                         const key = `${lvl.kV}::${b.name}`;
                         const isActive = activeBreaker === key;
                         const isGreen = greenBreakers.has(key);
+                        const bPhotos = photos[photosKey(lvl.kV, b.name)] ?? [];
                         const rowClass = `border-t border-border cursor-pointer transition-colors ${
                           isActive
                             ? "bg-amber-500/30 hover:bg-amber-500/35"
@@ -695,6 +774,30 @@ export default function Sf6Round() {
                             ? "bg-green-500/25 hover:bg-green-500/30"
                             : "hover:bg-secondary/50"
                         }`;
+                        const photoCell = (
+                          <td className="px-2 py-2 text-center">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPhotoDialog({ kV: lvl.kV, breaker: b.name });
+                              }}
+                              className={`relative inline-flex h-8 w-8 items-center justify-center rounded-md border transition-colors ${
+                                bPhotos.length > 0
+                                  ? "border-primary/50 bg-primary/10 text-primary hover:bg-primary/15"
+                                  : "border-border bg-background text-muted-foreground hover:bg-secondary hover:text-foreground"
+                              }`}
+                              aria-label="Se bilder"
+                            >
+                              <Camera className="h-3.5 w-3.5" />
+                              {bPhotos.length > 0 && (
+                                <span className="absolute -top-1 -right-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
+                                  {bPhotos.length}
+                                </span>
+                              )}
+                            </button>
+                          </td>
+                        );
                         if (b.singlePhase) {
                           return (
                             <tr key={b.name} className={rowClass} onClick={() => handleBreakerClick(key)}>
@@ -702,6 +805,7 @@ export default function Sf6Round() {
                               <td className="px-3 py-2 text-center tabular-nums" colSpan={3}>
                                 {v.value ?? "—"} <span className="text-xs text-muted-foreground">{breakerUnit(lvl.kV, b.name)}</span>
                               </td>
+                              {photoCell}
                             </tr>
                           );
                         }
@@ -717,6 +821,7 @@ export default function Sf6Round() {
                             <td className="px-3 py-2 text-right tabular-nums">
                               {v.L3 ?? "—"} <span className="text-xs text-muted-foreground">{breakerUnit(lvl.kV, b.name)}</span>
                             </td>
+                            {photoCell}
                           </tr>
                         );
                       })}
@@ -728,6 +833,7 @@ export default function Sf6Round() {
             );
           })}
         </main>
+        {renderPhotoDialog(true)}
       </div>
     );
   }

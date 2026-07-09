@@ -164,6 +164,44 @@ export type Database = {
         }
         Relationships: []
       }
+      sf6_round_photos: {
+        Row: {
+          breaker_name: string
+          created_at: string
+          created_by: string
+          id: string
+          round_id: string
+          storage_path: string
+          voltage_level: string
+        }
+        Insert: {
+          breaker_name: string
+          created_at?: string
+          created_by: string
+          id?: string
+          round_id: string
+          storage_path: string
+          voltage_level: string
+        }
+        Update: {
+          breaker_name?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          round_id?: string
+          storage_path?: string
+          voltage_level?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sf6_round_photos_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "sf6_rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sf6_rounds: {
         Row: {
           created_at: string
