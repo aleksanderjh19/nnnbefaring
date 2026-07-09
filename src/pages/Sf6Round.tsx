@@ -274,9 +274,11 @@ export default function Sf6Round() {
         merged[kV] = { ...base[kV], ...(r.measurements?.[kV] ?? {}) };
       }
       setMeasurements(merged);
+      loadPhotos(r.id);
       setView("round");
     } else {
       setViewingRound(r);
+      loadPhotos(r.id);
       setView("view");
     }
   };
