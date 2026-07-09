@@ -812,6 +812,7 @@ export default function Sf6Round() {
             );
           })}
         </main>
+        {renderPhotoDialog(true)}
       </div>
     );
   }
