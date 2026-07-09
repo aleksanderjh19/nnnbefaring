@@ -39,7 +39,7 @@ const Drone = () => {
         subtitle="Regelverk, sjekklister og instrukser for droneoperasjoner"
       />
       <main className="mx-auto max-w-2xl px-5 py-6">
-        <ToolCardList heading="Verktøy" tools={tools} />
+        <ToolCardList heading="Verktøy" tools={tools} visibilityScope="drone" />
       </main>
     </div>
   );

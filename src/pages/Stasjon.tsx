@@ -42,7 +42,7 @@ const Stasjon = () => {
         subtitle="Verktøy, prosedyrer og fremgangsmåter for stasjon"
       />
       <main className="mx-auto max-w-2xl px-5 py-6">
-        <ToolCardList heading="Verktøy" tools={tools} />
+        <ToolCardList heading="Verktøy" tools={tools} visibilityScope="stasjon" />
       </main>
     </div>
   );
