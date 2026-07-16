@@ -9,6 +9,9 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -119,6 +122,7 @@ const UtlansList = () => {
   };
 
   return (
+    <TooltipProvider>
     <div className="min-h-screen bg-background pb-24">
       <CategoryHeader title="Utlånsskjema" subtitle="Avtale om utlån av utstyr" />
       <main className="mx-auto max-w-2xl space-y-4 px-5 py-6">
@@ -155,20 +159,27 @@ const UtlansList = () => {
                       {period && <div className="mt-0.5 text-xs text-muted-foreground">{period}</div>}
                     </button>
                     <div className="flex flex-col gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label="Last ned PDF"
-                        disabled={downloadingId === r.id}
-                        onClick={() => handleDownload(r.id)}
-                        className="text-muted-foreground hover:text-foreground"
-                      >
-                        {downloadingId === r.id ? (
-                          <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                        ) : (
-                          <Download className="h-4 w-4" />
-                        )}
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label="Last ned PDF"
+                            disabled={downloadingId === r.id}
+                            onClick={() => handleDownload(r.id)}
+                            className="text-muted-foreground hover:text-foreground"
+                          >
+                            {downloadingId === r.id ? (
+                              <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                            ) : (
+                              <Download className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="left">
+                          <p>Last ned PDF</p>
+                        </TooltipContent>
+                      </Tooltip>
                       {isAdmin && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
@@ -221,6 +232,7 @@ const UtlansList = () => {
         )}
       </main>
     </div>
+    </TooltipProvider>
   );
 };
 
