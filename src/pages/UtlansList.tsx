@@ -23,7 +23,7 @@ type Row = {
 };
 
 const statusMeta: Record<string, { label: string; icon: any; className: string }> = {
-  draft:      { label: "Kladd",     icon: Clock,        className: "bg-muted text-foreground" },
+  draft:      { label: "Pågående",  icon: Clock,         className: "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-100" },
   active:     { label: "Utlånt",    icon: FileSignature, className: "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-100" },
   returned:   { label: "Innlevert", icon: PackageCheck,  className: "bg-emerald-100 text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100" },
 };
