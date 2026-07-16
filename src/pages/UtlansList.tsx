@@ -232,6 +232,7 @@ const UtlansList = () => {
         )}
       </main>
     </div>
+    </TooltipProvider>
   );
 };
 
