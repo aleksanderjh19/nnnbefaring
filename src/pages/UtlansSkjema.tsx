@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Download, PackageCheck, Save, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Download, PackageCheck, CheckCircle2 } from "lucide-react";
 import CategoryHeader from "@/components/CategoryHeader";
 import SignaturePad from "@/components/SignaturePad";
 import { Button } from "@/components/ui/button";
@@ -163,7 +163,10 @@ const UtlansSkjema = () => {
 
   const handleMarkActive = async () => {
     const ok = await persist("active");
-    if (ok) toast({ title: "Skjema lagret som utlånt" });
+    if (ok) {
+      toast({ title: "Skjema lagret som utlånt" });
+      navigate("/utlansskjema");
+    }
   };
 
   const handleMarkReturned = async () => {
@@ -266,26 +269,21 @@ const UtlansSkjema = () => {
           )}
         </Section>
 
-        <div className="grid gap-2 sm:grid-cols-3">
-          <Button variant="outline" onClick={() => persist()} disabled={saving} className="gap-2">
-            <Save className="h-4 w-4" /> Lagre
-          </Button>
+        <div className="grid gap-2 sm:grid-cols-2">
           {status === "draft" && (
             <Button variant="secondary" onClick={handleMarkActive} className="gap-2">
               <CheckCircle2 className="h-4 w-4" /> Fullfør utlån
+              <ArrowRight className="h-4 w-4" />
             </Button>
           )}
           <Button
             onClick={handleGenerate}
             disabled={generating || !canGeneratePdf}
-            className={`gap-2 ${status === "draft" ? "" : "sm:col-start-3"}`}
+            className={`gap-2 ${status === "draft" ? "" : "sm:col-start-2"}`}
           >
             {generating ? "Genererer…" : (<><Download className="h-4 w-4" /> Last ned PDF</>)}
           </Button>
         </div>
-        <Button variant="outline" onClick={() => navigate("/utlansskjema")} className="w-full gap-2">
-          <ArrowRight className="h-4 w-4" /> Gå videre
-        </Button>
         <p className="text-center text-xs text-muted-foreground">
           Skjemaet lagres automatisk. Du kan fullføre uten alle felt og fylle inn innlevering senere.
         </p>
