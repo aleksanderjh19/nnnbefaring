@@ -28,7 +28,7 @@ const CategoryHeader = ({ title, subtitle, backTo = "/" }: Props) => {
         </div>
         <div>
           <button
-            onClick={() => navigate(backTo)}
+            onClick={goBack}
             className="mb-3 inline-flex items-center gap-1.5 font-body text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
