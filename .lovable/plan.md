@@ -1,56 +1,54 @@
-# Plan: Utlånsskjema
 
-Nytt verktøykort på dashboard som lar en Statnett-ansatt fylle ut "Avtale om utlån av utstyr" digitalt, signere på skjerm, og laste ned en ferdig utfylt PDF som beholder originalens format 100%.
+# Plan: Smart «Tilbake»-navigasjon i hele appen
 
-## Dashboard-integrasjon
+## Mål
+Når brukeren trykker «Tilbake» (eller pil-tilbake) på en hvilken som helst side eller verktøy, skal man havne på siden man faktisk kom fra – ikke en hardkodet foreldreside. Fungerer for navigasjon på tvers av Dashboard, Stasjon, Ledning, Drone, alle verktøy og undersider.
 
-- Nytt kort "Utlånsskjema" i `src/pages/Dashboard.tsx` (ikon: `FileSignature` fra lucide), path `/utlansskjema`.
-- Rute i `App.tsx` beskyttet av `ProtectedRoute` + `RequireVisibleCard scope="dashboard" cardId="utlansskjema"` (samme skjul/vis-toggle som øvrige kort).
+## Dagens situasjon
+- Mange sider bruker `navigate("/dashboard")`, `navigate("/stasjon")` osv. som hardkodede mål på tilbake-knappen.
+- Det betyr at hvis man f.eks. går Dashboard → Drone → Statnett-prosedyrer → PDF-viser, så havner man på Drone-siden i stedet for Statnett-prosedyrer når man trykker tilbake fra PDF.
+- Noen sider bruker allerede `navigate(-1)`, men inkonsekvent.
 
-## Skjema-side (`src/pages/UtlansSkjema.tsx`)
+## Løsning: `navigate(-1)` med trygg fallback
 
-Bruker samme `CategoryHeader`/kort-stil som resten av appen. Steg-basert flyt (samme stil som SF6-runde), tilpasset mobil/iPad/PC:
+Bytt alle hardkodede tilbake-navigasjoner ut med en felles hook som:
+1. Bruker nettleserens historikk (`navigate(-1)`) når det finnes en forrige side i samme øktet.
+2. Faller tilbake til en fornuftig standardrute (f.eks. `/dashboard`) hvis brukeren åpnet siden direkte via URL/refresh (ingen historikk).
 
-1. **Låntaker**
-   - Navn
-   - Ansattnr.
-2. **Utstyr**
-   - Utlånt gjenstand
-   - Reg.nr/serienr.
-   - Dato fra (date-picker)
-   - Dato til (date-picker)
-3. **Sted & signatur**
-   - Dato/Sted (auto-fylt dagens dato, redigerbar)
-   - Signatur låntaker (gjenbruker eksisterende `SignaturePad`)
-   - Signatur "For Statnett SF (ansvarlig utstyrseier)"
-4. **Innlevering** (valgfritt — kan fylles ut senere)
-   - Dato innlevert
-   - Kvittering / kommentar
-   - Signatur ansvarlig utstyrseier
+### Ny hook: `useSmartBack`
+Plassering: `src/hooks/useSmartBack.ts`
 
-Alle felt validert før generering (unntatt innleveringsseksjonen). Auto-lagres i `localStorage` som draft slik at brukeren ikke mister data ved navigering.
+```ts
+// Returnerer en funksjon som går tilbake i history hvis mulig,
+// ellers navigerer til `fallback` (default: "/dashboard").
+useSmartBack(fallback?: string) => () => void
+```
 
-## PDF-generering
+Implementasjonen sporer om appen har navigert internt (via en enkel teller i `sessionStorage` eller ved å sjekke `location.key !== "default"` fra React Router). Hvis ja → `navigate(-1)`. Hvis nei → `navigate(fallback, { replace: true })`.
 
-- Bygger PDF på klient med `pdf-lib` (npm) — reproduserer originalens tekst 1:1 fra den parsede PDF-en (all "Retningslinjer"-tekst inkludert), med Helvetica/Times og samme paginering (2 sider, "Oppdatert 27.04.2026"-footer).
-- Utfylte verdier tegnes inn på riktig linje der originalen har understreker (Låntaker, Utlånt gjenstand, Reg.nr, datoer, Dato/Sted, Innlevert, Kvittering).
-- Signaturbilder (PNG dataURL fra `SignaturePad`) plasseres over signaturlinjene.
-- Ferdig PDF lastes ned med filnavn `Utlansskjema_<navn>_<dato>.pdf` via en blob-download-lenke. Ingen server involvert.
+### Refactor på tvers
+Erstatt alle `onClick={() => navigate("/...")}` på tilbake-knapper i disse sidene med `useSmartBack("<fornuftig-fallback>")`:
 
-## Lagring
+- Dashboard-undersider: `Stasjon`, `Ledning`, `Drone`, `Verktoy`
+- Stasjon-verktøy: `Sf6Round`, `Sf6History`, `Sf6RoundDetail`, evt. andre
+- Ledning-verktøy: `MontasjeList`, `MontasjeDetail`, inspeksjonssider
+- Drone-verktøy: `DroneRules`, `DroneRuleDetail`, `DroneClasses`, `DroneClassDetail`, `DroneGuide`, `StatnettProcedures`, `StatnettProcedurePdf`
+- Utlånsskjema: `UtlansList`, `UtlansSkjema`
+- Andre verktøy/oversikter som har «Tilbake»-pil (opplæring, ansatte, avfall, spenningsrunde m.m.)
 
-Ingen backend-lagring nå (skjemaet er en engangs-PDF). Kun `localStorage` draft. Kan enkelt utvides senere til Supabase-tabell hvis ønsket.
+Fallback velges ut fra logisk foreldreside for tilfellet der brukeren åpner URL-en direkte (f.eks. StatnettProcedurePdf → fallback `/drone/statnett-prosedyrer`).
 
-## Filer som opprettes/endres
-
-- `src/pages/UtlansSkjema.tsx` (ny — wizard-UI)
-- `src/lib/utlansPdf.ts` (ny — pdf-lib generator)
-- `src/pages/Dashboard.tsx` (nytt kort)
-- `src/App.tsx` (ny rute)
-- `package.json` (legger til `pdf-lib`)
+### Hardware/browser back
+Ingen egen håndtering nødvendig – nettleserens tilbake-knapp og mobilens sveipegest følger allerede history og vil fungere som forventet.
 
 ## Teknisk
 
-- Responsivt: samme mobile-first oppsett som SF6/Spenningsrunde (single column, store touch-mål, sticky "Neste"-knapp).
-- Signatur fungerer på touch + mus (allerede løst i `SignaturePad`).
-- PDF genereres helt i nettleseren — ingen edge function, ingen storage-bucket.
+- Legg til `useSmartBack` (én liten hook).
+- Søk-og-erstatt alle steder som har tilbake-knapp/`ArrowLeft`-ikon i `src/pages/**` og relevante komponenter.
+- Ingen endringer i routing eller Supabase.
+- Ingen visuelle endringer.
+
+## Ut av scope
+- Endring av selve tilbake-ikonet eller plasseringen.
+- Breadcrumbs.
+- Persistering av scroll-posisjon (kan gjøres senere hvis ønskelig).
