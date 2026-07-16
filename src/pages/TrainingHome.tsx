@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSmartBack } from "@/hooks/useSmartBack";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
@@ -16,6 +17,7 @@ interface Employee {
 
 const TrainingHome = () => {
   const navigate = useNavigate();
+  const goBack = useSmartBack("/");
   const { isAdmin, user } = useAuth();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
@@ -95,7 +97,7 @@ const TrainingHome = () => {
             <video src={heroVideo} autoPlay loop muted playsInline className="absolute inset-0 h-full w-full scale-150 object-cover" />
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate("/")} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground hover:bg-secondary" title="Tilbake">
+            <button onClick={goBack} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground hover:bg-secondary" title="Tilbake">
               <ArrowLeft className="h-4 w-4" />
             </button>
             <div className="min-w-0 flex-1">

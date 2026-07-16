@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useSmartBack } from "@/hooks/useSmartBack";
 import { Search, ChevronDown, ArrowLeft, Plus, Trash2, X, Pencil, Check } from "lucide-react";
 import { getMastNumbers } from "@/data/lines";
 import { useInspectionState } from "@/hooks/useInspectionState";
@@ -12,6 +13,7 @@ type FilterMode = "alle" | "utfort" | "ikke-utfort";
 const LinePage = () => {
   const { lineId } = useParams<{ lineId: string }>();
   const navigate = useNavigate();
+  const goBack = useSmartBack("/ledningsbefaring");
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterMode>("alle");
   const { isChecked, toggle, bulkSet, getLineStats, isViewingPrevious } = useInspectionState();
@@ -300,7 +302,7 @@ const LinePage = () => {
         <div className="mx-auto max-w-2xl">
           <div className="flex items-center gap-3 px-4 py-3">
             <button
-              onClick={() => navigate("/ledningsbefaring")}
+              onClick={goBack}
               className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card"
             >
               <ArrowLeft className="h-5 w-5 text-foreground" />

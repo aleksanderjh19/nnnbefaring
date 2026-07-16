@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSmartBack } from "@/hooks/useSmartBack";
 import { supabase } from "@/integrations/supabase/client";
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors,
@@ -25,6 +26,7 @@ import QuickAdd from "@/components/catalog/QuickAdd";
 
 const EquipmentCatalog = () => {
   const navigate = useNavigate();
+  const goBack = useSmartBack("/dokumentert-opplaering");
   const { isAdmin } = useAuth();
   const { saveSortOrders, sortItems } = useSortOrders();
   const [rows, setRows] = useState<CatalogRow[]>([]);
@@ -354,7 +356,7 @@ const EquipmentCatalog = () => {
         <div className="mx-auto max-w-2xl px-5 py-4">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate("/dokumentert-opplaering")}
+              onClick={goBack}
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-secondary"
             >
               <ArrowLeft className="h-4 w-4" />

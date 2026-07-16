@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useSmartBack } from "@/hooks/useSmartBack";
 import { ArrowLeft, ArrowRight, Download, PackageCheck, CheckCircle2 } from "lucide-react";
 import CategoryHeader from "@/components/CategoryHeader";
 import SignaturePad from "@/components/SignaturePad";
@@ -87,6 +88,7 @@ const statusLabels: Record<Status, string> = {
 const UtlansSkjema = () => {
   useEffect(() => { document.title = "Utlånsskjema – NNHH Verktøy"; }, []);
   const navigate = useNavigate();
+  const goBack = useSmartBack("/utlansskjema");
   const { id } = useParams<{ id: string }>();
 
   const [data, setData] = useState<UtlansData>(emptyData);
@@ -185,7 +187,7 @@ const UtlansSkjema = () => {
       <main className="mx-auto max-w-2xl space-y-4 px-5 py-6">
         <div className="flex items-center justify-between">
           <button
-            onClick={() => navigate("/utlansskjema")}
+            onClick={goBack}
             className="flex items-center gap-1.5 font-body text-sm text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" /> Alle skjemaer
