@@ -54,6 +54,7 @@ const statusMeta: Record<string, { label: string; icon: any; className: string }
 const UtlansList = () => {
   useEffect(() => { document.title = "Utlånsskjema – NNHH Verktøy"; }, []);
   const navigate = useNavigate();
+  const goBack = useSmartBack("/");
   const { isAdmin } = useAuth();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
@@ -127,7 +128,7 @@ const UtlansList = () => {
     <div className="min-h-screen bg-background pb-24">
       <CategoryHeader title="Utlånsskjema" subtitle="Avtale om utlån av utstyr" />
       <main className="mx-auto max-w-2xl space-y-4 px-5 py-6">
-        <button onClick={useSmartBack("/")} className="flex items-center gap-1.5 font-body text-sm text-muted-foreground hover:text-foreground">
+        <button onClick={goBack} className="flex items-center gap-1.5 font-body text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" /> Tilbake
         </button>
 
