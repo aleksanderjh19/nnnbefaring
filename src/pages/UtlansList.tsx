@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSmartBack } from "@/hooks/useSmartBack";
 import { ArrowLeft, Plus, FileSignature, CheckCircle2, Clock, PackageCheck, Trash2, Download } from "lucide-react";
 import CategoryHeader from "@/components/CategoryHeader";
 import { Button } from "@/components/ui/button";
@@ -126,7 +127,7 @@ const UtlansList = () => {
     <div className="min-h-screen bg-background pb-24">
       <CategoryHeader title="Utlånsskjema" subtitle="Avtale om utlån av utstyr" />
       <main className="mx-auto max-w-2xl space-y-4 px-5 py-6">
-        <button onClick={() => navigate("/")} className="flex items-center gap-1.5 font-body text-sm text-muted-foreground hover:text-foreground">
+        <button onClick={useSmartBack("/")} className="flex items-center gap-1.5 font-body text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" /> Tilbake
         </button>
 
