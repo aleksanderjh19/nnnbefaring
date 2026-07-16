@@ -122,6 +122,7 @@ const UtlansList = () => {
   };
 
   return (
+    <TooltipProvider>
     <div className="min-h-screen bg-background pb-24">
       <CategoryHeader title="Utlånsskjema" subtitle="Avtale om utlån av utstyr" />
       <main className="mx-auto max-w-2xl space-y-4 px-5 py-6">
