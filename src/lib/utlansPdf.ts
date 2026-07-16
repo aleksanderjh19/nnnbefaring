@@ -21,18 +21,18 @@ export interface UtlansData {
 const H = 842.04;
 const COORDS = {
   // Page 1 — låntaker line
-  laantakerLine: { x: 155, y: H - 194, w: 245 },
+  laantakerLine: { x: 155, y: H - 191, w: 245 },
   // Page 2 — fields
-  utlaantGjenstand: { x: 170, y: H - 508, w: 200 },
-  regnr:            { x: 370, y: H - 508, w: 195 },
-  datoFra:          { x: 170, y: H - 543, w: 130 },
-  datoTil:          { x: 330, y: H - 543, w: 200 },
-  datoSted:         { x: 150, y: H - 592, w: 400 },
-  sigStatnett:      { x: 85,  y: H - 645, w: 175, h: 40 },
-  sigLaantaker:     { x: 285, y: H - 645, w: 220, h: 40 },
-  innlevertDato:    { x: 185, y: H - 730, w: 90 },
-  innlevertKvitt:   { x: 335, y: H - 730, w: 200 },
-  sigInnlevering:   { x: 335, y: H - 780, w: 200, h: 35 },
+  utlaantGjenstand: { x: 170, y: H - 505, w: 200 },
+  regnr:            { x: 370, y: H - 505, w: 195 },
+  datoFra:          { x: 170, y: H - 540, w: 130 },
+  datoTil:          { x: 330, y: H - 540, w: 200 },
+  datoSted:         { x: 150, y: H - 589, w: 400 },
+  sigStatnett:      { x: 85,  y: H - 643, w: 175, h: 40 },
+  sigLaantaker:     { x: 285, y: H - 643, w: 220, h: 40 },
+  innlevertDato:    { x: 185, y: H - 727, w: 90 },
+  innlevertKvitt:   { x: 335, y: H - 727, w: 200 },
+  sigInnlevering:   { x: 335, y: H - 778, w: 200, h: 35 },
 };
 
 async function embedSig(pdf: PDFDocument, dataUrl?: string | null) {
