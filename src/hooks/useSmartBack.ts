@@ -1,33 +1,23 @@
-import { useCallback, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-
-const KEY = "nnhh:navDepth";
+import { useCallback } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 /**
- * Tracks how many in-app navigations have happened during this session,
- * so we can safely call navigate(-1) only when there's history to go back to.
- * Otherwise we fall back to the given route (default: "/").
+ * Returns a back handler that goes to the previous page in history
+ * when there is one, and otherwise navigates to the provided fallback.
+ *
+ * Detection: React Router sets `location.key === "default"` for the very
+ * first entry in the browser history stack. Any in-app navigation gives
+ * the location a non-default key, meaning `navigate(-1)` is safe.
  */
 export function useSmartBack(fallback: string = "/") {
   const navigate = useNavigate();
+  const location = useLocation();
 
   return useCallback(() => {
-    const depth = Number(sessionStorage.getItem(KEY) || "0");
-    if (depth > 0 && window.history.length > 1) {
+    if (location.key && location.key !== "default") {
       navigate(-1);
     } else {
       navigate(fallback, { replace: true });
     }
-  }, [navigate, fallback]);
-}
-
-/**
- * Mount once at the app root. Increments an in-session counter on every
- * client-side navigation so useSmartBack knows whether there's real history.
- */
-export function useTrackNavDepth(pathname: string) {
-  useEffect(() => {
-    const current = Number(sessionStorage.getItem(KEY) || "0");
-    sessionStorage.setItem(KEY, String(current + 1));
-  }, [pathname]);
+  }, [navigate, location.key, fallback]);
 }
