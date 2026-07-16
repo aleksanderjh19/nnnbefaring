@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, FileSignature, CheckCircle2, Clock, PackageCheck, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, FileSignature, CheckCircle2, Clock, PackageCheck, Trash2, Download } from "lucide-react";
 import CategoryHeader from "@/components/CategoryHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,6 +12,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { generateUtlansPdf, downloadPdf } from "@/lib/utlansPdf";
 
 type Row = {
   id: string;
