@@ -34,8 +34,8 @@ interface Employee {
 
 const TrainingForm = () => {
   const navigate = useNavigate();
-  const goBack = useSmartBack(`/dokumentert-opplaering/ansatt/${useParams().employeeId ?? ""}`);
   const { employeeId, recordId } = useParams<{ employeeId: string; recordId?: string }>();
+  const goBack = useSmartBack(`/dokumentert-opplaering/ansatt/${employeeId ?? ""}`);
   const [searchParams] = useSearchParams();
   const isEdit = !!recordId;
 
