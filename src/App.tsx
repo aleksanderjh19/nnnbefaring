@@ -91,7 +91,8 @@ const App = () => (
             <Route path="/spenningsrunde" element={<ProtectedRoute><RequireVisibleCard scope="stasjon" cardId="spenningsrunde" redirectTo="/stasjon"><VoltageRound /></RequireVisibleCard></ProtectedRoute>} />
             <Route path="/spenningsrunde/:roundId/print" element={<ProtectedRoute><VoltageRoundPrint /></ProtectedRoute>} />
             <Route path="/sf6-runde" element={<ProtectedRoute><RequireVisibleCard scope="stasjon" cardId="sf6-runde" redirectTo="/stasjon"><Sf6Round /></RequireVisibleCard></ProtectedRoute>} />
-            <Route path="/utlansskjema" element={<ProtectedRoute><RequireVisibleCard scope="dashboard" cardId="utlansskjema"><UtlansSkjema /></RequireVisibleCard></ProtectedRoute>} />
+            <Route path="/utlansskjema" element={<ProtectedRoute><RequireVisibleCard scope="dashboard" cardId="utlansskjema"><UtlansList /></RequireVisibleCard></ProtectedRoute>} />
+            <Route path="/utlansskjema/:id" element={<ProtectedRoute><RequireVisibleCard scope="dashboard" cardId="utlansskjema" redirectTo="/utlansskjema"><UtlansSkjema /></RequireVisibleCard></ProtectedRoute>} />
 
 
 
