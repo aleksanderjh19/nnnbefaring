@@ -40,6 +40,7 @@ import StatnettProcedures from "./pages/StatnettProcedures.tsx";
 import StatnettProcedurePdf from "./pages/StatnettProcedurePdf.tsx";
 import RequireVisibleCard from "./components/RequireVisibleCard.tsx";
 import UtlansSkjema from "./pages/UtlansSkjema.tsx";
+import UtlansList from "./pages/UtlansList.tsx";
 
 const queryClient = new QueryClient();
 
