@@ -39,6 +39,7 @@ import DroneClassDetail from "./pages/DroneClassDetail.tsx";
 import StatnettProcedures from "./pages/StatnettProcedures.tsx";
 import StatnettProcedurePdf from "./pages/StatnettProcedurePdf.tsx";
 import RequireVisibleCard from "./components/RequireVisibleCard.tsx";
+import UtlansSkjema from "./pages/UtlansSkjema.tsx";
 
 const queryClient = new QueryClient();
 
@@ -89,6 +90,7 @@ const App = () => (
             <Route path="/spenningsrunde" element={<ProtectedRoute><RequireVisibleCard scope="stasjon" cardId="spenningsrunde" redirectTo="/stasjon"><VoltageRound /></RequireVisibleCard></ProtectedRoute>} />
             <Route path="/spenningsrunde/:roundId/print" element={<ProtectedRoute><VoltageRoundPrint /></ProtectedRoute>} />
             <Route path="/sf6-runde" element={<ProtectedRoute><RequireVisibleCard scope="stasjon" cardId="sf6-runde" redirectTo="/stasjon"><Sf6Round /></RequireVisibleCard></ProtectedRoute>} />
+            <Route path="/utlansskjema" element={<ProtectedRoute><RequireVisibleCard scope="dashboard" cardId="utlansskjema"><UtlansSkjema /></RequireVisibleCard></ProtectedRoute>} />
 
 
 

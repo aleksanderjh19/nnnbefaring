@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Building2, Cable, ChevronRight, GraduationCap, AlertTriangle, Plane, Eye, EyeOff } from "lucide-react";
+import { Building2, Cable, ChevronRight, GraduationCap, AlertTriangle, Plane, Eye, EyeOff, FileSignature } from "lucide-react";
 import heroVideo from "@/assets/hero-video.mp4";
 import { useAuth } from "@/hooks/useAuth";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
@@ -38,6 +38,14 @@ const tools = [
     path: "/dokumentert-opplaering",
     ready: true,
     wip: true,
+  },
+  {
+    id: "utlansskjema",
+    name: "Utlånsskjema",
+    description: "Digitalt utlånsskjema for Statnetts utstyr med signatur",
+    icon: FileSignature,
+    path: "/utlansskjema",
+    ready: true,
   },
 ];
 

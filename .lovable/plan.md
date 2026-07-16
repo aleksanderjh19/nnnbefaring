@@ -1,56 +1,56 @@
-# Bilder per bryter under SF6-gassrunde
+# Plan: Utlånsskjema
 
-Legge til mulighet for å knytte bilder til hver enkelt bryter — for å dokumentere feil/avvik funnet under runden. Bilder vises på både registrerings- og fremvisningssiden, kan åpnes i storskjerm og lastes ned som JPEG.
+Nytt verktøykort på dashboard som lar en Statnett-ansatt fylle ut "Avtale om utlån av utstyr" digitalt, signere på skjerm, og laste ned en ferdig utfylt PDF som beholder originalens format 100%.
 
-## UX
+## Dashboard-integrasjon
 
-**Registrering (level-siden — der man fyller inn trykk):**
-- Til høyre for hver bryter-rad legges en kompakt kamera-knapp (ikon-knapp, `36x36`, avrundet, nøytral border).
-- Har bryteren allerede bilder: knappen viser en liten badge med antall (f.eks. `2`) og bytter farge til primær.
-- Klikk åpner en dialog "Bilder – {bryternavn}" med:
-  - Grid (2–3 kolonner) med thumbnails av eksisterende bilder. Trash-ikon i hjørnet for å slette.
-  - To handlinger nederst: **Ta bilde** (mobil-kamera via `capture="environment"`) og **Last opp** (velg fra galleri/filer, flere om gangen).
-  - Upload-progress inline. Bildene komprimeres i browser til maks 1600px lengste side / JPEG for å holde bucket-en lett.
+- Nytt kort "Utlånsskjema" i `src/pages/Dashboard.tsx` (ikon: `FileSignature` fra lucide), path `/utlansskjema`.
+- Rute i `App.tsx` beskyttet av `ProtectedRoute` + `RequireVisibleCard scope="dashboard" cardId="utlansskjema"` (samme skjul/vis-toggle som øvrige kort).
 
-**Fremvisning (view-modus + historikk):**
-- Ny høyre-kolonne "Bilder" i tabellen. Hvis bryter har bilder: liten thumbnail-stack med badge for antall. Ellers `—`.
-- Klikk på raden/thumbnailen åpner samme dialog i lese-modus (grid av bilder, ingen upload/slett).
-- Klikk på en enkelt thumbnail åpner fullskjerm-lightbox (samme mønster som referansebilde i Montasje: fyller viewport, pinch-zoom/pan, mouse wheel, dobbelt-tap).
-- I lightbox: knapp **Last ned JPEG** (nedlaster som `{stasjon}_{kV}kV_{bryter}_{n}.jpg`), pluss neste/forrige hvis flere bilder.
+## Skjema-side (`src/pages/UtlansSkjema.tsx`)
 
-Klikk på en bryter for å markere gjennomgang (grønn/oransje) fortsetter å funke — kamera-knappen har egen `stopPropagation` så trykk på den ikke endrer status.
+Bruker samme `CategoryHeader`/kort-stil som resten av appen. Steg-basert flyt (samme stil som SF6-runde), tilpasset mobil/iPad/PC:
+
+1. **Låntaker**
+   - Navn
+   - Ansattnr.
+2. **Utstyr**
+   - Utlånt gjenstand
+   - Reg.nr/serienr.
+   - Dato fra (date-picker)
+   - Dato til (date-picker)
+3. **Sted & signatur**
+   - Dato/Sted (auto-fylt dagens dato, redigerbar)
+   - Signatur låntaker (gjenbruker eksisterende `SignaturePad`)
+   - Signatur "For Statnett SF (ansvarlig utstyrseier)"
+4. **Innlevering** (valgfritt — kan fylles ut senere)
+   - Dato innlevert
+   - Kvittering / kommentar
+   - Signatur ansvarlig utstyrseier
+
+Alle felt validert før generering (unntatt innleveringsseksjonen). Auto-lagres i `localStorage` som draft slik at brukeren ikke mister data ved navigering.
+
+## PDF-generering
+
+- Bygger PDF på klient med `pdf-lib` (npm) — reproduserer originalens tekst 1:1 fra den parsede PDF-en (all "Retningslinjer"-tekst inkludert), med Helvetica/Times og samme paginering (2 sider, "Oppdatert 27.04.2026"-footer).
+- Utfylte verdier tegnes inn på riktig linje der originalen har understreker (Låntaker, Utlånt gjenstand, Reg.nr, datoer, Dato/Sted, Innlevert, Kvittering).
+- Signaturbilder (PNG dataURL fra `SignaturePad`) plasseres over signaturlinjene.
+- Ferdig PDF lastes ned med filnavn `Utlansskjema_<navn>_<dato>.pdf` via en blob-download-lenke. Ingen server involvert.
 
 ## Lagring
 
-**Ny Supabase Storage-bucket:** `sf6-round-photos` (privat).
-- Path: `{round_id}/{kV}/{breakerName}/{timestamp}-{rand}.jpg`
-- RLS på `storage.objects` for bucket-en: eier (`owner = auth.uid()`) kan `select/insert/update/delete`; admin (`has_role`) kan alt. Signerte URL-er (1 t) brukes for visning og nedlasting.
+Ingen backend-lagring nå (skjemaet er en engangs-PDF). Kun `localStorage` draft. Kan enkelt utvides senere til Supabase-tabell hvis ønsket.
 
-**Ny tabell** `public.sf6_round_photos`:
-```
-id uuid pk
-round_id uuid fk sf6_rounds(id) on delete cascade
-voltage_level text
-breaker_name text
-storage_path text
-created_by uuid
-created_at timestamptz default now()
-```
-- GRANT select/insert/delete til `authenticated`, ALL til `service_role`.
-- RLS: eier eller admin kan lese/skrive/slette rader for egne runder; admin ser alt.
-- Index på `(round_id, voltage_level, breaker_name)`.
+## Filer som opprettes/endres
 
-## Kodeendringer
+- `src/pages/UtlansSkjema.tsx` (ny — wizard-UI)
+- `src/lib/utlansPdf.ts` (ny — pdf-lib generator)
+- `src/pages/Dashboard.tsx` (nytt kort)
+- `src/App.tsx` (ny rute)
+- `package.json` (legger til `pdf-lib`)
 
-- `src/pages/Sf6Round.tsx`
-  - Ny state `photos: Record<string, PhotoRow[]>` nøklet på `"{kV}::{breaker}"`, lastes ved åpning av runde/visning.
-  - Kamera-knapp på bryter-rad i `level`-view og bilde-kolonne i `view`-modus.
-  - Ny komponent `Sf6BreakerPhotos` (dialog) og `Sf6PhotoLightbox` (fullskjerm-viewer, gjenbruker mønsteret fra `MontasjeDetail`).
-- Ny helper `src/lib/imageCompress.ts` (canvas-basert JPEG-komprimering).
-- Migrasjon for tabell + policies + grants. Bucket opprettes via storage-tool + separat migrasjon for `storage.objects`-policies.
+## Teknisk
 
-## Ikke i scope
-
-- Kommentarer/notater per bilde (kan legges til senere).
-- Bildekaruseller i historikk-listen.
-- Annotering/tegning oppå bilder.
+- Responsivt: samme mobile-first oppsett som SF6/Spenningsrunde (single column, store touch-mål, sticky "Neste"-knapp).
+- Signatur fungerer på touch + mus (allerede løst i `SignaturePad`).
+- PDF genereres helt i nettleseren — ingen edge function, ingen storage-bucket.
