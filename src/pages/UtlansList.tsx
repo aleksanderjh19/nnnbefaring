@@ -9,6 +9,9 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
