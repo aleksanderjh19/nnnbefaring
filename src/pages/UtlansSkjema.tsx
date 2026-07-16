@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Download, PackageCheck, Save, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Download, PackageCheck, CheckCircle2 } from "lucide-react";
 import CategoryHeader from "@/components/CategoryHeader";
 import SignaturePad from "@/components/SignaturePad";
 import { Button } from "@/components/ui/button";
