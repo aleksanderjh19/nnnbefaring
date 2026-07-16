@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useSmartBack } from "@/hooks/useSmartBack";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Camera, Save, X, ChevronDown } from "lucide-react";
 import ComboInput from "@/components/ComboInput";
@@ -34,6 +35,7 @@ interface Employee {
 const TrainingForm = () => {
   const navigate = useNavigate();
   const { employeeId, recordId } = useParams<{ employeeId: string; recordId?: string }>();
+  const goBack = useSmartBack(`/dokumentert-opplaering/ansatt/${employeeId ?? ""}`);
   const [searchParams] = useSearchParams();
   const isEdit = !!recordId;
 
@@ -333,7 +335,7 @@ const TrainingForm = () => {
         <div className="mx-auto max-w-2xl px-5 py-4">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate(`/dokumentert-opplaering/ansatt/${employeeId}`)}
+              onClick={goBack}
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-secondary"
             >
               <ArrowLeft className="h-4 w-4" />

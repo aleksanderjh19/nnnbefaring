@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useSmartBack } from "@/hooks/useSmartBack";
 import { ArrowLeft, AlertTriangle, Clock, Check, RotateCcw, X, ZoomIn } from "lucide-react";
 import {
   Dialog,
@@ -11,6 +12,7 @@ import { getGuideById } from "@/data/montasjeGuides";
 const MontasjeDetail = () => {
   const { guideId } = useParams<{ guideId: string }>();
   const navigate = useNavigate();
+  const goBack = useSmartBack("/ledning/montasje");
   const guide = guideId ? getGuideById(guideId) : undefined;
 
   useEffect(() => {
@@ -38,7 +40,7 @@ const MontasjeDetail = () => {
         <main className="mx-auto max-w-2xl px-5 py-10 text-center">
           <p className="font-body text-sm text-muted-foreground">Fant ikke veiledningen.</p>
           <button
-            onClick={() => navigate("/ledning/montasje")}
+            onClick={goBack}
             className="mt-4 inline-flex items-center gap-1.5 font-body text-sm font-medium text-primary"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -81,7 +83,7 @@ const MontasjeDetail = () => {
       <header className="sticky top-0 z-10 border-b border-border bg-card/95 backdrop-blur">
         <div className="mx-auto max-w-2xl px-5 py-4">
           <button
-            onClick={() => navigate("/ledning/montasje")}
+            onClick={goBack}
             className="mb-2 inline-flex items-center gap-1.5 font-body text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             <ArrowLeft className="h-3.5 w-3.5" />

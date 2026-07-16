@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useSmartBack } from "@/hooks/useSmartBack";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ArrowLeft, Plus, FileText, Trash2, ChevronRight, ChevronDown, Printer,
@@ -70,6 +71,7 @@ function groupRecords(records: TrainingRecord[]): GroupedEquipment[] {
 
 const EmployeeTraining = () => {
   const navigate = useNavigate();
+  const goBack = useSmartBack("/dokumentert-opplaering");
   const { employeeId } = useParams<{ employeeId: string }>();
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [records, setRecords] = useState<TrainingRecord[]>([]);
@@ -142,7 +144,7 @@ const EmployeeTraining = () => {
         <div className="mx-auto max-w-2xl px-5 py-4">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate("/dokumentert-opplaering")}
+              onClick={goBack}
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-secondary"
             >
               <ArrowLeft className="h-4 w-4" />

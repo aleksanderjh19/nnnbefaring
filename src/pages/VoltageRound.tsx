@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSmartBack } from "@/hooks/useSmartBack";
 import { ArrowLeft, ArrowRight, Check, Zap, Plus, History, Trash2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -96,6 +97,7 @@ interface SavedRound {
 
 export default function VoltageRound() {
   const navigate = useNavigate();
+  const goBack = useSmartBack("/");
   const { user, isAdmin } = useAuth();
   const [view, setView] = useState<"list" | "select-station" | "wizard">("list");
   const [step, setStep] = useState(0);
@@ -274,7 +276,7 @@ export default function VoltageRound() {
       <div className="min-h-screen bg-background">
         <header className="border-b border-border bg-card">
           <div className="mx-auto max-w-2xl px-5 py-4 flex items-center gap-3">
-            <button onClick={() => navigate("/")} className="text-muted-foreground hover:text-foreground">
+            <button onClick={goBack} className="text-muted-foreground hover:text-foreground">
               <ArrowLeft className="h-5 w-5" />
             </button>
             <div className="flex items-center gap-2">

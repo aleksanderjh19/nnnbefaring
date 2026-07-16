@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSmartBack } from "@/hooks/useSmartBack";
 import {
   ArrowLeft, Check, Wind, Plus, History, Trash2, ChevronRight, AlertCircle, Camera,
 } from "lucide-react";
@@ -64,6 +65,7 @@ function breakerUnit(kV: string, breakerName: string): string {
 
 export default function Sf6Round() {
   const navigate = useNavigate();
+  const goBackToStasjon = useSmartBack("/stasjon");
   const { user } = useAuth();
   const [view, setView] = useState<View>("list");
   const [history, setHistory] = useState<SavedRound[]>([]);
@@ -323,7 +325,7 @@ export default function Sf6Round() {
         <div className="min-h-screen bg-background">
           <header className="border-b border-border bg-card">
             <div className="mx-auto max-w-2xl px-5 py-4 flex items-center gap-3">
-              <button onClick={() => navigate("/stasjon")} className="text-muted-foreground hover:text-foreground">
+              <button onClick={goBackToStasjon} className="text-muted-foreground hover:text-foreground">
                 <ArrowLeft className="h-5 w-5" />
               </button>
               <div className="flex items-center gap-2">

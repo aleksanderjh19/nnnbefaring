@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSmartBack } from "@/hooks/useSmartBack";
 import { ChevronRight, Zap, Settings, Pencil, Trash2, Plus, X, ChevronLeft, CalendarArrowUp, RefreshCw, ArrowLeft } from "lucide-react";
 import heroVideo from "@/assets/hero-video.mp4";
 import { getMastNumbers } from "@/data/lines";
@@ -11,6 +12,7 @@ import { useMemo } from "react";
 const Home = () => {
   useEffect(() => { document.title = "Ledningsbefaring – Statnett"; }, []);
   const navigate = useNavigate();
+  const goBack = useSmartBack("/");
   const { getLineStats, getTotalStats, year, activeYear, isViewingPrevious, advanceYear, hasPreviousYear, viewPreviousYear, viewCurrentYear } = useInspectionState();
   const { lines, lineGroups, editMode, setEditMode, removeLine, updateLine, addLine } = useLines();
 
@@ -84,7 +86,7 @@ const Home = () => {
           </div>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate("/")}
+              onClick={goBack}
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground hover:bg-secondary"
               title="Tilbake"
             >

@@ -1,5 +1,5 @@
 import { ArrowLeft } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useSmartBack } from "@/hooks/useSmartBack";
 import heroVideo from "@/assets/hero-video.mp4";
 
 type Props = {
@@ -9,7 +9,7 @@ type Props = {
 };
 
 const CategoryHeader = ({ title, subtitle, backTo = "/" }: Props) => {
-  const navigate = useNavigate();
+  const goBack = useSmartBack(backTo);
   return (
     <header className="border-b border-border bg-card">
       <div className="mx-auto max-w-2xl px-5 py-6 space-y-4">
@@ -28,7 +28,7 @@ const CategoryHeader = ({ title, subtitle, backTo = "/" }: Props) => {
         </div>
         <div>
           <button
-            onClick={() => navigate(backTo)}
+            onClick={goBack}
             className="mb-3 inline-flex items-center gap-1.5 font-body text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             <ArrowLeft className="h-3.5 w-3.5" />

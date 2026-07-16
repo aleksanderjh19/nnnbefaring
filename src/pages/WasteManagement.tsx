@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSmartBack } from "@/hooks/useSmartBack";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -83,6 +84,7 @@ interface RecipientRow {
 
 export default function WasteManagement() {
   const navigate = useNavigate();
+  const goBack = useSmartBack("/");
   const { isAdmin } = useAuth();
 
   // Data from DB
@@ -267,7 +269,7 @@ export default function WasteManagement() {
       <header className="border-b border-border bg-card">
         <div className="mx-auto flex max-w-2xl items-center gap-3 px-5 py-4">
           <button
-            onClick={() => navigate("/")}
+            onClick={goBack}
             className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary active:scale-95"
           >
             <ArrowLeft className="h-5 w-5" />
