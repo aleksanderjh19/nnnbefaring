@@ -32,6 +32,7 @@ const statusMeta: Record<string, { label: string; icon: any; className: string }
 const UtlansList = () => {
   useEffect(() => { document.title = "Utlånsskjema – NNHH Verktøy"; }, []);
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
 
