@@ -110,21 +110,23 @@ const UtlansList = () => {
                       <div className="text-sm text-muted-foreground">{r.utlaant_gjenstand || "—"}</div>
                       {period && <div className="mt-0.5 text-xs text-muted-foreground">{period}</div>}
                     </button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Slette skjema?</AlertDialogTitle>
-                          <AlertDialogDescription>Dette kan ikke angres.</AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Avbryt</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDelete(r.id)}>Slett</AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    {isAdmin && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Slette skjema?</AlertDialogTitle>
+                            <AlertDialogDescription>Dette kan ikke angres.</AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Avbryt</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDelete(r.id)}>Slett</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
                   </CardContent>
                 </Card>
               );
