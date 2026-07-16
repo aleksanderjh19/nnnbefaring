@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, FileSignature, CheckCircle2, Clock, PackageCheck, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, FileSignature, CheckCircle2, Clock, PackageCheck, Trash2, Download } from "lucide-react";
 import CategoryHeader from "@/components/CategoryHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,6 +12,24 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { generateUtlansPdf, downloadPdf, type UtlansData } from "@/lib/utlansPdf";
+
+function fromRow(r: any): UtlansData {
+  return {
+    laantakerNavn: r.laantaker_navn ?? "",
+    ansattnr: r.ansattnr ?? "",
+    utlaantGjenstand: r.utlaant_gjenstand ?? "",
+    regnr: r.regnr ?? "",
+    datoFra: r.dato_fra ?? "",
+    datoTil: r.dato_til ?? "",
+    datoSted: r.dato_sted ?? "",
+    signaturLaantaker: r.signatur_laantaker,
+    signaturStatnett: r.signatur_statnett,
+    innlevertDato: r.innlevert_dato ?? "",
+    innlevertKvittering: r.innlevert_kvittering ?? "",
+    signaturInnlevering: r.signatur_innlevering,
+  };
+}
 
 type Row = {
   id: string;
@@ -35,6 +53,7 @@ const UtlansList = () => {
   const { isAdmin } = useAuth();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -74,6 +93,31 @@ const UtlansList = () => {
     toast({ title: "Slettet" });
   };
 
+  const handleDownload = async (id: string) => {
+    setDownloadingId(id);
+    try {
+      const { data: row, error } = await supabase
+        .from("utlans_skjemaer")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
+      if (error || !row) {
+        toast({ title: "Feil", description: error?.message ?? "Fant ikke skjema", variant: "destructive" });
+        return;
+      }
+      const data = fromRow(row);
+      const bytes = await generateUtlansPdf(data);
+      const safe = (data.laantakerNavn || data.utlaantGjenstand || "utlaan").replace(/[^a-zA-Z0-9-_]/g, "_");
+      downloadPdf(bytes, `Utlansskjema_${safe}_${data.datoSted || new Date().toISOString().slice(0, 10)}.pdf`);
+      toast({ title: "PDF lastet ned" });
+    } catch (e) {
+      console.error(e);
+      toast({ title: "Feil", description: "Kunne ikke generere PDF.", variant: "destructive" });
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background pb-24">
       <CategoryHeader title="Utlånsskjema" subtitle="Avtale om utlån av utstyr" />
@@ -110,23 +154,39 @@ const UtlansList = () => {
                       <div className="text-sm text-muted-foreground">{r.utlaant_gjenstand || "—"}</div>
                       {period && <div className="mt-0.5 text-xs text-muted-foreground">{period}</div>}
                     </button>
-                    {isAdmin && (
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Slette skjema?</AlertDialogTitle>
-                            <AlertDialogDescription>Dette kan ikke angres.</AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Avbryt</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDelete(r.id)}>Slett</AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    )}
+                    <div className="flex flex-col gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Last ned PDF"
+                        disabled={downloadingId === r.id}
+                        onClick={() => handleDownload(r.id)}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        {downloadingId === r.id ? (
+                          <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                        ) : (
+                          <Download className="h-4 w-4" />
+                        )}
+                      </Button>
+                      {isAdmin && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Slette skjema?</AlertDialogTitle>
+                              <AlertDialogDescription>Dette kan ikke angres.</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Avbryt</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDelete(r.id)}>Slett</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               );
