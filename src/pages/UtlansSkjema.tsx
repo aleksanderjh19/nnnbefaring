@@ -283,6 +283,9 @@ const UtlansSkjema = () => {
             {generating ? "Genererer…" : (<><Download className="h-4 w-4" /> Last ned PDF</>)}
           </Button>
         </div>
+        <Button variant="outline" onClick={() => navigate("/utlansskjema")} className="w-full gap-2">
+          <ArrowRight className="h-4 w-4" /> Gå videre
+        </Button>
         <p className="text-center text-xs text-muted-foreground">
           Skjemaet lagres automatisk. Du kan fullføre uten alle felt og fylle inn innlevering senere.
         </p>
