@@ -163,7 +163,10 @@ const UtlansSkjema = () => {
 
   const handleMarkActive = async () => {
     const ok = await persist("active");
-    if (ok) toast({ title: "Skjema lagret som utlånt" });
+    if (ok) {
+      toast({ title: "Skjema lagret som utlånt" });
+      navigate("/utlansskjema");
+    }
   };
 
   const handleMarkReturned = async () => {
