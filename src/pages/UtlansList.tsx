@@ -105,10 +105,10 @@ const UtlansList = () => {
         toast({ title: "Feil", description: error?.message ?? "Fant ikke skjema", variant: "destructive" });
         return;
       }
-      const parsed = fromRow(row);
-      const bytes = await generateUtlansPdf(parsed.data);
-      const safe = (parsed.data.laantakerNavn || parsed.data.utlaantGjenstand || "utlaan").replace(/[^a-zA-Z0-9-_]/g, "_");
-      downloadPdf(bytes, `Utlansskjema_${safe}_${parsed.data.datoSted || new Date().toISOString().slice(0, 10)}.pdf`);
+      const data = fromRow(row);
+      const bytes = await generateUtlansPdf(data);
+      const safe = (data.laantakerNavn || data.utlaantGjenstand || "utlaan").replace(/[^a-zA-Z0-9-_]/g, "_");
+      downloadPdf(bytes, `Utlansskjema_${safe}_${data.datoSted || new Date().toISOString().slice(0, 10)}.pdf`);
       toast({ title: "PDF lastet ned" });
     } catch (e) {
       console.error(e);
