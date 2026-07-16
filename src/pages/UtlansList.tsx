@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 type Row = {
   id: string;
@@ -31,6 +32,7 @@ const statusMeta: Record<string, { label: string; icon: any; className: string }
 const UtlansList = () => {
   useEffect(() => { document.title = "Utlånsskjema – NNHH Verktøy"; }, []);
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -108,21 +110,23 @@ const UtlansList = () => {
                       <div className="text-sm text-muted-foreground">{r.utlaant_gjenstand || "—"}</div>
                       {period && <div className="mt-0.5 text-xs text-muted-foreground">{period}</div>}
                     </button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Slette skjema?</AlertDialogTitle>
-                          <AlertDialogDescription>Dette kan ikke angres.</AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Avbryt</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDelete(r.id)}>Slett</AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    {isAdmin && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Slette skjema?</AlertDialogTitle>
+                            <AlertDialogDescription>Dette kan ikke angres.</AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Avbryt</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDelete(r.id)}>Slett</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
                   </CardContent>
                 </Card>
               );
