@@ -21,7 +21,7 @@ export interface UtlansData {
 const H = 842.04;
 const COORDS = {
   // Page 1 — låntaker line
-  laantakerLine: { x: 155, y: H - 208, w: 245 },
+  laantakerLine: { x: 155, y: H - 194, w: 245 },
   // Page 2 — fields
   utlaantGjenstand: { x: 170, y: H - 508, w: 200 },
   regnr:            { x: 370, y: H - 508, w: 195 },
