@@ -76,6 +76,31 @@ const UtlansList = () => {
     toast({ title: "Slettet" });
   };
 
+  const handleDownload = async (id: string) => {
+    setDownloadingId(id);
+    try {
+      const { data: row, error } = await supabase
+        .from("utlans_skjemaer")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
+      if (error || !row) {
+        toast({ title: "Feil", description: error?.message ?? "Fant ikke skjema", variant: "destructive" });
+        return;
+      }
+      const parsed = fromRow(row);
+      const bytes = await generateUtlansPdf(parsed.data);
+      const safe = (parsed.data.laantakerNavn || parsed.data.utlaantGjenstand || "utlaan").replace(/[^a-zA-Z0-9-_]/g, "_");
+      downloadPdf(bytes, `Utlansskjema_${safe}_${parsed.data.datoSted || new Date().toISOString().slice(0, 10)}.pdf`);
+      toast({ title: "PDF lastet ned" });
+    } catch (e) {
+      console.error(e);
+      toast({ title: "Feil", description: "Kunne ikke generere PDF.", variant: "destructive" });
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background pb-24">
       <CategoryHeader title="Utlånsskjema" subtitle="Avtale om utlån av utstyr" />
