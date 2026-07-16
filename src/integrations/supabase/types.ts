@@ -336,6 +336,66 @@ export type Database = {
         }
         Relationships: []
       }
+      utlans_skjemaer: {
+        Row: {
+          ansattnr: string
+          created_at: string
+          dato_fra: string | null
+          dato_sted: string
+          dato_til: string | null
+          id: string
+          innlevert_dato: string | null
+          innlevert_kvittering: string | null
+          laantaker_navn: string
+          regnr: string
+          signatur_innlevering: string | null
+          signatur_laantaker: string | null
+          signatur_statnett: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          utlaant_gjenstand: string
+        }
+        Insert: {
+          ansattnr?: string
+          created_at?: string
+          dato_fra?: string | null
+          dato_sted?: string
+          dato_til?: string | null
+          id?: string
+          innlevert_dato?: string | null
+          innlevert_kvittering?: string | null
+          laantaker_navn?: string
+          regnr?: string
+          signatur_innlevering?: string | null
+          signatur_laantaker?: string | null
+          signatur_statnett?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          utlaant_gjenstand?: string
+        }
+        Update: {
+          ansattnr?: string
+          created_at?: string
+          dato_fra?: string | null
+          dato_sted?: string
+          dato_til?: string | null
+          id?: string
+          innlevert_dato?: string | null
+          innlevert_kvittering?: string | null
+          laantaker_navn?: string
+          regnr?: string
+          signatur_innlevering?: string | null
+          signatur_laantaker?: string | null
+          signatur_statnett?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          utlaant_gjenstand?: string
+        }
+        Relationships: []
+      }
       voltage_rounds: {
         Row: {
           comments: string | null
