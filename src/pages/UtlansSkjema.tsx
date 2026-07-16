@@ -32,6 +32,15 @@ function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
+  <Card>
+    <CardContent className="space-y-4 p-5">
+      <h3 className="font-display text-sm font-bold uppercase tracking-widest text-statnett">{title}</h3>
+      {children}
+    </CardContent>
+  </Card>
+);
+
 const UtlansSkjema = () => {
   useEffect(() => { document.title = "Utlånsskjema – NNHH Verktøy"; }, []);
   const navigate = useNavigate();
@@ -86,14 +95,6 @@ const UtlansSkjema = () => {
     setData({ ...emptyData, datoSted: todayIso() });
   };
 
-  const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
-    <Card>
-      <CardContent className="space-y-4 p-5">
-        <h3 className="font-display text-sm font-bold uppercase tracking-widest text-statnett">{title}</h3>
-        {children}
-      </CardContent>
-    </Card>
-  );
 
   return (
     <div className="min-h-screen bg-background pb-32">
