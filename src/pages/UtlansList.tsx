@@ -12,7 +12,24 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { generateUtlansPdf, downloadPdf } from "@/lib/utlansPdf";
+import { generateUtlansPdf, downloadPdf, type UtlansData } from "@/lib/utlansPdf";
+
+function fromRow(r: any): UtlansData {
+  return {
+    laantakerNavn: r.laantaker_navn ?? "",
+    ansattnr: r.ansattnr ?? "",
+    utlaantGjenstand: r.utlaant_gjenstand ?? "",
+    regnr: r.regnr ?? "",
+    datoFra: r.dato_fra ?? "",
+    datoTil: r.dato_til ?? "",
+    datoSted: r.dato_sted ?? "",
+    signaturLaantaker: r.signatur_laantaker,
+    signaturStatnett: r.signatur_statnett,
+    innlevertDato: r.innlevert_dato ?? "",
+    innlevertKvittering: r.innlevert_kvittering ?? "",
+    signaturInnlevering: r.signatur_innlevering,
+  };
+}
 
 type Row = {
   id: string;
