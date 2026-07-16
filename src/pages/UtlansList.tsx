@@ -23,7 +23,7 @@ type Row = {
 };
 
 const statusMeta: Record<string, { label: string; icon: any; className: string }> = {
-  draft:      { label: "Kladd",     icon: Clock,        className: "bg-muted text-foreground" },
+  draft:      { label: "Pågående",  icon: Clock,         className: "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-100" },
   active:     { label: "Utlånt",    icon: FileSignature, className: "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-100" },
   returned:   { label: "Innlevert", icon: PackageCheck,  className: "bg-emerald-100 text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100" },
 };
@@ -87,42 +87,73 @@ const UtlansList = () => {
         ) : rows.length === 0 ? (
           <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">Ingen skjemaer enda. Opprett ett med knappen over.</CardContent></Card>
         ) : (
-          rows.map((r) => {
-            const meta = statusMeta[r.status] ?? statusMeta.draft;
-            const Icon = meta.icon;
-            const period = r.dato_fra || r.dato_til
-              ? `${r.dato_fra ?? "…"} → ${r.dato_til ?? "…"}`
-              : null;
+          (() => {
+            const ongoing = rows.filter((r) => r.status !== "returned");
+            const history = rows.filter((r) => r.status === "returned");
+
+            const renderCard = (r: Row) => {
+              const meta = statusMeta[r.status] ?? statusMeta.draft;
+              const Icon = meta.icon;
+              const period = r.dato_fra || r.dato_til
+                ? `${r.dato_fra ?? "…"} → ${r.dato_til ?? "…"}`
+                : null;
+              return (
+                <Card key={r.id} className="transition hover:shadow-md">
+                  <CardContent className="flex items-start gap-3 p-4">
+                    <button className="flex-1 text-left" onClick={() => navigate(`/utlansskjema/${r.id}`)}>
+                      <div className="mb-1 flex items-center gap-2">
+                        <Badge className={`${meta.className} border-0 gap-1`}><Icon className="h-3 w-3" />{meta.label}</Badge>
+                      </div>
+                      <div className="font-medium">{r.laantaker_navn || <span className="text-muted-foreground italic">Uten navn</span>}</div>
+                      <div className="text-sm text-muted-foreground">{r.utlaant_gjenstand || "—"}</div>
+                      {period && <div className="mt-0.5 text-xs text-muted-foreground">{period}</div>}
+                    </button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Slette skjema?</AlertDialogTitle>
+                          <AlertDialogDescription>Dette kan ikke angres.</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Avbryt</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDelete(r.id)}>Slett</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </CardContent>
+                </Card>
+              );
+            };
+
             return (
-              <Card key={r.id} className="transition hover:shadow-md">
-                <CardContent className="flex items-start gap-3 p-4">
-                  <button className="flex-1 text-left" onClick={() => navigate(`/utlansskjema/${r.id}`)}>
-                    <div className="mb-1 flex items-center gap-2">
-                      <Badge className={`${meta.className} border-0 gap-1`}><Icon className="h-3 w-3" />{meta.label}</Badge>
-                    </div>
-                    <div className="font-medium">{r.laantaker_navn || <span className="text-muted-foreground italic">Uten navn</span>}</div>
-                    <div className="text-sm text-muted-foreground">{r.utlaant_gjenstand || "—"}</div>
-                    {period && <div className="mt-0.5 text-xs text-muted-foreground">{period}</div>}
-                  </button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Slette skjema?</AlertDialogTitle>
-                        <AlertDialogDescription>Dette kan ikke angres.</AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Avbryt</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDelete(r.id)}>Slett</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </CardContent>
-              </Card>
+              <div className="space-y-6">
+                <section className="space-y-2">
+                  <h2 className="px-1 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                    Pågående utlån {ongoing.length > 0 && <span className="ml-1 text-xs font-normal">({ongoing.length})</span>}
+                  </h2>
+                  {ongoing.length === 0 ? (
+                    <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">Ingen pågående utlån.</CardContent></Card>
+                  ) : (
+                    <div className="space-y-3">{ongoing.map(renderCard)}</div>
+                  )}
+                </section>
+
+                <section className="space-y-2">
+                  <h2 className="px-1 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                    Historikk {history.length > 0 && <span className="ml-1 text-xs font-normal">({history.length})</span>}
+                  </h2>
+                  {history.length === 0 ? (
+                    <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">Ingen innleverte skjemaer enda.</CardContent></Card>
+                  ) : (
+                    <div className="space-y-3">{history.map(renderCard)}</div>
+                  )}
+                </section>
+              </div>
             );
-          })
+          })()
         )}
       </main>
     </div>
