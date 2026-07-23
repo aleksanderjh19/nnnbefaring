@@ -1,54 +1,125 @@
 
-# Plan: Smart «Tilbake»-navigasjon i hele appen
-
 ## Mål
-Når brukeren trykker «Tilbake» (eller pil-tilbake) på en hvilken som helst side eller verktøy, skal man havne på siden man faktisk kom fra – ikke en hardkodet foreldreside. Fungerer for navigasjon på tvers av Dashboard, Stasjon, Ledning, Drone, alle verktøy og undersider.
 
-## Dagens situasjon
-- Mange sider bruker `navigate("/dashboard")`, `navigate("/stasjon")` osv. som hardkodede mål på tilbake-knappen.
-- Det betyr at hvis man f.eks. går Dashboard → Drone → Statnett-prosedyrer → PDF-viser, så havner man på Drone-siden i stedet for Statnett-prosedyrer når man trykker tilbake fra PDF.
-- Noen sider bruker allerede `navigate(-1)`, men inkonsekvent.
+1. Riktig referanse-modell pr. stasjon, med felt-tilhørighet valgbart pr. runde
+2. Avviksberegning per felt mot valgt referanse, tydelig varsling
+3. Excel-eksport 1:1 med Statnett-mal (fylte verdier + bevarte formler/diagram)
+4. Bedre skjermvisning av avvik
 
-## Løsning: `navigate(-1)` med trygg fallback
+## 1. Referanse-modell (tre stasjonstyper)
 
-Bytt alle hardkodede tilbake-navigasjoner ut med en felles hook som:
-1. Bruker nettleserens historikk (`navigate(-1)`) når det finnes en forrige side i samme øktet.
-2. Faller tilbake til en fornuftig standardrute (f.eks. `/dashboard`) hvis brukeren åpnet siden direkte via URL/refresh (ingen historikk).
+Vi har tre varianter basert på hvilke måleuttak som finnes:
 
-### Ny hook: `useSmartBack`
-Plassering: `src/hooks/useSmartBack.ts`
+**Type A — to skinner (SSA + SSB) måles**: Marka 300kV, Marka 132kV, Rana 132kV
+- Bruker kobler hvert felt mot SSA / SSB / «ute av drift» pr. runde
+- Sammenligning: felts måleverdi vs. valgt skinnes måleverdi
 
-```ts
-// Returnerer en funksjon som går tilbake i history hvis mulig,
-// ellers navigerer til `fallback` (default: "/dashboard").
-useSmartBack(fallback?: string) => () => void
+**Type B — én skinne (SSA) måles**: Trofors 300kV
+- SSA er alltid referansen for alle øvrige felt
+- Bruker kan sette felt til «ute av drift», men ingen skinne-valg
+- (Ingen SSB å velge mellom)
+
+**Type C — ingen skinne måles**: Namsskogan 300kV
+- Bruker velger ett av feltene som **referansefelt** pr. runde
+- Alle andre aktive felt sammenlignes mot referansefeltets måleverdier
+
+Felles felt-status: `active` | `ute_av_drift`. Kun Type C har `isReference`.
+
+## 2. Stasjonsmaler (`src/data/stationTemplates.ts` — full omskrivning)
+
+```
+StationTemplate {
+  id, name, shortName,
+  voltageLevels: [{
+    id, kV, nominalVoltage, secondaryVoltage,
+    referenceMode: "dual-busbar" | "single-busbar" | "field",
+    fields: [{
+      id, name, drawingRef, terminals{UL1,UL2,UL3},
+      kind: "busbar" | "field",
+      busbarLabel?: "A" | "B",
+      defaultRefBusbar?: "A" | "B",        // Type A default
+      isDefaultReference?: boolean,        // Type C default
+      conversion?: { factor: number }      // Rana omsetning
+    }]
+  }]
+}
 ```
 
-Implementasjonen sporer om appen har navigert internt (via en enkel teller i `sessionStorage` eller ved å sjekke `location.key !== "default"` fra React Router). Hvis ja → `navigate(-1)`. Hvis nei → `navigate(fallback, { replace: true })`.
+Feltlister fra opplastede maler:
+- **Marka 300kV** (dual-busbar) — SSA(+2R1), SSB(+2R1), Nedre Røssåga(+4R1), Trofors(+4R3)
+- **Marka 132kV** (dual-busbar) — SSA(Skap 43), SSB(Skap 42), Mosjøen 1/3, Grytåga, Øyfjellet 1, Bleikvasslia, Trafo 1/2 (nybygg)
+- **Rana 132kV** (dual-busbar, omsetning) — SSA(+R51), SSB(+R51), Svabo 2(+R41) [conv 0.9429], Svabo 4(+R32) [conv 0.9429], T5
+- **Trofors 300kV** (single-busbar) — SSA, Namsskogan, Marka
+- **Namsskogan 300kV** (field) — Kolsvik, Tunnsjødal, Trofors (default referansefelt: Kolsvik)
 
-### Refactor på tvers
-Erstatt alle `onClick={() => navigate("/...")}` på tilbake-knapper i disse sidene med `useSmartBack("<fornuftig-fallback>")`:
+## 3. Runde-datamodell (`src/components/voltage-round/types.ts`)
 
-- Dashboard-undersider: `Stasjon`, `Ledning`, `Drone`, `Verktoy`
-- Stasjon-verktøy: `Sf6Round`, `Sf6History`, `Sf6RoundDetail`, evt. andre
-- Ledning-verktøy: `MontasjeList`, `MontasjeDetail`, inspeksjonssider
-- Drone-verktøy: `DroneRules`, `DroneRuleDetail`, `DroneClasses`, `DroneClassDetail`, `DroneGuide`, `StatnettProcedures`, `StatnettProcedurePdf`
-- Utlånsskjema: `UtlansList`, `UtlansSkjema`
-- Andre verktøy/oversikter som har «Tilbake»-pil (opplæring, ansatte, avfall, spenningsrunde m.m.)
+```
+TransformerField {
+  id, name, drawingRef, kind, busbarLabel?, conversion?,
+  refBusbar?: "A" | "B",        // dual-busbar
+  isReference?: boolean,        // field-mode
+  status: "active" | "ute_av_drift"
+}
+```
 
-Fallback velges ut fra logisk foreldreside for tilfellet der brukeren åpner URL-en direkte (f.eks. StatnettProcedurePdf → fallback `/drone/statnett-prosedyrer`).
+Ny `calculateDeviations`:
+- Grense = Cl.0,2 fra Uf-tabellen (57.7→0.23, 63.5→0.25, 115.5→0.46, 127→0.5)
+- **dual-busbar**: for hvert aktivt ikke-busbar felt → sammenlign med `measValue` på valgt SSA/SSB. Ved `conversion`: bruk `felt.measValue × factor` som sammenligningsverdi.
+- **single-busbar**: for hvert aktivt felt utenom SSA → sammenlign med SSA.
+- **field**: for hvert aktivt ikke-referanse felt → sammenlign med referansefeltets `measValue`.
+- Avvik når `|diff| > grense`.
 
-### Hardware/browser back
-Ingen egen håndtering nødvendig – nettleserens tilbake-knapp og mobilens sveipegest følger allerede history og vil fungere som forventet.
+## 4. UI-endringer
 
-## Teknisk
+**Feltkobling-steget** (erstatter `BusbarAssignment.tsx`)
+- **dual-busbar**: SSA og SSB som header-kort. Under hvert øvrig felt: valg «Ligger mot SSA / SSB / Ute av drift». Rana Svabo-felt får info-badge «Omregnes med faktor 0,9429».
+- **single-busbar**: SSA som header-kort. Under hvert øvrig felt: toggle «Aktiv / Ute av drift». Skinne-valg skjules.
+- **field**: radio-gruppe «Velg referansefelt for denne runden» øverst. Under: for hvert felt toggle «Aktiv / Ute av drift».
 
-- Legg til `useSmartBack` (én liten hook).
-- Søk-og-erstatt alle steder som har tilbake-knapp/`ArrowLeft`-ikon i `src/pages/**` og relevante komponenter.
-- Ingen endringer i routing eller Supabase.
-- Ingen visuelle endringer.
+**MeasurementInput.tsx**
+- «Ute av drift»-felt skjules
+- Referansefelt (Type C) og SSA (Type B) markeres tydelig med badge
+- Rana: hjelpetekst «Omregnet: X V» under måle-feltet på Svabo
 
-## Ut av scope
-- Endring av selve tilbake-ikonet eller plasseringen.
-- Breadcrumbs.
-- Persistering av scroll-posisjon (kan gjøres senere hvis ønskelig).
+**ResultsView.tsx** — tydeligere avviksvisning:
+- dual-busbar: én seksjon pr. skinne, viser hvert tilkoblet felts fase-tabell (Måle / Referanse / Avvik / Grense / Status)
+- single-busbar: én seksjon «Referanse: Samleskinne A», tilsvarende tabell
+- field: én seksjon «Referanse: {feltnavn}», tilsvarende tabell
+- Røde bakgrunner + varselbanner på avvik
+- «Last ned Excel» + «Last ned PDF»-knapp øverst
+
+## 5. Excel-eksport (`src/lib/voltageRoundXlsx.ts`)
+
+- Bundle 5 malfiler under `public/voltage-templates/` (marka-300, marka-132, namsskogan-300, rana-132, trofors-300)
+- `bun add exceljs` — lazy-imported kun i export-funksjonen
+- Mapping (samme celleoppsett i alle malene):
+  - `B1` stasjon+kV, `B2` dato, `B3` sign
+  - `G2..J2` Ref-instrument, `G3..J3` Måle-instrument, `J4` nominell sekundær
+  - Rad 6/17 kol B/D/F/H/J = feltnavn (fra vår felt-rekkefølge)
+  - Rad 7/18 = tegn.ref
+  - Rad 9–11 og 20–22: rekkeklemme (odde kol) + diff-formler (allerede i malen)
+  - Rad 13–15 og 24–26: Ref-verdi (venstre) og Måle-verdi (høyre) pr. fase
+  - Rana: kolonne L/M for omregnede verdier
+- Vi rører **ikke** diagram-referansene i rad 39–42
+- Filnavn: `Spenningsrunde_{stasjon}_{kV}kV_{YYYY-MM-DD}.xlsx`
+
+## 6. Migrasjon av lagrede runder
+
+`voltage_rounds.data` er JSONB — hjelpefunksjon konverterer gamle runder ved innlasting:
+- Gamle `busbar: "A"|"B"` → `refBusbar` + `kind="field"`, `status="active"`
+- Type C-stasjoner: første felt får `isReference=true` hvis ingen har det
+
+Ingen DB-schema-endring nødvendig.
+
+## Rekkefølge på implementering
+
+1. Kopier malfiler til `public/voltage-templates/`
+2. Skriv om `stationTemplates.ts` med `referenceMode`, `kind`, `conversion`, `isDefaultReference`
+3. Utvid `types.ts` + ny `calculateDeviations`
+4. Bygg om feltkobling-komponenten (tre varianter)
+5. Små justeringer i `MeasurementInput.tsx`
+6. Bygg om `ResultsView.tsx` + Excel-knapp
+7. `bun add exceljs` + `voltageRoundXlsx.ts`
+8. Migrasjonshjelper i `VoltageRound.tsx`
+9. Bygg + verifisere med Playwright pr. stasjon
