@@ -48,11 +48,24 @@ export async function generateVoltageRoundXlsx(round: VoltageRoundData) {
   };
 
   // ── Sheet ──────────────────────────────────────────────────
-  const sheetPath =
-    Object.keys(zip.files).find((p) =>
-      /^xl\/worksheets\/sheet\d+\.xml$/.test(p)
-    ) ?? "xl/worksheets/sheet1.xml";
-  let sheetXml = await zip.file(sheetPath)!.async("string");
+  // Templates contain multiple sheets — the intro/info sheet and the actual
+  // measurement sheet. Pick the sheet that actually contains the data grid
+  // (header cell A1 = "Stasjon:" shared string).
+  const sheetPaths = Object.keys(zip.files)
+    .filter((p) => /^xl\/worksheets\/sheet\d+\.xml$/.test(p))
+    .sort();
+  let sheetPath = sheetPaths[0] ?? "xl/worksheets/sheet1.xml";
+  let sheetXml = "";
+  for (const p of sheetPaths) {
+    const xml = await zip.file(p)!.async("string");
+    // The data sheet has a cell at B6/D6/F6/H6 (field header row).
+    if (/<c r="B6"[^>]*t="s"/.test(xml) && /<c r="D6"[^>]*t="s"/.test(xml)) {
+      sheetPath = p;
+      sheetXml = xml;
+      break;
+    }
+  }
+  if (!sheetXml) sheetXml = await zip.file(sheetPath)!.async("string");
 
   // Helpers to patch individual cells while preserving style attributes.
   const cellPattern = (ref: string) =>
