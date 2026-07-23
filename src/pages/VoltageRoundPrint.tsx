@@ -82,11 +82,27 @@ export default function VoltageRoundPrint() {
     return <div className="flex items-center justify-center min-h-screen"><p>Fant ikke spenningsrunden.</p></div>;
   }
 
-  const transformers = round.transformers;
+  // Migrate legacy transformer format + derive reference mode from station template
+  const station = findStation(round.station_name);
+  const level = station ? findVoltageLevel(station, round.voltage_level) : undefined;
+  const referenceMode: ReferenceMode = level?.referenceMode ?? "dual-busbar";
+  let transformers = migrateTransformers(round.transformers ?? [], referenceMode);
+  if (level) {
+    transformers = transformers.map((t) => {
+      const def = level.fields.find((f) => f.id === t.id);
+      if (def?.conversion && !t.conversion) return { ...t, conversion: def.conversion };
+      return t;
+    });
+  }
   const measurements = round.measurements;
-  const deviations = calculateDeviations(transformers, measurements, round.secondary_voltage);
+  const sections = calculateReferenceSections(
+    transformers,
+    measurements,
+    referenceMode,
+    round.secondary_voltage
+  );
   const limit = getDeviationLimit(round.secondary_voltage);
-  const hasIssues = deviations.some((d) => !d.acceptable);
+  const issues = hasAnyIssue(sections);
 
   const formatDate = (d: string) => {
     const parts = d.split("-");
@@ -100,6 +116,12 @@ export default function VoltageRoundPrint() {
     let text = parts.join(" / ");
     if (inst.calibrationDate) text += ` (Kal: ${inst.calibrationDate})`;
     return text;
+  };
+
+  const referenceLabel = (t: TransformerField) => {
+    if (t.kind === "busbar") return `Samleskinne ${t.busbarLabel}`;
+    if (referenceMode === "field") return t.isReference ? "Referanse" : "Felt";
+    return `SS${t.refBusbar ?? "A"}`;
   };
 
   return (
@@ -120,9 +142,7 @@ export default function VoltageRoundPrint() {
         </div>
       </div>
 
-      {/* Print content */}
       <div className="mx-auto max-w-4xl px-6 py-8 print:px-0 print:py-4 print:max-w-none">
-        {/* Statnett header */}
         <div className="mb-6 flex items-center justify-between rounded-lg bg-[hsl(155,100%,15%)] px-6 py-4 print:rounded-none print:-mx-0 print:mb-6 print:px-8 print:py-5">
           <img src={statnettLogo} alt="Statnett" className="h-6 print:h-7" />
           <span className="font-display text-xs font-bold uppercase tracking-widest text-white/80">Spenningsrunde</span>
@@ -132,7 +152,6 @@ export default function VoltageRoundPrint() {
           <h2 className="text-lg font-semibold">{round.station_name}</h2>
         </div>
 
-        {/* Metadata table */}
         <table className="w-full text-sm border border-gray-300 mb-6">
           <tbody>
             <tr className="border-b border-gray-300">
@@ -158,152 +177,148 @@ export default function VoltageRoundPrint() {
           </tbody>
         </table>
 
-        {/* Transformer overview */}
         <h3 className="text-sm font-bold uppercase tracking-wide mb-2">Transformatorer / Felt</h3>
         <table className="w-full text-xs border border-gray-300 mb-6">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-300">
               <th className="px-3 py-2 text-left font-semibold border-r border-gray-300">Felt</th>
-              <th className="px-3 py-2 text-center font-semibold border-r border-gray-300">Samleskinne</th>
+              <th className="px-3 py-2 text-center font-semibold border-r border-gray-300">Referanse</th>
               <th className="px-3 py-2 text-left font-semibold">Tegningsref.</th>
             </tr>
           </thead>
           <tbody>
             {transformers.map((t) => (
-              <tr key={t.id} className="border-b border-gray-200">
-                <td className="px-3 py-1.5 border-r border-gray-300 font-medium">{t.name}</td>
-                <td className="px-3 py-1.5 text-center border-r border-gray-300">{t.busbar}</td>
+              <tr key={t.id} className={`border-b border-gray-200 ${t.status === "ute_av_drift" ? "text-gray-400" : ""}`}>
+                <td className="px-3 py-1.5 border-r border-gray-300 font-medium">
+                  {t.name}
+                  {t.status === "ute_av_drift" && <span className="ml-2 text-[10px] italic">(ute av drift)</span>}
+                </td>
+                <td className="px-3 py-1.5 text-center border-r border-gray-300">{referenceLabel(t)}</td>
                 <td className="px-3 py-1.5">{t.drawingRef || "–"}</td>
               </tr>
             ))}
           </tbody>
         </table>
 
-        {/* Measurements per busbar */}
-        {["A", "B"].map((busbar) => {
-          const bt = transformers.filter((t) => t.busbar === busbar);
-          if (bt.length < 1) return null;
-          return (
-            <div key={busbar} className="mb-6">
-              <h3 className="text-sm font-bold uppercase tracking-wide mb-2">
-                Målinger – Samleskinne {busbar}
-              </h3>
-              <table className="w-full text-xs border border-gray-300">
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-300">
-                    <th className="px-3 py-2 text-left font-semibold border-r border-gray-300 w-20">Fase</th>
-                    {bt.map((t) => (
-                      <th key={t.id} className="px-2 py-2 text-center font-semibold border-r border-gray-300" colSpan={3}>
-                        {t.name}
-                      </th>
-                    ))}
-                  </tr>
-                  <tr className="bg-gray-50 border-b border-gray-300 text-[10px]">
-                    <th className="border-r border-gray-300"></th>
-                    {bt.map((t) => (
-                      <React.Fragment key={t.id}>
-                        <th className="px-1 py-1 text-center border-r border-gray-200">Kl.</th>
-                        <th className="px-1 py-1 text-center border-r border-gray-200">Ref.</th>
-                        <th className="px-1 py-1 text-center border-r border-gray-300">Mål.</th>
-                      </React.Fragment>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {PHASES.map((phase) => (
-                    <tr key={phase} className="border-b border-gray-200">
-                      <td className="px-3 py-1.5 font-medium border-r border-gray-300">{PHASE_LABELS[phase]}</td>
-                      {bt.map((t) => {
-                        const m = measurements[t.id]?.[phase];
-                        return (
-                          <React.Fragment key={t.id}>
-                            <td className="px-1 py-1.5 text-center font-mono border-r border-gray-200 text-[10px] text-gray-500">
-                              {m?.terminal || "–"}
-                            </td>
-                            <td className="px-1 py-1.5 text-center font-mono border-r border-gray-200">
-                              {m?.refValue != null ? m.refValue.toFixed(2) : "–"}
-                            </td>
-                            <td className="px-1 py-1.5 text-center font-mono border-r border-gray-300">
-                              {m?.measValue != null ? m.measValue.toFixed(2) : "–"}
-                            </td>
-                          </React.Fragment>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          );
-        })}
+        {/* Measurements table (flat) */}
+        <h3 className="text-sm font-bold uppercase tracking-wide mb-2">Målinger</h3>
+        <table className="w-full text-xs border border-gray-300 mb-6">
+          <thead>
+            <tr className="bg-gray-50 border-b border-gray-300">
+              <th className="px-3 py-2 text-left font-semibold border-r border-gray-300 w-20">Fase</th>
+              {transformers.filter((t) => t.status !== "ute_av_drift").map((t) => (
+                <th key={t.id} className="px-2 py-2 text-center font-semibold border-r border-gray-300" colSpan={2}>
+                  {t.name}
+                </th>
+              ))}
+            </tr>
+            <tr className="bg-gray-50 border-b border-gray-300 text-[10px]">
+              <th className="border-r border-gray-300"></th>
+              {transformers.filter((t) => t.status !== "ute_av_drift").map((t) => (
+                <React.Fragment key={t.id}>
+                  <th className="px-1 py-1 text-center border-r border-gray-200">Ref.</th>
+                  <th className="px-1 py-1 text-center border-r border-gray-300">Mål.</th>
+                </React.Fragment>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {PHASES.map((phase) => (
+              <tr key={phase} className="border-b border-gray-200">
+                <td className="px-3 py-1.5 font-medium border-r border-gray-300">{PHASE_LABELS[phase]}</td>
+                {transformers.filter((t) => t.status !== "ute_av_drift").map((t) => {
+                  const m = measurements[t.id]?.[phase];
+                  return (
+                    <React.Fragment key={t.id}>
+                      <td className="px-1 py-1.5 text-center font-mono border-r border-gray-200">
+                        {m?.refValue != null ? m.refValue.toFixed(2) : "–"}
+                      </td>
+                      <td className="px-1 py-1.5 text-center font-mono border-r border-gray-300">
+                        {m?.measValue != null ? m.measValue.toFixed(2) : "–"}
+                      </td>
+                    </React.Fragment>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
 
         {/* Deviation analysis */}
-        {deviations.length > 0 && (
+        {sections.length > 0 && (
           <div className="mb-6">
             <h3 className="text-sm font-bold uppercase tracking-wide mb-2">Avviksanalyse</h3>
             <p className="text-xs text-gray-600 mb-2">
               Akseptabelt avvik (Klasse 0,2): ±{limit.toFixed(2)} V
             </p>
 
-            {["A", "B"].map((busbar) => {
-              const busbarDevs = deviations.filter((d) => d.busbar === busbar);
-              if (busbarDevs.length === 0) return null;
-              return (
-                <div key={busbar} className="mb-4">
-                  <p className="text-xs font-semibold mb-1">Samleskinne {busbar}</p>
-                  <table className="w-full text-xs border border-gray-300">
-                    <thead>
-                      <tr className="bg-gray-50 border-b border-gray-300">
-                        <th className="px-3 py-2 text-left font-semibold border-r border-gray-300">Fase</th>
-                        {busbarDevs[0]?.values.map((v) => (
-                          <th key={v.transformerId} className="px-2 py-2 text-center font-semibold border-r border-gray-300">
-                            {v.transformerName}
-                          </th>
-                        ))}
-                        <th className="px-2 py-2 text-center font-semibold border-r border-gray-300">Avvik</th>
-                        <th className="px-2 py-2 text-center font-semibold">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {busbarDevs.map((d) => (
-                        <tr key={d.phase} className="border-b border-gray-200">
-                          <td className="px-3 py-1.5 font-medium border-r border-gray-300">{PHASE_LABELS[d.phase]}</td>
-                          {d.values.map((v) => (
-                            <td key={v.transformerId} className="px-2 py-1.5 text-center font-mono border-r border-gray-300">
-                              {v.measValue.toFixed(2)}
+            {sections.map((s) => (
+              <div key={s.key} className="mb-4">
+                <p className="text-xs font-semibold mb-1">Referanse: {s.label}</p>
+                <table className="w-full text-xs border border-gray-300">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-300">
+                      <th className="px-3 py-2 text-left font-semibold border-r border-gray-300">Felt</th>
+                      <th className="px-2 py-2 text-center font-semibold border-r border-gray-300">Fase</th>
+                      <th className="px-2 py-2 text-center font-semibold border-r border-gray-300">Ref.</th>
+                      <th className="px-2 py-2 text-center font-semibold border-r border-gray-300">Felt</th>
+                      <th className="px-2 py-2 text-center font-semibold border-r border-gray-300">Avvik</th>
+                      <th className="px-2 py-2 text-center font-semibold">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {s.groups.flatMap((g) =>
+                      g.phases.map((p, i) => (
+                        <tr key={`${g.fieldId}-${p.phase}`} className="border-b border-gray-200">
+                          {i === 0 ? (
+                            <td rowSpan={g.phases.length} className="px-3 py-1.5 border-r border-gray-300 font-medium align-top">
+                              {g.fieldName}
+                              {g.hasConversion && (
+                                <span className="block text-[9px] text-amber-700">
+                                  ×{g.conversionFactor?.toFixed(4)}
+                                </span>
+                              )}
                             </td>
-                          ))}
+                          ) : null}
+                          <td className="px-2 py-1.5 text-center border-r border-gray-300">{PHASE_LABELS[p.phase]}</td>
+                          <td className="px-2 py-1.5 text-center font-mono border-r border-gray-300">
+                            {p.referenceMeasValue.toFixed(2)}
+                          </td>
+                          <td className="px-2 py-1.5 text-center font-mono border-r border-gray-300">
+                            {p.effectiveFieldValue.toFixed(2)}
+                          </td>
                           <td className={`px-2 py-1.5 text-center font-mono font-bold border-r border-gray-300 ${
-                            d.acceptable ? "text-green-700" : "text-red-600"
+                            p.acceptable ? "text-green-700" : "text-red-600"
                           }`}>
-                            {d.maxDeviation.toFixed(2)}
+                            {p.deviation >= 0 ? "+" : ""}{p.deviation.toFixed(2)}
                           </td>
                           <td className={`px-2 py-1.5 text-center font-bold ${
-                            d.acceptable ? "text-green-700" : "text-red-600"
+                            p.acceptable ? "text-green-700" : "text-red-600"
                           }`}>
-                            {d.acceptable ? "OK" : "AVVIK"}
+                            {p.acceptable ? "OK" : "AVVIK"}
                           </td>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              );
-            })}
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            ))}
           </div>
         )}
 
         {/* Overall result */}
-        <div className={`border-2 rounded-lg px-4 py-3 mb-6 ${hasIssues ? "border-red-500 bg-red-50" : "border-green-500 bg-green-50"}`}>
-          <p className={`text-sm font-bold ${hasIssues ? "text-red-700" : "text-green-700"}`}>
-            {hasIssues ? "⚠ AVVIK FUNNET" : "✓ ALLE MÅLINGER OK"}
+        <div className={`border-2 rounded-lg px-4 py-3 mb-6 ${issues ? "border-red-500 bg-red-50" : "border-green-500 bg-green-50"}`}>
+          <p className={`text-sm font-bold ${issues ? "text-red-700" : "text-green-700"}`}>
+            {issues ? "⚠ AVVIK FUNNET" : "✓ ALLE MÅLINGER OK"}
           </p>
           <p className="text-xs mt-1 text-gray-700">
-            {hasIssues
+            {issues
               ? `Differanser større enn akseptabelt avvik (${limit.toFixed(2)} V) er oppdaget.`
               : `Alle differanser er innenfor akseptabelt avvik (${limit.toFixed(2)} V).`}
           </p>
         </div>
+
 
         {/* Comments */}
         {round.comments && round.comments.trim() !== "" && (
