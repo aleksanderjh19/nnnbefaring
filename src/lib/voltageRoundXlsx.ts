@@ -204,10 +204,6 @@ export async function generateVoltageRoundXlsx(round: VoltageRoundData) {
       const phase = PHASES[i];
       const m = round.measurements[t.id]?.[phase];
       if (!m) continue;
-    for (let i = 0; i < PHASES.length; i++) {
-      const phase = PHASES[i];
-      const m = round.measurements[t.id]?.[phase];
-      if (!m) continue;
       const row = slot.valueRow + i;
       if (m.refValue != null)
         setNumber(`${slot.refCol}${row}`, m.refValue * t.conversion.factor);
