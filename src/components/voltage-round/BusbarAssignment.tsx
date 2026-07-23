@@ -1,12 +1,13 @@
-import { ArrowUp, ArrowDown, Lock, Zap, ChevronDown, Calendar, User } from "lucide-react";
+import { useState } from "react";
+import { ChevronDown, Calendar, User, Zap, Power, PowerOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { TransformerField } from "./types";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Switch } from "@/components/ui/switch";
+import { TransformerField, VoltageRoundData, InstrumentInfo } from "./types";
 import { FieldDefinition } from "@/data/stationTemplates";
-import { VoltageRoundData, InstrumentInfo } from "./types";
-import { useState } from "react";
 
 interface Props {
   data: VoltageRoundData;
@@ -14,27 +15,33 @@ interface Props {
   onChange: (data: Partial<VoltageRoundData>) => void;
 }
 
+/**
+ * Field setup step: for each field the operator confirms:
+ *  - status (i drift / ute av drift)
+ *  - and, in dual-busbar mode, which busbar it is connected to (A or B)
+ *  - and, in field mode, which field is the reference
+ */
 export default function BusbarAssignment({ data, templateFields, onChange }: Props) {
   const [instrumentsOpen, setInstrumentsOpen] = useState(false);
 
-  const toggleBusbar = (fieldId: string) => {
-    const updated = data.transformers.map((t) =>
-      t.id === fieldId ? { ...t, busbar: t.busbar === "A" ? "B" as const : "A" as const } : t
-    );
-    onChange({ transformers: updated });
+  const updateField = (id: string, patch: Partial<TransformerField>) => {
+    onChange({
+      transformers: data.transformers.map((t) => (t.id === id ? { ...t, ...patch } : t)),
+    });
   };
 
-  const isFixed = (fieldId: string) => {
-    const def = templateFields.find((f) => f.id === fieldId);
-    return !!def?.fixedBusbar;
+  const setReference = (id: string) => {
+    onChange({
+      transformers: data.transformers.map((t) => ({ ...t, isReference: t.id === id })),
+    });
   };
 
-  const busbarA = data.transformers.filter((t) => t.busbar === "A");
-  const busbarB = data.transformers.filter((t) => t.busbar === "B");
+  const busbars = data.transformers.filter((t) => t.kind === "busbar");
+  const fields = data.transformers.filter((t) => t.kind === "field");
 
   return (
     <div className="space-y-5">
-      {/* Date + Sign compact row */}
+      {/* Date + Sign */}
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label className="text-xs flex items-center gap-1.5 mb-1">
@@ -60,7 +67,7 @@ export default function BusbarAssignment({ data, templateFields, onChange }: Pro
         </div>
       </div>
 
-      {/* Instruments (collapsible) */}
+      {/* Instruments collapsed */}
       <Collapsible open={instrumentsOpen} onOpenChange={setInstrumentsOpen}>
         <CollapsibleTrigger className="w-full flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-medium hover:bg-secondary/50 transition-colors">
           <span className="flex-1 text-left text-xs font-bold uppercase tracking-wider text-muted-foreground">
@@ -84,130 +91,165 @@ export default function BusbarAssignment({ data, templateFields, onChange }: Pro
         </CollapsibleContent>
       </Collapsible>
 
-      {/* Busbar visualization */}
-      <div className="space-y-4">
-        <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground text-center">
-          Samleskinne-kobling
-        </h3>
-
-        <BusbarSection
-          label="Samleskinne A"
-          busbar="A"
-          transformers={busbarA}
-          templateFields={templateFields}
-          colorClass="from-blue-500 to-blue-600"
-          dotColor="bg-blue-500"
-          onToggle={toggleBusbar}
-          isFixed={isFixed}
-          moveDirection="down"
-        />
-
-        <BusbarSection
-          label="Samleskinne B"
-          busbar="B"
-          transformers={busbarB}
-          templateFields={templateFields}
-          colorClass="from-amber-500 to-amber-600"
-          dotColor="bg-amber-500"
-          onToggle={toggleBusbar}
-          isFixed={isFixed}
-          moveDirection="up"
-        />
+      {/* Reference mode explanation */}
+      <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
+        <p className="text-xs font-semibold text-primary mb-1 flex items-center gap-1.5">
+          <Zap className="h-3.5 w-3.5" />
+          {data.referenceMode === "dual-busbar" && "Dobbel samleskinne (A/B)"}
+          {data.referenceMode === "single-busbar" && "Enkel samleskinne"}
+          {data.referenceMode === "field" && "Ingen samleskinnemåling – velg referansefelt"}
+        </p>
+        <p className="text-[11px] text-muted-foreground leading-relaxed">
+          {data.referenceMode === "dual-busbar" &&
+            "Hvert felt sammenlignes mot samleskinnen det er koblet til. Endre kobling under om et felt er flyttet."}
+          {data.referenceMode === "single-busbar" &&
+            "Alle felt sammenlignes mot samleskinne A."}
+          {data.referenceMode === "field" &&
+            "Denne stasjonen har ikke måling på samleskinne. Velg hvilket felt som skal brukes som referanse for hele runden."}
+        </p>
       </div>
+
+      {/* Busbars (info only) */}
+      {busbars.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground">
+              Samleskinne{busbars.length > 1 ? "r" : ""}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {busbars.map((b) => (
+              <FieldRow
+                key={b.id}
+                field={b}
+                templateFields={templateFields}
+                referenceMode={data.referenceMode}
+                onUpdate={updateField}
+                onSetReference={setReference}
+              />
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Fields */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground">
+            Felt {data.referenceMode === "field" && "– velg referanse"}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {fields.map((f) => (
+            <FieldRow
+              key={f.id}
+              field={f}
+              templateFields={templateFields}
+              referenceMode={data.referenceMode}
+              onUpdate={updateField}
+              onSetReference={setReference}
+            />
+          ))}
+        </CardContent>
+      </Card>
     </div>
   );
 }
 
-function BusbarSection({
-  label,
-  busbar,
-  transformers,
+function FieldRow({
+  field,
   templateFields,
-  colorClass,
-  dotColor,
-  onToggle,
-  isFixed,
-  moveDirection,
+  referenceMode,
+  onUpdate,
+  onSetReference,
 }: {
-  label: string;
-  busbar: "A" | "B";
-  transformers: TransformerField[];
+  field: TransformerField;
   templateFields: FieldDefinition[];
-  colorClass: string;
-  dotColor: string;
-  onToggle: (id: string) => void;
-  isFixed: (id: string) => boolean;
-  moveDirection: "up" | "down";
+  referenceMode: VoltageRoundData["referenceMode"];
+  onUpdate: (id: string, patch: Partial<TransformerField>) => void;
+  onSetReference: (id: string) => void;
 }) {
+  const def = templateFields.find((f) => f.id === field.id);
+  const isOut = field.status === "ute_av_drift";
+  const isBusbar = field.kind === "busbar";
+
   return (
-    <div className="rounded-xl border border-border bg-card overflow-hidden">
-      {/* Busbar header */}
-      <div className={`bg-gradient-to-r ${colorClass} px-4 py-2.5 flex items-center gap-2`}>
-        <Zap className="h-4 w-4 text-white" />
-        <span className="text-sm font-bold text-white">{label}</span>
-        <span className="ml-auto text-[10px] text-white/70 font-medium">
-          {transformers.length} felt
-        </span>
-      </div>
+    <div
+      className={`rounded-lg border px-3 py-2.5 transition-colors ${
+        isOut
+          ? "border-border/50 bg-muted/30 opacity-60"
+          : field.isReference
+          ? "border-primary/50 bg-primary/5"
+          : "border-border bg-background"
+      }`}
+    >
+      <div className="flex items-center gap-2.5">
+        <div className={`h-2 w-2 rounded-full ${isBusbar ? "bg-primary" : "bg-muted-foreground/40"}`} />
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold truncate">{field.name}</p>
+          {def?.drawingRef && (
+            <p className="text-[10px] text-muted-foreground truncate">{def.drawingRef}</p>
+          )}
+        </div>
 
-      {/* Busbar rail */}
-      <div className="px-4 pt-3">
-        <div className={`h-1.5 rounded-full ${dotColor} opacity-25`} />
-      </div>
-
-      {/* Field cards */}
-      <div className="p-3 space-y-2 min-h-[60px]">
-        {transformers.length === 0 ? (
-          <p className="text-xs text-muted-foreground text-center py-3 italic">
-            Ingen felt koblet til denne skinnen
-          </p>
-        ) : (
-          transformers.map((t) => {
-            const def = templateFields.find((f) => f.id === t.id);
-            const fixed = isFixed(t.id);
-            return (
-              <div
-                key={t.id}
-                className={`group flex items-center gap-2.5 rounded-lg border px-3 py-2.5 transition-all ${
-                  fixed
-                    ? "border-border/50 bg-background"
-                    : "border-border bg-background hover:border-primary/30 hover:shadow-sm cursor-pointer"
+        {/* Busbar toggle (dual-busbar mode, fields only) */}
+        {referenceMode === "dual-busbar" && !isBusbar && !isOut && (
+          <RadioGroup
+            value={field.refBusbar ?? "A"}
+            onValueChange={(v) => onUpdate(field.id, { refBusbar: v as "A" | "B" })}
+            className="flex gap-1"
+          >
+            {(["A", "B"] as const).map((b) => (
+              <label
+                key={b}
+                className={`flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-bold cursor-pointer transition-colors ${
+                  field.refBusbar === b
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-background text-muted-foreground hover:border-primary/50"
                 }`}
-                onClick={() => !fixed && onToggle(t.id)}
               >
-                {/* Connection dot */}
-                <div className="relative flex flex-col items-center">
-                  <div className={`h-2.5 w-2.5 rounded-full ${dotColor} ring-2 ring-background`} />
-                  <div className={`w-0.5 h-3 ${dotColor} opacity-20 -mt-0.5`} />
-                </div>
-
-                {/* Field info */}
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold truncate">{t.name}</p>
-                  {def?.drawingRef && (
-                    <p className="text-[10px] text-muted-foreground truncate">{def.drawingRef}</p>
-                  )}
-                </div>
-
-                {/* Action */}
-                {fixed ? (
-                  <Lock className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
-                ) : (
-                  <div className="flex items-center gap-1 opacity-50 group-hover:opacity-100 transition-opacity">
-                    <span className="text-[9px] text-muted-foreground font-medium">
-                      Flytt til {busbar === "A" ? "B" : "A"}
-                    </span>
-                    {moveDirection === "down" ? (
-                      <ArrowDown className="h-3.5 w-3.5 text-muted-foreground" />
-                    ) : (
-                      <ArrowUp className="h-3.5 w-3.5 text-muted-foreground" />
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })
+                <RadioGroupItem value={b} className="sr-only" />
+                SS{b}
+              </label>
+            ))}
+          </RadioGroup>
         )}
+
+        {/* Reference selector (field mode) */}
+        {referenceMode === "field" && !isBusbar && !isOut && (
+          <button
+            onClick={() => onSetReference(field.id)}
+            className={`text-[10px] font-bold rounded-md border px-2 py-1 transition-colors ${
+              field.isReference
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border bg-background text-muted-foreground hover:border-primary/50"
+            }`}
+          >
+            {field.isReference ? "Referanse" : "Sett som ref."}
+          </button>
+        )}
+
+        {/* Conversion badge */}
+        {field.conversion && !isOut && (
+          <span className="text-[9px] font-mono bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 px-1.5 py-0.5 rounded">
+            ×{field.conversion.factor.toFixed(4)}
+          </span>
+        )}
+
+        {/* Status */}
+        <div className="flex items-center gap-1">
+          {isOut ? (
+            <PowerOff className="h-3.5 w-3.5 text-muted-foreground" />
+          ) : (
+            <Power className="h-3.5 w-3.5 text-green-500" />
+          )}
+          <Switch
+            checked={!isOut}
+            onCheckedChange={(v) =>
+              onUpdate(field.id, { status: v ? "active" : "ute_av_drift" })
+            }
+          />
+        </div>
       </div>
     </div>
   );

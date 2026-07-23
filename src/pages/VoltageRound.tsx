@@ -13,8 +13,11 @@ import MeasurementInput from "@/components/voltage-round/MeasurementInput";
 import ResultsView from "@/components/voltage-round/ResultsView";
 import {
   VoltageRoundData,
+  TransformerField,
   createEmptyInstrument,
   createEmptyMeasurements,
+  migrateTransformers,
+  ReferenceMode,
 } from "@/components/voltage-round/types";
 import {
   StationTemplate,
@@ -40,7 +43,7 @@ function nameFromEmail(email?: string): string {
 }
 
 function getQuarter(dateStr: string): number {
-  const month = new Date(dateStr).getMonth(); // 0-based
+  const month = new Date(dateStr).getMonth();
   return Math.floor(month / 3) + 1;
 }
 
@@ -55,16 +58,20 @@ function createRoundFromTemplate(
   level: VoltageLevelConfig,
   userName: string
 ): VoltageRoundData {
-  const activeFields = level.fields.filter((f) => !f.isPlaceholder);
-  const transformers = activeFields.map((f) => ({
+  const transformers: TransformerField[] = level.fields.map((f) => ({
     id: f.id,
     name: f.name,
-    busbar: (f.fixedBusbar || "A") as "A" | "B",
     drawingRef: f.drawingRef,
+    kind: f.kind,
+    busbarLabel: f.busbarLabel,
+    refBusbar: f.kind === "field" ? f.defaultRefBusbar ?? "A" : undefined,
+    isReference: f.isDefaultReference ?? false,
+    status: "active" as const,
+    conversion: f.conversion,
   }));
 
   const measurements = createEmptyMeasurements(transformers);
-  for (const f of activeFields) {
+  for (const f of level.fields) {
     if (measurements[f.id]) {
       measurements[f.id].UL1_ULN.terminal = f.terminals.UL1_ULN;
       measurements[f.id].UL2_ULN.terminal = f.terminals.UL2_ULN;
@@ -80,9 +87,11 @@ function createRoundFromTemplate(
     signNames: userName,
     refInstrument: createEmptyInstrument(),
     measInstrument: createEmptyInstrument(),
+    referenceMode: level.referenceMode,
     transformers,
     measurements,
     comments: "",
+    templateKey: level.templateKey,
   };
 }
 
@@ -101,11 +110,19 @@ export default function VoltageRound() {
   const { user, isAdmin } = useAuth();
   const [view, setView] = useState<"list" | "select-station" | "wizard">("list");
   const [step, setStep] = useState(0);
-  const [data, setData] = useState<VoltageRoundData>(() => createRoundFromTemplate(
-    { id: "", name: "", shortName: "", voltageLevels: [] },
-    { id: "", kV: "", nominalVoltage: 110, secondaryVoltage: 63.51, fields: [] },
-    ""
-  ));
+  const [data, setData] = useState<VoltageRoundData>({
+    stationName: "",
+    voltageLevel: "",
+    secondaryVoltage: 63.5,
+    date: new Date().toISOString().slice(0, 10),
+    signNames: "",
+    refInstrument: createEmptyInstrument(),
+    measInstrument: createEmptyInstrument(),
+    referenceMode: "dual-busbar",
+    transformers: [],
+    measurements: {},
+    comments: "",
+  });
   const [templateFields, setTemplateFields] = useState<FieldDefinition[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -122,7 +139,6 @@ export default function VoltageRound() {
       .from("voltage_rounds")
       .select("id, station_name, voltage_level, date, status, created_at")
       .order("created_at", { ascending: false });
-    // Filter out expired drafts (older than 24h)
     const filtered = ((rows as SavedRound[]) ?? []).filter(
       (r) => r.status === "completed" || !isDraftExpired(r.created_at)
     );
@@ -142,7 +158,7 @@ export default function VoltageRound() {
     const userName = nameFromEmail(user?.email);
     const roundData = createRoundFromTemplate(station, level, userName);
     setData(roundData);
-    setTemplateFields(level.fields.filter((f) => !f.isPlaceholder));
+    setTemplateFields(level.fields);
     setEditingId(null);
     setStep(0);
     setView("wizard");
@@ -156,6 +172,44 @@ export default function VoltageRound() {
       .single();
     if (!row) return;
     const r = row as any;
+
+    // Try to find station template and migrate legacy transformers if needed
+    const station = findStation(r.station_name);
+    const level = station ? findVoltageLevel(station, r.voltage_level) : undefined;
+
+    // Determine reference mode from saved data or fallback to template
+    const refMode: ReferenceMode =
+      (r.reference_mode as ReferenceMode | undefined) ??
+      level?.referenceMode ??
+      "dual-busbar";
+
+    let transformers: TransformerField[] = [];
+    if (Array.isArray(r.transformers) && r.transformers.length > 0) {
+      transformers = migrateTransformers(r.transformers, refMode);
+    } else if (level) {
+      // Old rounds without transformers, seed from template
+      transformers = level.fields.map((f) => ({
+        id: f.id,
+        name: f.name,
+        drawingRef: f.drawingRef,
+        kind: f.kind,
+        busbarLabel: f.busbarLabel,
+        refBusbar: f.kind === "field" ? f.defaultRefBusbar ?? "A" : undefined,
+        isReference: f.isDefaultReference ?? false,
+        status: "active" as const,
+        conversion: f.conversion,
+      }));
+    }
+
+    // Merge template conversion factors onto migrated legacy transformers
+    if (level) {
+      transformers = transformers.map((t) => {
+        const def = level.fields.find((f) => f.id === t.id);
+        if (def?.conversion && !t.conversion) return { ...t, conversion: def.conversion };
+        return t;
+      });
+    }
+
     const roundData: VoltageRoundData = {
       stationName: r.station_name,
       voltageLevel: r.voltage_level,
@@ -164,20 +218,14 @@ export default function VoltageRound() {
       signNames: r.sign_names ?? "",
       refInstrument: r.ref_instrument ?? createEmptyInstrument(),
       measInstrument: r.meas_instrument ?? createEmptyInstrument(),
-      transformers: r.transformers ?? [],
+      referenceMode: refMode,
+      transformers,
       measurements: r.measurements ?? {},
       comments: r.comments ?? "",
+      templateKey: level?.templateKey,
     };
     setData(roundData);
-
-    // Try to find template fields for this station
-    const station = findStation(r.station_name);
-    if (station) {
-      const level = findVoltageLevel(station, r.voltage_level);
-      if (level) {
-        setTemplateFields(level.fields.filter((f) => !f.isPlaceholder));
-      }
-    }
+    if (level) setTemplateFields(level.fields);
 
     setEditingId(id);
     setStep(0);
@@ -193,7 +241,6 @@ export default function VoltageRound() {
   const save = async (status: string = "draft") => {
     setSaving(true);
 
-    // When completing, append quarter to station name if not already there
     let stationName = data.stationName;
     if (status === "completed" && !stationName.includes("Kvartal")) {
       const quarter = getQuarter(data.date);
@@ -201,7 +248,7 @@ export default function VoltageRound() {
       setData((prev) => ({ ...prev, stationName }));
     }
 
-    const payload = {
+    const payload: any = {
       station_name: stationName,
       voltage_level: data.voltageLevel,
       secondary_voltage: data.secondaryVoltage,
@@ -214,6 +261,8 @@ export default function VoltageRound() {
       comments: data.comments,
       status,
     };
+    // Note: reference_mode column may not exist on the table; skip if not.
+    // We rely on template lookup to re-derive on load.
 
     let error;
     if (editingId) {
@@ -244,20 +293,23 @@ export default function VoltageRound() {
   };
 
   const canAdvance = () => {
-    if (step === 0) return data.transformers.length >= 2;
+    if (step === 0) {
+      const active = data.transformers.filter((t) => t.status !== "ute_av_drift");
+      if (active.length < 2) return false;
+      if (data.referenceMode === "field" && !active.some((t) => t.isReference)) return false;
+      return true;
+    }
     return true;
   };
 
   const next = () => {
     if (step === 0) {
-      // Ensure measurements object has entries for all transformers
       const updated = createEmptyMeasurements(data.transformers);
       for (const t of data.transformers) {
         if (data.measurements[t.id]) {
           updated[t.id] = data.measurements[t.id];
         }
       }
-      // Re-apply template terminals
       for (const tf of templateFields) {
         if (updated[tf.id]) {
           if (tf.terminals.UL1_ULN) updated[tf.id].UL1_ULN.terminal = tf.terminals.UL1_ULN;
@@ -404,7 +456,6 @@ export default function VoltageRound() {
               </h1>
             </div>
           </div>
-          {/* Step indicator */}
           <div className="flex gap-1">
             {STEPS.map((s, i) => (
               <button
@@ -445,17 +496,17 @@ export default function VoltageRound() {
         )}
         {step === 2 && (
           <ResultsView
+            round={data}
             transformers={data.transformers}
             measurements={data.measurements}
             secondaryVoltage={data.secondaryVoltage}
+            referenceMode={data.referenceMode}
             comments={data.comments}
             onCommentsChange={(c) => updateData({ comments: c })}
-            onMeasurementsChange={(m) => updateData({ measurements: m })}
           />
         )}
       </main>
 
-      {/* Bottom navigation */}
       <div className="fixed bottom-0 inset-x-0 border-t border-border bg-card">
         <div className="mx-auto max-w-2xl px-5 py-3 flex items-center gap-3">
           {step > 0 && (

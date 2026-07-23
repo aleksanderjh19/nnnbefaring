@@ -5,11 +5,24 @@ export interface InstrumentInfo {
   calibrationDate: string;
 }
 
+export type FieldKind = "busbar" | "field";
+export type FieldStatus = "active" | "ute_av_drift";
+export type ReferenceMode = "dual-busbar" | "single-busbar" | "field";
+
 export interface TransformerField {
   id: string;
   name: string;
-  busbar: "A" | "B";
   drawingRef: string;
+  kind: FieldKind;
+  /** For kind="busbar": which busbar this is */
+  busbarLabel?: "A" | "B";
+  /** For dual-busbar mode: which busbar this field is currently connected to */
+  refBusbar?: "A" | "B";
+  /** For field-mode station: is this the reference field for this round */
+  isReference?: boolean;
+  status: FieldStatus;
+  /** For fields whose measurement must be converted before comparison (Rana omsetning) */
+  conversion?: { factor: number };
 }
 
 export type Phase = "UL1_ULN" | "UL2_ULN" | "UL3_ULN";
@@ -28,7 +41,7 @@ export interface PhaseMeasurement {
   measValue: number | null;
 }
 
-// measurements[transformerId][phase] = PhaseMeasurement
+// measurements[fieldId][phase] = PhaseMeasurement
 export type MeasurementData = Record<string, Record<Phase, PhaseMeasurement>>;
 
 export interface VoltageRoundData {
@@ -39,9 +52,12 @@ export interface VoltageRoundData {
   signNames: string;
   refInstrument: InstrumentInfo;
   measInstrument: InstrumentInfo;
+  referenceMode: ReferenceMode;
   transformers: TransformerField[];
   measurements: MeasurementData;
   comments: string;
+  /** Template id used for xlsx export mapping (e.g. "marka-132") */
+  templateKey?: string;
 }
 
 export const VOLTAGE_LEVELS = ["66", "110", "132", "300", "420"];
@@ -55,8 +71,20 @@ export const UF_OPTIONS = [
 
 export const ACCURACY_CLASS = 0.2;
 
+/** Deviation limit from the Cl. 0,2 table in the Statnett template. */
 export function getDeviationLimit(uf: number): number {
-  return uf * ACCURACY_CLASS * 2 / 100;
+  const table: Record<string, number> = {
+    "57.7": 0.23,
+    "63.5": 0.25,
+    "115.5": 0.46,
+    "127": 0.5,
+  };
+  const key = String(uf);
+  if (table[key] != null) return table[key];
+  // Fallback: closest match
+  const entries = Object.entries(table).map(([k, v]) => ({ uf: Number(k), limit: v }));
+  entries.sort((a, b) => Math.abs(a.uf - uf) - Math.abs(b.uf - uf));
+  return entries[0].limit;
 }
 
 export function createEmptyInstrument(): InstrumentInfo {
@@ -77,57 +105,157 @@ export function createEmptyMeasurements(
   return m;
 }
 
-export interface DeviationResult {
+// ─── Deviation calculation ───────────────────────────────────────────────
+
+export interface FieldPhaseDeviation {
   phase: Phase;
-  busbar: "A" | "B";
-  values: { transformerId: string; transformerName: string; refValue: number; measValue: number }[];
-  maxDeviation: number;
+  fieldMeasValue: number;
+  /** Field's measured value after applying conversion factor (if any) */
+  effectiveFieldValue: number;
+  referenceMeasValue: number;
+  deviation: number; // effectiveFieldValue − referenceMeasValue
   limit: number;
   acceptable: boolean;
 }
 
-export function calculateDeviations(
+export interface FieldDeviationGroup {
+  fieldId: string;
+  fieldName: string;
+  referenceLabel: string;   // "Samleskinne A" | field name
+  referenceId: string;       // busbar field id or reference field id
+  hasConversion: boolean;
+  conversionFactor?: number;
+  phases: FieldPhaseDeviation[];
+  hasIssue: boolean;
+}
+
+export interface ReferenceSection {
+  key: string;                // "busbar-A" | "busbar-B" | "field-<id>"
+  label: string;              // "Samleskinne A" | "Referansefelt: Kolsvik"
+  referenceId: string;
+  groups: FieldDeviationGroup[];
+}
+
+/**
+ * Calculate per-field deviations grouped by reference (busbar A, busbar B, or reference field).
+ */
+export function calculateReferenceSections(
   transformers: TransformerField[],
   measurements: MeasurementData,
-  uf: number
-): DeviationResult[] {
-  const limit = getDeviationLimit(uf);
-  const results: DeviationResult[] = [];
+  referenceMode: ReferenceMode,
+  secondaryVoltage: number
+): ReferenceSection[] {
+  const limit = getDeviationLimit(secondaryVoltage);
+  const sections: ReferenceSection[] = [];
 
-  for (const busbar of ["A", "B"] as const) {
-    const busbarTransformers = transformers.filter((t) => t.busbar === busbar);
-    if (busbarTransformers.length < 2) continue;
+  const active = transformers.filter((t) => t.status !== "ute_av_drift");
 
+  const buildGroup = (
+    field: TransformerField,
+    reference: TransformerField,
+    referenceLabel: string
+  ): FieldDeviationGroup => {
+    const phases: FieldPhaseDeviation[] = [];
     for (const phase of PHASES) {
-      const values: DeviationResult["values"] = [];
-      for (const t of busbarTransformers) {
-        const m = measurements[t.id]?.[phase];
-        if (m?.refValue != null && m?.measValue != null) {
-          values.push({
-            transformerId: t.id,
-            transformerName: t.name,
-            refValue: m.refValue,
-            measValue: m.measValue,
-          });
-        }
-      }
-
-      if (values.length < 2) continue;
-
-      // Compare measuring instrument values across transformers on same busbar
-      const measValues = values.map((v) => v.measValue);
-      const maxDev = Math.max(...measValues) - Math.min(...measValues);
-
-      results.push({
+      const fm = measurements[field.id]?.[phase]?.measValue;
+      const rm = measurements[reference.id]?.[phase]?.measValue;
+      if (fm == null || rm == null) continue;
+      const factor = field.conversion?.factor ?? 1;
+      const effective = fm * factor;
+      const dev = effective - rm;
+      phases.push({
         phase,
-        busbar,
-        values,
-        maxDeviation: maxDev,
+        fieldMeasValue: fm,
+        effectiveFieldValue: effective,
+        referenceMeasValue: rm,
+        deviation: dev,
         limit,
-        acceptable: maxDev <= limit,
+        acceptable: Math.abs(dev) <= limit,
       });
     }
+    return {
+      fieldId: field.id,
+      fieldName: field.name,
+      referenceLabel,
+      referenceId: reference.id,
+      hasConversion: !!field.conversion,
+      conversionFactor: field.conversion?.factor,
+      phases,
+      hasIssue: phases.some((p) => !p.acceptable),
+    };
+  };
+
+  if (referenceMode === "dual-busbar" || referenceMode === "single-busbar") {
+    const ssa = active.find((t) => t.kind === "busbar" && t.busbarLabel === "A");
+    const ssb = active.find((t) => t.kind === "busbar" && t.busbarLabel === "B");
+
+    for (const busbar of ["A", "B"] as const) {
+      const ref = busbar === "A" ? ssa : ssb;
+      if (!ref) continue;
+      const fields = active.filter(
+        (t) => t.kind === "field" && (t.refBusbar ?? "A") === busbar
+      );
+      if (fields.length === 0) continue;
+      sections.push({
+        key: `busbar-${busbar}`,
+        label: `Samleskinne ${busbar}`,
+        referenceId: ref.id,
+        groups: fields.map((f) => buildGroup(f, ref, `Samleskinne ${busbar}`)),
+      });
+    }
+  } else {
+    // field-mode: one field acts as reference
+    const ref = active.find((t) => t.isReference) ?? active[0];
+    if (!ref) return sections;
+    const fields = active.filter((t) => t.id !== ref.id);
+    sections.push({
+      key: `field-${ref.id}`,
+      label: `Referansefelt: ${ref.name}`,
+      referenceId: ref.id,
+      groups: fields.map((f) => buildGroup(f, ref, ref.name)),
+    });
   }
 
-  return results;
+  return sections;
+}
+
+export function hasAnyIssue(sections: ReferenceSection[]): boolean {
+  return sections.some((s) => s.groups.some((g) => g.hasIssue));
+}
+
+// ─── Legacy migration ─────────────────────────────────────────────────────
+
+/**
+ * Old rounds stored `busbar: "A"|"B"` on each transformer with no kind/status.
+ * Convert them into the new model so history keeps working.
+ */
+export function migrateTransformers(
+  transformers: any[],
+  referenceMode: ReferenceMode
+): TransformerField[] {
+  return transformers.map((t) => {
+    if (t.kind) return t as TransformerField; // already new format
+    const legacyBusbar = t.busbar as "A" | "B" | undefined;
+    // Legacy "SSA/SSB" fields were named literally; detect by name
+    const nameLower = String(t.name ?? "").toLowerCase();
+    const isBusbar =
+      nameLower.startsWith("samleskinne a") ||
+      nameLower.startsWith("samleskinne b") ||
+      nameLower.startsWith("ssa") ||
+      nameLower.startsWith("ssb");
+    const busbarLabel: "A" | "B" | undefined = isBusbar
+      ? nameLower.includes("b")
+        ? "B"
+        : "A"
+      : undefined;
+    return {
+      id: t.id,
+      name: t.name,
+      drawingRef: t.drawingRef ?? "",
+      kind: isBusbar ? "busbar" : "field",
+      busbarLabel,
+      refBusbar: !isBusbar ? legacyBusbar ?? "A" : undefined,
+      status: "active" as FieldStatus,
+    };
+  });
 }

@@ -28,11 +28,9 @@ export default function StationSelect({ onSelect }: Props) {
       <div className="grid gap-3">
         {STATIONS.map((station) => {
           const colors = STATION_COLORS[station.id] ?? { gradient: "from-gray-600 to-gray-800", accent: "bg-gray-500/20 text-gray-300" };
-          const hasMultipleLevels = station.voltageLevels.length > 1;
 
           return (
             <div key={station.id} className="rounded-xl overflow-hidden border border-border">
-              {/* Station header */}
               <div className={`bg-gradient-to-r ${colors.gradient} px-5 py-4`}>
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/10 backdrop-blur-sm">
@@ -45,7 +43,6 @@ export default function StationSelect({ onSelect }: Props) {
                 </div>
               </div>
 
-              {/* Voltage level buttons */}
               <div className={`bg-card divide-y divide-border`}>
                 {station.voltageLevels.map((level) => (
                   <button
@@ -59,7 +56,7 @@ export default function StationSelect({ onSelect }: Props) {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold">{level.kV} kV</p>
                       <p className="text-[10px] text-muted-foreground">
-                        {level.fields.filter((f) => !f.isPlaceholder).length} felt
+                        {level.fields.length} felt
                       </p>
                     </div>
                     <ChevronRight className="h-4 w-4 text-muted-foreground" />

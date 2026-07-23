@@ -1,5 +1,12 @@
 import { Input } from "@/components/ui/input";
-import { TransformerField, Phase, PHASES, PHASE_LABELS, MeasurementData, PhaseMeasurement } from "./types";
+import {
+  TransformerField,
+  Phase,
+  PHASES,
+  PHASE_LABELS,
+  MeasurementData,
+  PhaseMeasurement,
+} from "./types";
 
 interface Props {
   transformers: TransformerField[];
@@ -32,29 +39,52 @@ export default function MeasurementInput({ transformers, measurements, onChange 
     onChange(updated);
   };
 
-  const busbarA = transformers.filter((t) => t.busbar === "A");
-  const busbarB = transformers.filter((t) => t.busbar === "B");
+  // Only measure fields that are in drift. Group busbars and active fields together
+  // per section (A / B / all) so the operator sees which reference each field maps to.
+  const activeAll = transformers.filter((t) => t.status !== "ute_av_drift");
+
+  const busbarA = activeAll.find((t) => t.kind === "busbar" && t.busbarLabel === "A");
+  const busbarB = activeAll.find((t) => t.kind === "busbar" && t.busbarLabel === "B");
+  const hasAnyBusbar = !!busbarA || !!busbarB;
+
+  const sections: { label: string; color: string; list: TransformerField[] }[] = [];
+
+  if (hasAnyBusbar) {
+    if (busbarA) {
+      const fields = activeAll.filter(
+        (t) => t.kind === "field" && (t.refBusbar ?? "A") === "A"
+      );
+      sections.push({ label: "Samleskinne A", color: "blue", list: [busbarA, ...fields] });
+    }
+    if (busbarB) {
+      const fields = activeAll.filter(
+        (t) => t.kind === "field" && (t.refBusbar ?? "A") === "B"
+      );
+      sections.push({ label: "Samleskinne B", color: "amber", list: [busbarB, ...fields] });
+    }
+  } else {
+    // Field-mode station – single flat list with reference first
+    const ref = activeAll.find((t) => t.isReference);
+    const rest = activeAll.filter((t) => t.id !== ref?.id);
+    sections.push({
+      label: ref ? `Referansefelt: ${ref.name}` : "Felt",
+      color: "blue",
+      list: ref ? [ref, ...rest] : rest,
+    });
+  }
 
   return (
     <div className="space-y-6">
-      {busbarA.length > 0 && (
+      {sections.map((s, i) => (
         <BusbarMeasurements
-          label="Samleskinne A"
-          color="blue"
-          transformers={busbarA}
+          key={i}
+          label={s.label}
+          color={s.color}
+          transformers={s.list}
           measurements={measurements}
           onUpdate={updateMeasurement}
         />
-      )}
-      {busbarB.length > 0 && (
-        <BusbarMeasurements
-          label="Samleskinne B"
-          color="amber"
-          transformers={busbarB}
-          measurements={measurements}
-          onUpdate={updateMeasurement}
-        />
-      )}
+      ))}
     </div>
   );
 }
@@ -81,7 +111,6 @@ function BusbarMeasurements({
         {label}
       </div>
       <div className={`${lightBg} rounded-b-xl border border-t-0 border-border`}>
-        {/* Terminal block section */}
         <div className="p-3">
           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
             Rekkeklemmenummer
@@ -93,7 +122,10 @@ function BusbarMeasurements({
                   <th className="text-left py-1 px-2 w-20 text-muted-foreground font-medium">Fase</th>
                   {transformers.map((t) => (
                     <th key={t.id} className="text-left py-1 px-2 font-medium min-w-[100px]">
-                      <span className="text-[10px]">{t.name}</span>
+                      <span className="text-[10px]">
+                        {t.name}
+                        {t.kind === "busbar" && <span className="ml-1 text-primary">•</span>}
+                      </span>
                     </th>
                   ))}
                 </tr>
@@ -128,7 +160,6 @@ function BusbarMeasurements({
           </div>
         </div>
 
-        {/* Measurement values section */}
         <div className="border-t border-border p-3">
           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
             Måleverdier (V)
@@ -140,7 +171,14 @@ function BusbarMeasurements({
                   <th className="text-left py-1 px-2 w-20 text-muted-foreground font-medium">Fase</th>
                   {transformers.map((t) => (
                     <th key={t.id} className="text-center py-1 px-1 font-medium" colSpan={2}>
-                      <span className="text-[10px]">{t.name}</span>
+                      <span className="text-[10px]">
+                        {t.name}
+                        {t.conversion && (
+                          <span className="ml-1 text-[9px] text-amber-700 dark:text-amber-400">
+                            ×{t.conversion.factor.toFixed(4)}
+                          </span>
+                        )}
+                      </span>
                       <div className="flex gap-1 mt-1">
                         <span className="flex-1 text-[9px] text-muted-foreground font-normal">Ref.</span>
                         <span className="flex-1 text-[9px] text-muted-foreground font-normal">Mål.</span>
