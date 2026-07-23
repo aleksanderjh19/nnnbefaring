@@ -1,4 +1,4 @@
-import type { ReferenceMode } from "@/components/voltage-round/types";
+import type { Phase, ReferenceMode } from "@/components/voltage-round/types";
 
 export interface FieldDefinition {
   id: string;
@@ -13,6 +13,8 @@ export interface FieldDefinition {
   isDefaultReference?: boolean;
   /** Conversion factor applied to measurement before comparison (Rana Svabo) */
   conversion?: { factor: number };
+  /** Phases actually measured on this field. Defaults to all three. */
+  availablePhases?: Phase[];
 }
 
 export interface VoltageLevelConfig {
@@ -57,6 +59,7 @@ export const STATIONS: StationTemplate[] = [
             terminals: { UL1_ULN: "", UL2_ULN: "X2: 1-6", UL3_ULN: "" },
             kind: "busbar",
             busbarLabel: "A",
+            availablePhases: ["UL2_ULN"],
           },
           {
             id: "mar300_ssb",
@@ -65,6 +68,7 @@ export const STATIONS: StationTemplate[] = [
             terminals: { UL1_ULN: "", UL2_ULN: "X2: 61-66", UL3_ULN: "" },
             kind: "busbar",
             busbarLabel: "B",
+            availablePhases: ["UL2_ULN"],
           },
           {
             id: "mar300_nra",
