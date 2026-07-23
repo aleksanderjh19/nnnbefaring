@@ -182,8 +182,15 @@ export async function generateVoltageRoundXlsx(round: VoltageRoundData) {
       const m = round.measurements[t.id]?.[phase];
       if (!m) continue;
       const row = slot.valueRow + i;
-      if (m.refValue != null) setNumber(`${slot.refCol}${row}`, m.refValue);
-      if (m.measValue != null) setNumber(`${slot.measCol}${row}`, m.measValue);
+      if (t.kind === "busbar") {
+        // Busbar is the reference — the single value the user enters is the
+        // reference-instrument reading. Write it into the "Ref. instr." column.
+        const val = m.refValue ?? m.measValue;
+        if (val != null) setNumber(`${slot.refCol}${row}`, val);
+      } else {
+        if (m.refValue != null) setNumber(`${slot.refCol}${row}`, m.refValue);
+        if (m.measValue != null) setNumber(`${slot.measCol}${row}`, m.measValue);
+      }
     }
   }
 
