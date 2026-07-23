@@ -1,5 +1,106 @@
 import JSZip from "jszip";
-import { VoltageRoundData, PHASES } from "@/components/voltage-round/types";
+import { Phase, VoltageRoundData, PHASES } from "@/components/voltage-round/types";
+
+type CellValue = number | string | null;
+
+interface SlotMapping {
+  fieldId: string;
+  refCol: string;
+  measCol: string;
+  headerRow: number;
+  valueStartRow: number;
+  diffStartRow: number;
+  chartCol: string;
+  sourceFieldId?: string;
+  conversionFactor?: number;
+}
+
+interface TemplateMapping {
+  slots: SlotMapping[];
+}
+
+const PHASE_INDEX: Record<Phase, number> = {
+  UL1_ULN: 0,
+  UL2_ULN: 1,
+  UL3_ULN: 2,
+};
+
+const CHART_COLUMNS = ["B", "C", "D", "E", "F", "G", "H", "I", "J", "K"];
+
+const TEMPLATE_MAPPINGS: Record<string, TemplateMapping> = {
+  "marka-300": {
+    slots: [
+      slot("mar300_ssa", "B", 6, 13, "B"),
+      slot("mar300_ssb", "D", 6, 13, "C"),
+      slot("mar300_nra", "F", 6, 13, "D"),
+      slot("mar300_tro", "H", 6, 13, "E"),
+    ],
+  },
+  "marka-132": {
+    slots: [
+      slot("mar132_ssa", "B", 6, 13, "B"),
+      slot("mar132_ssb", "D", 6, 13, "C"),
+      slot("mar132_msj1", "F", 6, 13, "D"),
+      slot("mar132_msj3", "H", 6, 13, "E"),
+      slot("mar132_gry", "J", 6, 13, "F"),
+      slot("mar132_oyf", "B", 17, 24, "G"),
+      slot("mar132_blk", "D", 17, 24, "H"),
+      slot("mar132_t1", "F", 17, 24, "I"),
+      slot("mar132_t2", "H", 17, 24, "J"),
+    ],
+  },
+  "rana-132": {
+    slots: [
+      slot("raa132_ssa", "B", 6, 13, "B"),
+      slot("raa132_ssb", "D", 6, 13, "C"),
+      slot("raa132_sv2", "F", 6, 13, "D"),
+      slot("raa132_sv4", "H", 6, 13, "E"),
+      slot("raa132_t5", "J", 6, 13, "F"),
+      slot("raa132_sv2_omregnet", "F", 17, 24, "I", {
+        sourceFieldId: "raa132_sv2",
+        conversionFactor: 132 / 140,
+      }),
+      slot("raa132_sv4_omregnet", "H", 17, 24, "J", {
+        sourceFieldId: "raa132_sv4",
+        conversionFactor: 132 / 140,
+      }),
+    ],
+  },
+  "trofors-300": {
+    slots: [
+      slot("tro_ssa", "B", 6, 13, "B"),
+      slot("tro_nms", "D", 6, 13, "C"),
+      slot("tro_mar", "F", 6, 13, "D"),
+    ],
+  },
+  "namsskogan-300": {
+    slots: [
+      slot("nms_kol", "B", 6, 13, "B"),
+      slot("nms_tun", "D", 6, 13, "C"),
+      slot("nms_tro", "F", 6, 13, "D"),
+    ],
+  },
+};
+
+function slot(
+  fieldId: string,
+  refCol: string,
+  headerRow: number,
+  valueStartRow: number,
+  chartCol: string,
+  extra: Partial<SlotMapping> = {}
+): SlotMapping {
+  return {
+    fieldId,
+    refCol,
+    measCol: nextColumn(refCol),
+    headerRow,
+    valueStartRow,
+    diffStartRow: valueStartRow - 4,
+    chartCol,
+    ...extra,
+  };
+}
 
 /**
  * Fill the Statnett voltage-round template with the round's data.
@@ -10,6 +111,8 @@ import { VoltageRoundData, PHASES } from "@/components/voltage-round/types";
  */
 export async function generateVoltageRoundXlsx(round: VoltageRoundData) {
   if (!round.templateKey) throw new Error("Missing templateKey");
+  const mapping = TEMPLATE_MAPPINGS[round.templateKey];
+  if (!mapping) throw new Error(`Mangler Excel-mapping for ${round.templateKey}`);
 
   const url = `/voltage-templates/${round.templateKey}.xlsx`;
   const res = await fetch(url);
@@ -57,7 +160,9 @@ export async function generateVoltageRoundXlsx(round: VoltageRoundData) {
   let sheetPath = sheetPaths[0] ?? "xl/worksheets/sheet1.xml";
   let sheetXml = "";
   for (const p of sheetPaths) {
-    const xml = await zip.file(p)!.async("string");
+    const file = zip.file(p);
+    if (!file) continue;
+    const xml = await file.async("string");
     // The data sheet has a cell at B6/D6/F6/H6 (field header row).
     if (/<c r="B6"[^>]*t="s"/.test(xml) && /<c r="D6"[^>]*t="s"/.test(xml)) {
       sheetPath = p;
@@ -71,12 +176,17 @@ export async function generateVoltageRoundXlsx(round: VoltageRoundData) {
   const cellPattern = (ref: string) =>
     new RegExp(`<c r="${ref}"([^>]*?)(/>|>[\\s\\S]*?</c>)`);
 
-  const upsertCell = (ref: string, inner: string, extraAttrs = "") => {
+  const upsertCell = (
+    ref: string,
+    inner: string,
+    extraAttrs = "",
+    options: { stripType?: boolean } = { stripType: true }
+  ) => {
     const re = cellPattern(ref);
     const m = sheetXml.match(re);
     if (m) {
-      // Preserve style s="..", strip any existing t="..".
-      const attrs = m[1].replace(/\s*t="[^"]*"/, "");
+      // Preserve style s="..". Strip t=".." only when writing raw numbers.
+      const attrs = options.stripType ? m[1].replace(/\s*t="[^"]*"/, "") : m[1];
       sheetXml = sheetXml.replace(
         re,
         `<c r="${ref}"${attrs}${extraAttrs}>${inner}</c>`
@@ -106,17 +216,32 @@ export async function generateVoltageRoundXlsx(round: VoltageRoundData) {
     upsertCell(ref, `<v>${idx}</v>`, ' t="s"');
   };
 
-  // ── Header lookup: find slot columns by matching field name ──
-  const SLOTS = [
-    { ref: "B", meas: "C", header: "B" },
-    { ref: "D", meas: "E", header: "D" },
-    { ref: "F", meas: "G", header: "F" },
-    { ref: "H", meas: "I", header: "H" },
-    { ref: "J", meas: "K", header: "J" },
-  ];
+  const setFormulaNumber = (ref: string, formula: string, value: number | null) => {
+    const cached = value == null || !isFinite(value) ? "" : String(value);
+    upsertCell(
+      ref,
+      `<f>${encodeXml(formula)}</f><v>${cached}</v>`,
+      ' t="str"',
+      { stripType: true }
+    );
+  };
 
-  const normalize = (s: string) =>
-    s.toLowerCase().replace(/\s+/g, " ").trim();
+  const setFormulaString = (ref: string, formula: string, value: string) => {
+    upsertCell(
+      ref,
+      `<f>${encodeXml(formula)}</f><v>${encodeXml(value)}</v>`,
+      ' t="str"',
+      { stripType: true }
+    );
+  };
+
+  const clearCell = (ref: string) => {
+    const re = cellPattern(ref);
+    const m = sheetXml.match(re);
+    if (!m) return;
+    const attrs = m[1].replace(/\s*t="[^"]*"/, "");
+    sheetXml = sheetXml.replace(re, `<c r="${ref}"${attrs}/>`);
+  };
 
   const readCellString = (ref: string): string => {
     const re = cellPattern(ref);
@@ -137,21 +262,6 @@ export async function generateVoltageRoundXlsx(round: VoltageRoundData) {
     return "";
   };
 
-  const findSlot = (
-    headerRow: number,
-    fieldName: string
-  ): { valueRow: number; refCol: string; measCol: string } | null => {
-    for (const s of SLOTS) {
-      const val = readCellString(`${s.header}${headerRow}`);
-      if (!val) continue;
-      if (normalize(val) === normalize(fieldName)) {
-        const baseRow = headerRow === 6 ? 13 : 24;
-        return { valueRow: baseRow, refCol: s.ref, measCol: s.meas };
-      }
-    }
-    return null;
-  };
-
   // ── Header info ──────────────────────────────────────────────
   setString("B1", round.stationName);
   setString("B2", round.date);
@@ -168,83 +278,124 @@ export async function generateVoltageRoundXlsx(round: VoltageRoundData) {
   setString("I3", mi.serial);
   setString("J3", mi.calibrationDate);
 
-  setNumber("J4", 110);
+  setNumber("J4", getLineVoltage(round.secondaryVoltage));
+  setFormulaNumber("K4", "J4/SQRT(3)", round.secondaryVoltage);
 
   // ── Field values ─────────────────────────────────────────────
-  for (const t of round.transformers) {
-    if (t.status === "ute_av_drift") continue;
-    const slot = findSlot(6, t.name) ?? findSlot(17, t.name);
-    if (!slot) continue;
+  const chartLabels: Record<string, string> = {};
+  const chartValues: Record<Phase, Record<string, number>> = {
+    UL1_ULN: {},
+    UL2_ULN: {},
+    UL3_ULN: {},
+  };
 
-    for (let i = 0; i < PHASES.length; i++) {
-      const phase = PHASES[i];
-      if (t.availablePhases && !t.availablePhases.includes(phase)) continue;
-      const m = round.measurements[t.id]?.[phase];
-      if (!m) continue;
-      const row = slot.valueRow + i;
-      if (t.kind === "busbar") {
-        // Busbar is the reference — the single value the user enters is the
-        // reference-instrument reading. Write it into the "Ref. instr." column.
-        const val = m.refValue ?? m.measValue;
-        if (val != null) setNumber(`${slot.refCol}${row}`, val);
-      } else {
-        if (m.refValue != null) setNumber(`${slot.refCol}${row}`, m.refValue);
-        if (m.measValue != null) setNumber(`${slot.measCol}${row}`, m.measValue);
+  for (const s of mapping.slots) {
+    const sourceId = s.sourceFieldId ?? s.fieldId;
+    const t = round.transformers.find((field) => field.id === sourceId);
+    const label = readCellString(`${s.refCol}${s.headerRow}`) || t?.name || "";
+    chartLabels[s.chartCol] = label;
+    setFormulaString(`${s.chartCol}39`, `${s.refCol}${s.headerRow}`, label);
+
+    if (!t || t.status === "ute_av_drift") {
+      clearSlotValues(s);
+      continue;
+    }
+
+    const isReference = isReferenceSlot(round, t);
+    for (const phase of PHASES) {
+      const idx = PHASE_INDEX[phase];
+      const terminalRow = s.diffStartRow + idx;
+      const valueRow = s.valueStartRow + idx;
+      const diffRow = s.diffStartRow + idx;
+      const chartRow = 40 + idx;
+      const chartCell = `${s.chartCol}${chartRow}`;
+      const diffCell = `${s.measCol}${diffRow}`;
+
+      if (t.availablePhases && !t.availablePhases.includes(phase)) {
+        clearCell(`${s.refCol}${valueRow}`);
+        clearCell(`${s.measCol}${valueRow}`);
+        clearCell(diffCell);
+        setNumber(chartCell, 0);
+        chartValues[phase][s.chartCol] = 0;
+        continue;
       }
+
+      const measurement = round.measurements[sourceId]?.[phase];
+      if (measurement?.terminal) setString(`${s.refCol}${terminalRow}`, measurement.terminal);
+
+      const factor = s.conversionFactor ?? 1;
+      const refValue = multiplyNullable(measurement?.refValue, factor);
+      const measValue = multiplyNullable(measurement?.measValue, factor);
+
+      if (isReference) {
+        const value = multiplyNullable(measurement?.measValue ?? measurement?.refValue, factor);
+        if (value != null) setNumber(`${s.refCol}${valueRow}`, value);
+        clearCell(`${s.measCol}${valueRow}`);
+        clearCell(diffCell);
+        setNumber(chartCell, 0);
+        chartValues[phase][s.chartCol] = 0;
+        continue;
+      }
+
+      if (refValue != null) setNumber(`${s.refCol}${valueRow}`, refValue);
+      if (measValue != null) setNumber(`${s.measCol}${valueRow}`, measValue);
+
+      const deviation = refValue != null && measValue != null ? measValue - refValue : null;
+      setFormulaNumber(
+        diffCell,
+        `IF(${s.refCol}${valueRow}<>"",(${s.measCol}${valueRow}-${s.refCol}${valueRow}),"")`,
+        deviation
+      );
+      setFormulaNumber(chartCell, diffCell, deviation ?? 0);
+      chartValues[phase][s.chartCol] = deviation ?? 0;
     }
   }
 
-  // Rana-specific "etter omregning" slots
-  for (const t of round.transformers) {
-    if (!t.conversion || t.status === "ute_av_drift") continue;
-    const omregnetName = `${t.name.replace(/\s*\(.*?\)/, "").trim()} etter omregning`;
-    const slot = findSlot(17, omregnetName);
-    if (!slot) continue;
-    for (let i = 0; i < PHASES.length; i++) {
-      const phase = PHASES[i];
-      const m = round.measurements[t.id]?.[phase];
-      if (!m) continue;
-      const row = slot.valueRow + i;
-      if (m.refValue != null)
-        setNumber(`${slot.refCol}${row}`, m.refValue * t.conversion.factor);
-      if (m.measValue != null)
-        setNumber(`${slot.measCol}${row}`, m.measValue * t.conversion.factor);
+  function clearSlotValues(s: SlotMapping) {
+    for (const phase of PHASES) {
+      const idx = PHASE_INDEX[phase];
+      clearCell(`${s.refCol}${s.valueStartRow + idx}`);
+      clearCell(`${s.measCol}${s.valueStartRow + idx}`);
+      clearCell(`${s.measCol}${s.diffStartRow + idx}`);
+      setNumber(`${s.chartCol}${40 + idx}`, 0);
+      chartValues[phase][s.chartCol] = 0;
     }
   }
 
   // ── Force recalculation on open ──────────────────────────────
   // 1. Drop the pre-computed calcChain so Excel rebuilds it.
   zip.remove("xl/calcChain.xml");
-  // 2. Strip cached <v>…</v> values from every formula cell in the sheet.
-  //    Otherwise Excel trusts the stale cached "" and won't re-evaluate until
-  //    the user manually re-enters the cell.
-  sheetXml = sheetXml.replace(
-    /(<c\b[^>]*>)([\s\S]*?)(<\/c>)/g,
-    (full, open, body, close) => {
-      if (!/<f\b/.test(body)) return full;
-      const stripped = body.replace(/<v>[\s\S]*?<\/v>/g, "");
-      return `${open}${stripped}${close}`;
-    }
-  );
-  // 3. Tell Excel to do a full recalc on open.
+  await removeCalcChainReferences(zip);
+  await updateChartCaches(zip, chartLabels, chartValues);
+
+  // 2. Tell Excel to do a full recalc on open. We still write fresh cached
+  // values for the deviation/chart cells so the result is visible immediately.
   const wbPath = "xl/workbook.xml";
   const wbFile = zip.file(wbPath);
   if (wbFile) {
     let wbXml = await wbFile.async("string");
     if (/<calcPr\b[^/]*\/>/.test(wbXml)) {
-      wbXml = wbXml.replace(
-        /<calcPr\b([^/]*)\/>/,
-        `<calcPr$1 fullCalcOnLoad="1" forceFullCalc="1"/>`
-      );
+      wbXml = wbXml.replace(/<calcPr\b([^/]*)\/>/, (_full, attrs) => {
+        const nextAttrs = withXmlAttrs(attrs, {
+          calcMode: "auto",
+          fullCalcOnLoad: "1",
+          forceFullCalc: "1",
+        });
+        return `<calcPr${nextAttrs}/>`;
+      });
     } else if (/<calcPr\b/.test(wbXml)) {
-      wbXml = wbXml.replace(
-        /<calcPr\b([^>]*)>/,
-        `<calcPr$1 fullCalcOnLoad="1" forceFullCalc="1">`
-      );
+      wbXml = wbXml.replace(/<calcPr\b([^>]*)>/, (_full, attrs) => {
+        const nextAttrs = withXmlAttrs(attrs, {
+          calcMode: "auto",
+          fullCalcOnLoad: "1",
+          forceFullCalc: "1",
+        });
+        return `<calcPr${nextAttrs}>`;
+      });
     } else {
       wbXml = wbXml.replace(
         /<\/workbook>/,
-        `<calcPr fullCalcOnLoad="1" forceFullCalc="1"/></workbook>`
+        `<calcPr calcMode="auto" fullCalcOnLoad="1" forceFullCalc="1"/></workbook>`
       );
     }
     zip.file(wbPath, wbXml);
@@ -285,6 +436,105 @@ export async function generateVoltageRoundXlsx(round: VoltageRoundData) {
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url2);
+}
+
+function nextColumn(col: string) {
+  return String.fromCharCode(col.charCodeAt(0) + 1);
+}
+
+function multiplyNullable(value: number | null | undefined, factor: number) {
+  return value == null ? null : value * factor;
+}
+
+function isReferenceSlot(round: VoltageRoundData, field: VoltageRoundData["transformers"][number]) {
+  if (round.referenceMode === "field") return field.isReference === true;
+  return field.kind === "busbar";
+}
+
+function getLineVoltage(phaseToNeutralVoltage: number) {
+  const known: Record<string, number> = {
+    "57.7": 100,
+    "63.5": 110,
+    "115.5": 200,
+    "127": 220,
+  };
+  const key = String(phaseToNeutralVoltage);
+  return known[key] ?? Number((phaseToNeutralVoltage * Math.sqrt(3)).toFixed(6));
+}
+
+async function removeCalcChainReferences(zip: JSZip) {
+  const contentTypes = zip.file("[Content_Types].xml");
+  if (contentTypes) {
+    const xml = await contentTypes.async("string");
+    const next = xml.replace(
+      /<Override\s+PartName="\/xl\/calcChain\.xml"\s+ContentType="application\/vnd\.openxmlformats-officedocument\.spreadsheetml\.calcChain\+xml"\s*\/>/g,
+      ""
+    );
+    zip.file("[Content_Types].xml", next);
+  }
+
+  const rels = zip.file("xl/_rels/workbook.xml.rels");
+  if (rels) {
+    const xml = await rels.async("string");
+    const next = xml.replace(
+      /<Relationship\b[^>]*Target="calcChain\.xml"[^>]*\/>/g,
+      ""
+    );
+    zip.file("xl/_rels/workbook.xml.rels", next);
+  }
+}
+
+async function updateChartCaches(
+  zip: JSZip,
+  labelsByColumn: Record<string, string>,
+  valuesByPhase: Record<Phase, Record<string, number>>
+) {
+  const labels = CHART_COLUMNS.map((col) => labelsByColumn[col] ?? "");
+  for (const path of Object.keys(zip.files).filter((p) => /^xl\/charts\/chart\d+\.xml$/.test(p))) {
+    const file = zip.file(path);
+    if (!file) continue;
+    const xml = await file.async("string");
+    let next = xml;
+    PHASES.forEach((phase, idx) => {
+      const row = 40 + idx;
+      const values = CHART_COLUMNS.map((col) => valuesByPhase[phase][col] ?? 0);
+      const cache = buildNumCache(values);
+      const re = new RegExp(
+        `(<c:f>[^<]*\\$B\\$${row}:\\$K\\$${row}<\\/c:f>\\s*)<c:numCache>[\\s\\S]*?<\\/c:numCache>`,
+        "g"
+      );
+      next = next.replace(re, `$1${cache}`);
+    });
+    next = next.replace(
+      /<c:strCache>\s*<c:ptCount val="10"\/>[\s\S]*?<\/c:strCache>/g,
+      buildStrCache(labels)
+    );
+    zip.file(path, next);
+  }
+}
+
+function buildNumCache(values: number[]) {
+  const points = values
+    .map((value, idx) => `<c:pt idx="${idx}"><c:v>${Number(value.toFixed(6))}</c:v></c:pt>`)
+    .join("");
+  return `<c:numCache><c:formatCode>0.00&quot; &quot;\\V</c:formatCode><c:ptCount val="${values.length}"/>${points}</c:numCache>`;
+}
+
+function buildStrCache(values: string[]) {
+  const points = values
+    .map((value, idx) => `<c:pt idx="${idx}"><c:v>${encodeXml(value)}</c:v></c:pt>`)
+    .join("");
+  return `<c:strCache><c:ptCount val="${values.length}"/>${points}</c:strCache>`;
+}
+
+function withXmlAttrs(attrs: string, values: Record<string, string>) {
+  let next = attrs;
+  for (const [key, value] of Object.entries(values)) {
+    const re = new RegExp(`\\s${key}="[^"]*"`);
+    if (re.test(next)) next = next.replace(re, ` ${key}="${value}"`);
+    else next += ` ${key}="${value}"`;
+  }
+  return next;
 }
 
 function encodeXml(s: string) {
