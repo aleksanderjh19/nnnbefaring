@@ -213,8 +213,42 @@ export async function generateVoltageRoundXlsx(round: VoltageRoundData) {
   }
 
   // ── Force recalculation on open ──────────────────────────────
-  // Drop the pre-computed calcChain so Excel rebuilds it.
+  // 1. Drop the pre-computed calcChain so Excel rebuilds it.
   zip.remove("xl/calcChain.xml");
+  // 2. Strip cached <v>…</v> values from every formula cell in the sheet.
+  //    Otherwise Excel trusts the stale cached "" and won't re-evaluate until
+  //    the user manually re-enters the cell.
+  sheetXml = sheetXml.replace(
+    /(<c\b[^>]*>)([\s\S]*?)(<\/c>)/g,
+    (full, open, body, close) => {
+      if (!/<f\b/.test(body)) return full;
+      const stripped = body.replace(/<v>[\s\S]*?<\/v>/g, "");
+      return `${open}${stripped}${close}`;
+    }
+  );
+  // 3. Tell Excel to do a full recalc on open.
+  const wbPath = "xl/workbook.xml";
+  const wbFile = zip.file(wbPath);
+  if (wbFile) {
+    let wbXml = await wbFile.async("string");
+    if (/<calcPr\b[^/]*\/>/.test(wbXml)) {
+      wbXml = wbXml.replace(
+        /<calcPr\b([^/]*)\/>/,
+        `<calcPr$1 fullCalcOnLoad="1" forceFullCalc="1"/>`
+      );
+    } else if (/<calcPr\b/.test(wbXml)) {
+      wbXml = wbXml.replace(
+        /<calcPr\b([^>]*)>/,
+        `<calcPr$1 fullCalcOnLoad="1" forceFullCalc="1">`
+      );
+    } else {
+      wbXml = wbXml.replace(
+        /<\/workbook>/,
+        `<calcPr fullCalcOnLoad="1" forceFullCalc="1"/></workbook>`
+      );
+    }
+    zip.file(wbPath, wbXml);
+  }
 
   // ── Persist patched xml ──────────────────────────────────────
   if (newStrings.length > 0) {
