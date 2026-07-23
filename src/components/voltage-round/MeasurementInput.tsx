@@ -15,30 +15,6 @@ interface Props {
 }
 
 export default function MeasurementInput({ transformers, measurements, onChange }: Props) {
-  const updateMeasurement = (
-    transformerId: string,
-    phase: Phase,
-    field: keyof PhaseMeasurement,
-    value: string
-  ) => {
-    const updated = { ...measurements };
-    if (!updated[transformerId]) {
-      updated[transformerId] = {
-        UL1_ULN: { terminal: "", refValue: null, measValue: null },
-        UL2_ULN: { terminal: "", refValue: null, measValue: null },
-        UL3_ULN: { terminal: "", refValue: null, measValue: null },
-      };
-    }
-    const current = { ...updated[transformerId][phase] };
-    if (field === "terminal") {
-      current.terminal = value;
-    } else {
-      current[field] = value === "" ? null : Number(value);
-    }
-    updated[transformerId] = { ...updated[transformerId], [phase]: current };
-    onChange(updated);
-  };
-
   // Only measure fields that are in drift. Group busbars and active fields together
   // per section (A / B / all) so the operator sees which reference each field maps to.
   const activeAll = transformers.filter((t) => t.status !== "ute_av_drift");
@@ -47,31 +23,80 @@ export default function MeasurementInput({ transformers, measurements, onChange 
   const busbarB = activeAll.find((t) => t.kind === "busbar" && t.busbarLabel === "B");
   const hasAnyBusbar = !!busbarA || !!busbarB;
 
-  const sections: { label: string; color: string; list: TransformerField[] }[] = [];
+  const sections: { label: string; color: string; list: TransformerField[]; refId?: string }[] = [];
 
   if (hasAnyBusbar) {
     if (busbarA) {
       const fields = activeAll.filter(
         (t) => t.kind === "field" && (t.refBusbar ?? "A") === "A"
       );
-      sections.push({ label: "Samleskinne A", color: "blue", list: [busbarA, ...fields] });
+      sections.push({ label: "Samleskinne A", color: "blue", list: [busbarA, ...fields], refId: busbarA.id });
     }
     if (busbarB) {
       const fields = activeAll.filter(
         (t) => t.kind === "field" && (t.refBusbar ?? "A") === "B"
       );
-      sections.push({ label: "Samleskinne B", color: "amber", list: [busbarB, ...fields] });
+      sections.push({ label: "Samleskinne B", color: "amber", list: [busbarB, ...fields], refId: busbarB.id });
     }
   } else {
-    // Field-mode station – single flat list with reference first
     const ref = activeAll.find((t) => t.isReference);
     const rest = activeAll.filter((t) => t.id !== ref?.id);
     sections.push({
       label: ref ? `Referansefelt: ${ref.name}` : "Felt",
       color: "blue",
       list: ref ? [ref, ...rest] : rest,
+      refId: ref?.id,
     });
   }
+
+  const refMap: Record<string, string | undefined> = {};
+  for (const s of sections) {
+    for (const t of s.list) refMap[t.id] = s.refId;
+  }
+
+  const emptyPhase = (): PhaseMeasurement => ({ terminal: "", refValue: null, measValue: null });
+
+  const updateMeasurement = (
+    transformerId: string,
+    phase: Phase,
+    field: keyof PhaseMeasurement,
+    value: string
+  ) => {
+    const updated = { ...measurements };
+    const ensure = (id: string) => {
+      if (!updated[id]) {
+        updated[id] = { UL1_ULN: emptyPhase(), UL2_ULN: emptyPhase(), UL3_ULN: emptyPhase() };
+      }
+    };
+    ensure(transformerId);
+    const current = { ...updated[transformerId][phase] };
+    if (field === "terminal") {
+      current.terminal = value;
+    } else {
+      current[field] = value === "" ? null : Number(value);
+    }
+    updated[transformerId] = { ...updated[transformerId], [phase]: current };
+
+    // Auto-propagate: when the section's reference field gets a målespenning,
+    // fill it as ref. spenning on all other fields in the same section.
+    if (field === "measValue") {
+      const sectionRefId = refMap[transformerId];
+      if (sectionRefId && sectionRefId === transformerId) {
+        const newRef = current.measValue;
+        for (const s of sections) {
+          if (s.refId !== transformerId) continue;
+          for (const t of s.list) {
+            if (t.id === transformerId) continue;
+            ensure(t.id);
+            const p = { ...updated[t.id][phase], refValue: newRef };
+            updated[t.id] = { ...updated[t.id], [phase]: p };
+          }
+        }
+      }
+    }
+
+    onChange(updated);
+  };
 
   return (
     <div className="space-y-6">
