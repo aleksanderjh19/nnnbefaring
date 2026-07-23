@@ -112,6 +112,9 @@ function BusbarMeasurements({
   const bgColor = color === "blue" ? "bg-blue-500" : "bg-amber-500";
   const lightBg = color === "blue" ? "bg-blue-50 dark:bg-blue-950/20" : "bg-amber-50 dark:bg-amber-950/20";
 
+  // The first transformer in each section is the reference (busbar or selected reference field)
+  const refId = transformers[0]?.id;
+
   return (
     <div>
       <div className={`${bgColor} text-white px-4 py-2 rounded-t-xl text-sm font-bold`}>
@@ -198,28 +201,32 @@ function BusbarMeasurements({
                 {PHASES.map((phase) => (
                   <tr key={phase} className="border-b border-border/50">
                     <td className="py-1.5 px-2 font-medium text-muted-foreground">{PHASE_LABELS[phase]}</td>
-                    {transformers.map((t) => (
-                      <td key={t.id} className="py-1 px-1" colSpan={2}>
-                        <div className="flex gap-1">
-                          <Input
-                            className="h-7 text-xs text-center flex-1"
-                            type="number"
-                            step="0.01"
-                            placeholder="0.00"
-                            value={measurements[t.id]?.[phase]?.refValue ?? ""}
-                            onChange={(e) => onUpdate(t.id, phase, "refValue", e.target.value)}
-                          />
-                          <Input
-                            className="h-7 text-xs text-center flex-1"
-                            type="number"
-                            step="0.01"
-                            placeholder="0.00"
-                            value={measurements[t.id]?.[phase]?.measValue ?? ""}
-                            onChange={(e) => onUpdate(t.id, phase, "measValue", e.target.value)}
-                          />
-                        </div>
-                      </td>
-                    ))}
+                    {transformers.map((t) => {
+                      const isRef = t.id === refId;
+                      return (
+                        <td key={t.id} className="py-1 px-1" colSpan={2}>
+                          <div className="flex gap-1">
+                            <Input
+                              className="h-7 text-xs text-center flex-1 bg-muted/60 text-muted-foreground"
+                              type="number"
+                              step="0.01"
+                              placeholder={isRef ? "—" : "0.00"}
+                              disabled={isRef}
+                              value={measurements[t.id]?.[phase]?.refValue ?? ""}
+                              onChange={(e) => onUpdate(t.id, phase, "refValue", e.target.value)}
+                            />
+                            <Input
+                              className="h-7 text-xs text-center flex-1"
+                              type="number"
+                              step="0.01"
+                              placeholder="0.00"
+                              value={measurements[t.id]?.[phase]?.measValue ?? ""}
+                              onChange={(e) => onUpdate(t.id, phase, "measValue", e.target.value)}
+                            />
+                          </div>
+                        </td>
+                      );
+                    })}
                   </tr>
                 ))}
               </tbody>
