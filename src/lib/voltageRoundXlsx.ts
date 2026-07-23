@@ -1,13 +1,12 @@
-import ExcelJS from "exceljs";
-import {
-  VoltageRoundData,
-  PHASES,
-} from "@/components/voltage-round/types";
+import JSZip from "jszip";
+import { VoltageRoundData, PHASES } from "@/components/voltage-round/types";
 
 /**
- * Fill the Statnett voltage-round template with the round's data while preserving
- * all formulas and diagrams. Values are placed by matching field names against
- * the template's slot headers on row 6 and row 17.
+ * Fill the Statnett voltage-round template with the round's data.
+ *
+ * We patch the underlying xlsx XML directly (via JSZip) instead of round-tripping
+ * through ExcelJS — that library silently drops embedded charts, drawings and
+ * other advanced features that the Statnett templates rely on.
  */
 export async function generateVoltageRoundXlsx(round: VoltageRoundData) {
   if (!round.templateKey) throw new Error("Missing templateKey");
@@ -17,12 +16,85 @@ export async function generateVoltageRoundXlsx(round: VoltageRoundData) {
   if (!res.ok) throw new Error(`Kunne ikke laste mal: ${url}`);
   const buf = await res.arrayBuffer();
 
-  const wb = new ExcelJS.Workbook();
-  await wb.xlsx.load(buf);
-  const ws = wb.worksheets.find((s) => s.columnCount > 5) ?? wb.worksheets[0];
+  const zip = await JSZip.loadAsync(buf);
 
-  // Slot columns for values: (Ref, Meas) pairs at B/C, D/E, F/G, H/I, J/K
-  const SLOTS: Array<{ ref: string; meas: string; header: string }> = [
+  // ── Shared strings ──────────────────────────────────────────
+  const ssFile = zip.file("xl/sharedStrings.xml");
+  let ssXml =
+    (await ssFile?.async("string")) ??
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="0" uniqueCount="0"></sst>`;
+
+  const sharedStrings: string[] = [];
+  const siRegex = /<si\b[^>]*>([\s\S]*?)<\/si>/g;
+  let sm: RegExpExecArray | null;
+  while ((sm = siRegex.exec(ssXml))) {
+    const inner = sm[1];
+    const text = Array.from(inner.matchAll(/<t\b[^>]*>([\s\S]*?)<\/t>/g))
+      .map((x) => decodeXml(x[1]))
+      .join("");
+    sharedStrings.push(text);
+  }
+
+  const newStrings: string[] = [];
+  const addString = (s: string): number => {
+    const str = s ?? "";
+    let idx = sharedStrings.indexOf(str);
+    if (idx === -1) {
+      idx = sharedStrings.length;
+      sharedStrings.push(str);
+      newStrings.push(str);
+    }
+    return idx;
+  };
+
+  // ── Sheet ──────────────────────────────────────────────────
+  const sheetPath =
+    Object.keys(zip.files).find((p) =>
+      /^xl\/worksheets\/sheet\d+\.xml$/.test(p)
+    ) ?? "xl/worksheets/sheet1.xml";
+  let sheetXml = await zip.file(sheetPath)!.async("string");
+
+  // Helpers to patch individual cells while preserving style attributes.
+  const cellPattern = (ref: string) =>
+    new RegExp(`<c r="${ref}"([^>]*?)(/>|>[\\s\\S]*?</c>)`);
+
+  const upsertCell = (ref: string, inner: string, extraAttrs = "") => {
+    const re = cellPattern(ref);
+    const m = sheetXml.match(re);
+    if (m) {
+      // Preserve style s="..", strip any existing t="..".
+      const attrs = m[1].replace(/\s*t="[^"]*"/, "");
+      sheetXml = sheetXml.replace(
+        re,
+        `<c r="${ref}"${attrs}${extraAttrs}>${inner}</c>`
+      );
+      return;
+    }
+    // Insert into <row r="N">...</row>
+    const rowNum = ref.match(/\d+/)?.[0];
+    if (!rowNum) return;
+    const rowOpenRe = new RegExp(`<row r="${rowNum}"[^>]*>`);
+    if (sheetXml.match(rowOpenRe)) {
+      sheetXml = sheetXml.replace(
+        rowOpenRe,
+        (mm) => `${mm}<c r="${ref}"${extraAttrs}>${inner}</c>`
+      );
+    }
+  };
+
+  const setNumber = (ref: string, value: number) => {
+    if (!isFinite(value)) return;
+    upsertCell(ref, `<v>${value}</v>`);
+  };
+
+  const setString = (ref: string, value: string) => {
+    if (!value) return;
+    const idx = addString(value);
+    upsertCell(ref, `<v>${idx}</v>`, ' t="s"');
+  };
+
+  // ── Header lookup: find slot columns by matching field name ──
+  const SLOTS = [
     { ref: "B", meas: "C", header: "B" },
     { ref: "D", meas: "E", header: "D" },
     { ref: "F", meas: "G", header: "F" },
@@ -30,22 +102,37 @@ export async function generateVoltageRoundXlsx(round: VoltageRoundData) {
     { ref: "J", meas: "K", header: "J" },
   ];
 
-  const normalize = (s: unknown) =>
-    String(s ?? "")
-      .toLowerCase()
-      .replace(/\s+/g, " ")
-      .trim();
+  const normalize = (s: string) =>
+    s.toLowerCase().replace(/\s+/g, " ").trim();
 
-  // Build a map: slotKey (row+col header) → fieldId, by matching cell name to field.name
+  const readCellString = (ref: string): string => {
+    const re = cellPattern(ref);
+    const m = sheetXml.match(re);
+    if (!m) return "";
+    const attrs = m[1];
+    const body = m[2].startsWith(">") ? m[2].slice(1, -4) : "";
+    // t="s" → shared string index; t="inlineStr" → <is><t>..</t></is>
+    if (/\st="s"/.test(attrs)) {
+      const v = body.match(/<v>([^<]*)<\/v>/)?.[1];
+      if (v == null) return "";
+      return sharedStrings[Number(v)] ?? "";
+    }
+    if (/\st="(inlineStr|str)"/.test(attrs)) {
+      const t = body.match(/<t\b[^>]*>([\s\S]*?)<\/t>/)?.[1];
+      return t ? decodeXml(t) : "";
+    }
+    return "";
+  };
+
   const findSlot = (
-    rowHeader: number,
+    headerRow: number,
     fieldName: string
   ): { valueRow: number; refCol: string; measCol: string } | null => {
     for (const s of SLOTS) {
-      const cellVal = ws.getCell(`${s.header}${rowHeader}`).value;
-      if (normalize(cellVal) === normalize(fieldName)) {
-        // First-row header at row 6 → values at 13/14/15. Second-row header at 17 → 24/25/26
-        const baseRow = rowHeader === 6 ? 13 : 24;
+      const val = readCellString(`${s.header}${headerRow}`);
+      if (!val) continue;
+      if (normalize(val) === normalize(fieldName)) {
+        const baseRow = headerRow === 6 ? 13 : 24;
         return { valueRow: baseRow, refCol: s.ref, measCol: s.meas };
       }
     }
@@ -53,47 +140,41 @@ export async function generateVoltageRoundXlsx(round: VoltageRoundData) {
   };
 
   // ── Header info ──────────────────────────────────────────────
-  ws.getCell("B1").value = round.stationName;
-  ws.getCell("B2").value = round.date;
-  ws.getCell("B3").value = round.signNames;
+  setString("B1", round.stationName);
+  setString("B2", round.date);
+  setString("B3", round.signNames);
 
-  // Instruments block at G/H/I/J rows 2/3
   const ri = round.refInstrument;
   const mi = round.measInstrument;
-  ws.getCell("G2").value = ri.brand;
-  ws.getCell("H2").value = ri.type;
-  ws.getCell("I2").value = ri.serial;
-  ws.getCell("J2").value = ri.calibrationDate;
-  ws.getCell("G3").value = mi.brand;
-  ws.getCell("H3").value = mi.type;
-  ws.getCell("I3").value = mi.serial;
-  ws.getCell("J3").value = mi.calibrationDate;
+  setString("G2", ri.brand);
+  setString("H2", ri.type);
+  setString("I2", ri.serial);
+  setString("J2", ri.calibrationDate);
+  setString("G3", mi.brand);
+  setString("H3", mi.type);
+  setString("I3", mi.serial);
+  setString("J3", mi.calibrationDate);
 
-  // Nominal voltage
-  ws.getCell("J4").value = round.transformers.some((t) => t.conversion) ? 110 : 110;
+  setNumber("J4", 110);
 
   // ── Field values ─────────────────────────────────────────────
   for (const t of round.transformers) {
     if (t.status === "ute_av_drift") continue;
-    // Try first row (header row 6), else second row (header row 17)
-    const slot =
-      findSlot(6, t.name) ??
-      findSlot(17, t.name);
+    const slot = findSlot(6, t.name) ?? findSlot(17, t.name);
     if (!slot) continue;
 
     for (let i = 0; i < PHASES.length; i++) {
       const phase = PHASES[i];
+      if (t.availablePhases && !t.availablePhases.includes(phase)) continue;
       const m = round.measurements[t.id]?.[phase];
       if (!m) continue;
       const row = slot.valueRow + i;
-      if (m.refValue != null) ws.getCell(`${slot.refCol}${row}`).value = m.refValue;
-      if (m.measValue != null) ws.getCell(`${slot.measCol}${row}`).value = m.measValue;
+      if (m.refValue != null) setNumber(`${slot.refCol}${row}`, m.refValue);
+      if (m.measValue != null) setNumber(`${slot.measCol}${row}`, m.measValue);
     }
   }
 
-  // ── Rana-specific "etter omregning" fields ───────────────────
-  // For fields with conversion, if the template has "etter omregning" slots in row 17,
-  // also populate those with the pre-computed values.
+  // Rana-specific "etter omregning" slots
   for (const t of round.transformers) {
     if (!t.conversion || t.status === "ute_av_drift") continue;
     const omregnetName = `${t.name.replace(/\s*\(.*?\)/, "").trim()} etter omregning`;
@@ -104,18 +185,44 @@ export async function generateVoltageRoundXlsx(round: VoltageRoundData) {
       const m = round.measurements[t.id]?.[phase];
       if (!m) continue;
       const row = slot.valueRow + i;
-      if (m.refValue != null) ws.getCell(`${slot.refCol}${row}`).value = m.refValue * t.conversion.factor;
-      if (m.measValue != null) ws.getCell(`${slot.measCol}${row}`).value = m.measValue * t.conversion.factor;
+      if (m.refValue != null)
+        setNumber(`${slot.refCol}${row}`, m.refValue * t.conversion.factor);
+      if (m.measValue != null)
+        setNumber(`${slot.measCol}${row}`, m.measValue * t.conversion.factor);
     }
   }
 
-  // ── Trigger recalculation on open ─────────────────────────────
-  wb.calcProperties.fullCalcOnLoad = true;
+  // ── Force recalculation on open ──────────────────────────────
+  // Drop the pre-computed calcChain so Excel rebuilds it.
+  zip.remove("xl/calcChain.xml");
 
-  const out = await wb.xlsx.writeBuffer();
-  const blob = new Blob([out], {
-    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  // ── Persist patched xml ──────────────────────────────────────
+  if (newStrings.length > 0) {
+    const additions = newStrings
+      .map((s) => `<si><t xml:space="preserve">${encodeXml(s)}</t></si>`)
+      .join("");
+    if (/<\/sst>/.test(ssXml)) {
+      ssXml = ssXml.replace(/<\/sst>\s*$/, `${additions}</sst>`);
+    } else {
+      ssXml += additions;
+    }
+    ssXml = ssXml.replace(/count="\d+"/, `count="${sharedStrings.length}"`);
+    ssXml = ssXml.replace(
+      /uniqueCount="\d+"/,
+      `uniqueCount="${sharedStrings.length}"`
+    );
+    zip.file("xl/sharedStrings.xml", ssXml);
+  } else if (ssFile) {
+    zip.file("xl/sharedStrings.xml", ssXml);
+  }
+  zip.file(sheetPath, sheetXml);
+
+  const blob = await zip.generateAsync({
+    type: "blob",
+    mimeType:
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   });
+
   const link = document.createElement("a");
   const url2 = URL.createObjectURL(blob);
   link.href = url2;
@@ -124,4 +231,21 @@ export async function generateVoltageRoundXlsx(round: VoltageRoundData) {
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url2);
+}
+
+function encodeXml(s: string) {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function decodeXml(s: string) {
+  return s
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, "&");
 }

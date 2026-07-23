@@ -68,6 +68,7 @@ function createRoundFromTemplate(
     isReference: f.isDefaultReference ?? false,
     status: "active" as const,
     conversion: f.conversion,
+    availablePhases: f.availablePhases,
   }));
 
   const measurements = createEmptyMeasurements(transformers);
@@ -198,15 +199,18 @@ export default function VoltageRound() {
         isReference: f.isDefaultReference ?? false,
         status: "active" as const,
         conversion: f.conversion,
+        availablePhases: f.availablePhases,
       }));
     }
 
-    // Merge template conversion factors onto migrated legacy transformers
+    // Merge template conversion factors + availablePhases onto migrated legacy transformers
     if (level) {
       transformers = transformers.map((t) => {
         const def = level.fields.find((f) => f.id === t.id);
-        if (def?.conversion && !t.conversion) return { ...t, conversion: def.conversion };
-        return t;
+        const patch: Partial<TransformerField> = {};
+        if (def?.conversion && !t.conversion) patch.conversion = def.conversion;
+        if (def?.availablePhases && !t.availablePhases) patch.availablePhases = def.availablePhases;
+        return Object.keys(patch).length ? { ...t, ...patch } : t;
       });
     }
 

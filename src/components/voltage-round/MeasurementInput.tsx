@@ -145,10 +145,13 @@ function BusbarMeasurements({
                   <tr key={phase} className="border-b border-border/50">
                     <td className="py-1.5 px-2 font-medium text-muted-foreground">{PHASE_LABELS[phase]}</td>
                     {transformers.map((t) => {
+                      const available = !t.availablePhases || t.availablePhases.includes(phase);
                       const terminal = measurements[t.id]?.[phase]?.terminal ?? "";
                       return (
                         <td key={t.id} className="py-1 px-2">
-                          {terminal ? (
+                          {!available ? (
+                            <span className="text-[10px] text-muted-foreground/50 italic">—</span>
+                          ) : terminal ? (
                             <span className="text-[10px] font-mono bg-muted/50 px-1.5 py-0.5 rounded">
                               {terminal}
                             </span>
@@ -203,6 +206,7 @@ function BusbarMeasurements({
                     <td className="py-1.5 px-2 font-medium text-muted-foreground">{PHASE_LABELS[phase]}</td>
                     {transformers.map((t) => {
                       const isRef = t.id === refId;
+                      const available = !t.availablePhases || t.availablePhases.includes(phase);
                       return (
                         <td key={t.id} className="py-1 px-1" colSpan={2}>
                           <div className="flex gap-1">
@@ -210,8 +214,8 @@ function BusbarMeasurements({
                               className="h-7 text-xs text-center flex-1 bg-muted/60 text-muted-foreground"
                               type="number"
                               step="0.01"
-                              placeholder={isRef ? "—" : "0.00"}
-                              disabled={isRef}
+                              placeholder={!available ? "—" : isRef ? "—" : "0.00"}
+                              disabled={isRef || !available}
                               value={measurements[t.id]?.[phase]?.refValue ?? ""}
                               onChange={(e) => onUpdate(t.id, phase, "refValue", e.target.value)}
                             />
@@ -219,7 +223,8 @@ function BusbarMeasurements({
                               className="h-7 text-xs text-center flex-1"
                               type="number"
                               step="0.01"
-                              placeholder="0.00"
+                              placeholder={!available ? "—" : "0.00"}
+                              disabled={!available}
                               value={measurements[t.id]?.[phase]?.measValue ?? ""}
                               onChange={(e) => onUpdate(t.id, phase, "measValue", e.target.value)}
                             />
