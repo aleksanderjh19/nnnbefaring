@@ -8,12 +8,15 @@ import {
   MeasurementData,
   PHASES,
   PHASE_LABELS,
-  Phase,
-  calculateDeviations,
+  calculateReferenceSections,
   getDeviationLimit,
+  hasAnyIssue,
   InstrumentInfo,
   createEmptyInstrument,
+  migrateTransformers,
+  ReferenceMode,
 } from "@/components/voltage-round/types";
+import { findStation, findVoltageLevel } from "@/data/stationTemplates";
 
 interface RoundRow {
   id: string;
