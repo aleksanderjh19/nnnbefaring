@@ -23,6 +23,8 @@ export interface TransformerField {
   status: FieldStatus;
   /** For fields whose measurement must be converted before comparison (Rana omsetning) */
   conversion?: { factor: number };
+  /** Phases that actually have a measurement point. Defaults to all three. */
+  availablePhases?: Phase[];
 }
 
 export type Phase = "UL1_ULN" | "UL2_ULN" | "UL3_ULN";
