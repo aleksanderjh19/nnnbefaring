@@ -77,24 +77,6 @@ export default function MeasurementInput({ transformers, measurements, onChange 
     }
     updated[transformerId] = { ...updated[transformerId], [phase]: current };
 
-    // Auto-propagate: when the section's reference field gets a målespenning,
-    // fill it as ref. spenning on all other fields in the same section.
-    if (field === "measValue") {
-      const sectionRefId = refMap[transformerId];
-      if (sectionRefId && sectionRefId === transformerId) {
-        const newRef = current.measValue;
-        for (const s of sections) {
-          if (s.refId !== transformerId) continue;
-          for (const t of s.list) {
-            if (t.id === transformerId) continue;
-            ensure(t.id);
-            const p = { ...updated[t.id][phase], refValue: newRef };
-            updated[t.id] = { ...updated[t.id], [phase]: p };
-          }
-        }
-      }
-    }
-
     onChange(updated);
   };
 
