@@ -365,8 +365,8 @@ export async function generateVoltageRoundXlsx(round: VoltageRoundData) {
   // ── Force recalculation on open ──────────────────────────────
   // 1. Drop the pre-computed calcChain so Excel rebuilds it.
   zip.remove("xl/calcChain.xml");
-  removeCalcChainReferences(zip);
-  updateChartCaches(zip, chartLabels, chartValues);
+  await removeCalcChainReferences(zip);
+  await updateChartCaches(zip, chartLabels, chartValues);
 
   // 2. Tell Excel to do a full recalc on open. We still write fresh cached
   // values for the deviation/chart cells so the result is visible immediately.
@@ -462,31 +462,29 @@ function getLineVoltage(phaseToNeutralVoltage: number) {
   return known[key] ?? Number((phaseToNeutralVoltage * Math.sqrt(3)).toFixed(6));
 }
 
-function removeCalcChainReferences(zip: JSZip) {
+async function removeCalcChainReferences(zip: JSZip) {
   const contentTypes = zip.file("[Content_Types].xml");
   if (contentTypes) {
-    contentTypes.async("string").then((xml) => {
-      const next = xml.replace(
-        /<Override\s+PartName="\/xl\/calcChain\.xml"\s+ContentType="application\/vnd\.openxmlformats-officedocument\.spreadsheetml\.calcChain\+xml"\s*\/>/g,
-        ""
-      );
-      zip.file("[Content_Types].xml", next);
-    });
+    const xml = await contentTypes.async("string");
+    const next = xml.replace(
+      /<Override\s+PartName="\/xl\/calcChain\.xml"\s+ContentType="application\/vnd\.openxmlformats-officedocument\.spreadsheetml\.calcChain\+xml"\s*\/>/g,
+      ""
+    );
+    zip.file("[Content_Types].xml", next);
   }
 
   const rels = zip.file("xl/_rels/workbook.xml.rels");
   if (rels) {
-    rels.async("string").then((xml) => {
-      const next = xml.replace(
-        /<Relationship\b[^>]*Target="calcChain\.xml"[^>]*\/>/g,
-        ""
-      );
-      zip.file("xl/_rels/workbook.xml.rels", next);
-    });
+    const xml = await rels.async("string");
+    const next = xml.replace(
+      /<Relationship\b[^>]*Target="calcChain\.xml"[^>]*\/>/g,
+      ""
+    );
+    zip.file("xl/_rels/workbook.xml.rels", next);
   }
 }
 
-function updateChartCaches(
+async function updateChartCaches(
   zip: JSZip,
   labelsByColumn: Record<string, string>,
   valuesByPhase: Record<Phase, Record<string, number>>
@@ -495,24 +493,23 @@ function updateChartCaches(
   for (const path of Object.keys(zip.files).filter((p) => /^xl\/charts\/chart\d+\.xml$/.test(p))) {
     const file = zip.file(path);
     if (!file) continue;
-    file.async("string").then((xml) => {
-      let next = xml;
-      PHASES.forEach((phase, idx) => {
-        const row = 40 + idx;
-        const values = CHART_COLUMNS.map((col) => valuesByPhase[phase][col] ?? 0);
-        const cache = buildNumCache(values);
-        const re = new RegExp(
-          `(<c:f>[^<]*\\$B\\$${row}:\\$K\\$${row}<\\/c:f>\\s*)<c:numCache>[\\s\\S]*?<\\/c:numCache>`,
-          "g"
-        );
-        next = next.replace(re, `$1${cache}`);
-      });
-      next = next.replace(
-        /<c:strCache>\s*<c:ptCount val="10"\/>[\s\S]*?<\/c:strCache>/g,
-        buildStrCache(labels)
+    const xml = await file.async("string");
+    let next = xml;
+    PHASES.forEach((phase, idx) => {
+      const row = 40 + idx;
+      const values = CHART_COLUMNS.map((col) => valuesByPhase[phase][col] ?? 0);
+      const cache = buildNumCache(values);
+      const re = new RegExp(
+        `(<c:f>[^<]*\\$B\\$${row}:\\$K\\$${row}<\\/c:f>\\s*)<c:numCache>[\\s\\S]*?<\\/c:numCache>`,
+        "g"
       );
-      zip.file(path, next);
+      next = next.replace(re, `$1${cache}`);
     });
+    next = next.replace(
+      /<c:strCache>\s*<c:ptCount val="10"\/>[\s\S]*?<\/c:strCache>/g,
+      buildStrCache(labels)
+    );
+    zip.file(path, next);
   }
 }
 
