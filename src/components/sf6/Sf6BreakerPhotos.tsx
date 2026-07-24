@@ -142,12 +142,17 @@ export default function Sf6BreakerPhotos({
     void uploadFiles(files);
   };
 
-  const deletePhoto = async (row: Sf6PhotoRow) => {
+  const hardDeletePhoto = async (row: Sf6PhotoRow) => {
     await supabase.storage.from(BUCKET).remove([row.storage_path]);
     await supabase.from("sf6_round_photos").delete().eq("id", row.id);
     onPhotosChange(photos.filter((p) => p.id !== row.id));
     toast({ title: "Slettet" });
   };
+
+  const deletePhoto = async (row: Sf6PhotoRow) => {
+    await handleDeleteClick(row.id, () => hardDeletePhoto(row));
+  };
+
 
   const saveComment = async (row: Sf6PhotoRow) => {
     const next = drafts[row.id] ?? "";
