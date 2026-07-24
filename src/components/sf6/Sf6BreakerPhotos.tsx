@@ -249,13 +249,16 @@ export default function Sf6BreakerPhotos({
                           <Check className="h-3 w-3 text-primary" />
                         )}
                         {!readOnly && (
-                          <button
-                            onClick={() => deletePhoto(p)}
-                            className="text-muted-foreground hover:text-destructive"
-                            aria-label="Slett bilde"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          <>
+                            {isRequested(p.id) && <DeletionRequestBadge />}
+                            <button
+                              onClick={() => deletePhoto(p)}
+                              className={isRequested(p.id) ? "text-destructive" : "text-muted-foreground hover:text-destructive"}
+                              aria-label={isAdmin ? "Slett bilde" : isRequested(p.id) ? "Fjern merking" : "Be om sletting"}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>
