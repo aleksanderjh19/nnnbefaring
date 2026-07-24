@@ -89,7 +89,7 @@ export async function generateUtlansPdf(d: UtlansData): Promise<Uint8Array> {
   drawSig(p2, sigS, COORDS.sigStatnett);
   drawSig(p2, sigL, COORDS.sigLaantaker);
   drawText(p2, formatDate(d.innlevertDato ?? ""), COORDS.innlevertDato);
-  drawText(p2, d.innlevertKvittering ?? "", COORDS.innlevertKvitt);
+
   drawSig(p2, sigI, COORDS.sigInnlevering);
 
   return await pdf.save();
