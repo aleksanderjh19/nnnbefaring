@@ -14,7 +14,9 @@ export interface UtlansData {
   innlevertDato?: string;
   innlevertKvittering?: string;
   signaturInnlevering?: string | null;
+  signaturInnleveringEier?: string | null;
 }
+
 
 // Field coordinates (PDF points, origin bottom-left) measured on the original template
 // Page height = 842pt
