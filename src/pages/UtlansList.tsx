@@ -156,8 +156,8 @@ const UtlansList = () => {
               return true;
             });
             const awaiting = visibleRows.filter((r) => r.status === "awaiting_owner_loan" || r.status === "awaiting_owner_return");
-            const ongoing = visibleRows.filter((r) => r.status !== "returned");
-            const history = visibleRows.filter((r) => r.status === "returned");
+            const ongoing = visibleRows.filter((r) => r.status !== "returned" && r.status !== "awaiting_owner_return");
+            const history = visibleRows.filter((r) => r.status === "returned" || r.status === "awaiting_owner_return");
 
             const renderCard = (r: Row) => {
               const meta = statusMeta[r.status] ?? statusMeta.draft;
