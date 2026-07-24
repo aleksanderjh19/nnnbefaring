@@ -7,6 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { compressImageToJpeg } from "@/lib/imageCompress";
 import Sf6PhotoLightbox, { type LightboxItem } from "./Sf6PhotoLightbox";
+import { useDeletionRequests } from "@/hooks/useDeletionRequests";
+import { DeletionRequestBadge } from "@/components/DeletionRequestBadge";
 
 export interface Sf6PhotoRow {
   id: string;
