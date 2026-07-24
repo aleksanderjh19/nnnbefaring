@@ -78,6 +78,7 @@ export async function generateUtlansPdf(d: UtlansData): Promise<Uint8Array> {
   const sigL = await embedSig(pdf, d.signaturLaantaker);
   const sigS = await embedSig(pdf, d.signaturStatnett);
   const sigI = await embedSig(pdf, d.signaturInnlevering);
+  const sigIE = await embedSig(pdf, d.signaturInnleveringEier);
 
   // Page 1: låntaker (navn – ansattnr)
   const laantakerText = [d.laantakerNavn, d.ansattnr].filter(Boolean).join(" – ");
@@ -94,6 +95,8 @@ export async function generateUtlansPdf(d: UtlansData): Promise<Uint8Array> {
   drawText(p2, formatDate(d.innlevertDato ?? ""), COORDS.innlevertDato);
 
   drawSig(p2, sigI, COORDS.sigInnlevering);
+  drawSig(p2, sigIE, COORDS.sigInnleveringEier);
+
 
   return await pdf.save();
 }
