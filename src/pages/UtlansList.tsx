@@ -156,7 +156,7 @@ const UtlansList = () => {
               return true;
             });
             const awaiting = visibleRows.filter((r) => r.status === "awaiting_owner_loan" || r.status === "awaiting_owner_return");
-            const ongoing = visibleRows.filter((r) => r.status !== "returned" && !awaiting.includes(r));
+            const ongoing = visibleRows.filter((r) => r.status !== "returned");
             const history = visibleRows.filter((r) => r.status === "returned");
 
             const renderCard = (r: Row) => {
@@ -234,13 +234,12 @@ const UtlansList = () => {
 
                 <section className="space-y-2">
                   <h2 className="px-1 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                    Pågående utlån {(ongoing.length + (isOwner ? 0 : awaiting.length)) > 0 && <span className="ml-1 text-xs font-normal">({ongoing.length + (isOwner ? 0 : awaiting.length)})</span>}
+                    Pågående utlån {ongoing.length > 0 && <span className="ml-1 text-xs font-normal">({ongoing.length})</span>}
                   </h2>
-                  {ongoing.length === 0 && (isOwner || awaiting.length === 0) ? (
+                  {ongoing.length === 0 ? (
                     <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">Ingen pågående utlån.</CardContent></Card>
                   ) : (
                     <div className="space-y-3">
-                      {!isOwner && awaiting.map(renderCard)}
                       {ongoing.map(renderCard)}
                     </div>
                   )}

@@ -1,63 +1,31 @@
+## Problem
 
-## Mål
+Et skjema sendt til signering (`awaiting_owner_loan`) er usynlig i "Pågående utlån" når innlogget bruker også er eier (Aleksander er både lånetaker og eier på testraden). Da havner raden kun i "Til signering", ikke i "Pågående utlån". Dette bryter med regelen: *awaiting-skjemaer skal vises som utlånt for alle*.
 
-1. Når et skjema er sendt til eier for signering, skal det vises som **Utlånt** for alle (både badge og filtrering) — selv om eier ikke har signert enda.
-2. Eier skal fortsatt tydelig se hva som venter på signatur, i egen «Til signering»-seksjon.
-3. Under opprettelse (draft) skal låntaker **aldri** se eier-signaturfeltet — skjemaet sendes jo videre til eier.
-4. Rydde opp i redigeringstilganger og små inkonsekvenser.
+Samme problem gjelder `awaiting_owner_return` (skal fortsatt telle som pågående til det faktisk er innlevert).
 
-## Statusmodell (uendret i DB)
+## Fix i `src/pages/UtlansList.tsx`
 
-Vi beholder de fem interne statusene i databasen:
-`draft → awaiting_owner_loan → active → awaiting_owner_return → returned`.
-Endringene er kun på visning/etikett og redigeringsregler.
+Endre segmenteringen slik at awaiting-rader alltid inngår i "Pågående utlån", uavhengig av rolle. "Til signering" er en ekstra visning for eier — ikke en erstatning.
 
-### Vist status (badge og tekst)
+Ny logikk:
 
-```text
-draft                  → "Pågående"           (grå/gul)
-awaiting_owner_loan    → "Utlånt"             (samme badge som active)   ← ENDRES
-active                 → "Utlånt"
-awaiting_owner_return  → "Avventer godkjenning" (fortsatt i Pågående)
-returned               → "Innlevert"
+```ts
+const awaiting = visibleRows.filter(r =>
+  r.status === "awaiting_owner_loan" || r.status === "awaiting_owner_return"
+);
+const ongoing  = visibleRows.filter(r => r.status !== "returned");   // inkluderer awaiting
+const history  = visibleRows.filter(r => r.status === "returned");
 ```
 
-Så snart låntaker har signert og skjema er sendt til eier, er utstyret ute. Alle skal se det som utlånt; eier bekrefter i etterkant.
+Render:
+- "Til signering" (kun eier, kun awaiting) — uendret.
+- "Pågående utlån" viser hele `ongoing` for alle brukere (inkl. awaiting). Fjern grenene `!isOwner && awaiting.map(...)` og den betingede telleren.
+- Historikk uendret.
 
-## Endringer
+## Ryddighet samtidig
 
-### `src/pages/UtlansList.tsx`
-- `statusMeta.awaiting_owner_loan` får samme label/ikon/styling som `active` («Utlånt»).
-- Eier ser fortsatt egen seksjon **«Til signering»** øverst (uendret filter på `awaiting_owner_loan`/`awaiting_owner_return`).
-- Alle andre brukere: `awaiting_owner_loan` teller/vises som «Pågående utlån» med badge «Utlånt».
-- `handleNew`: dropp auto-utfylling av `dato_sted` med ISO-dato (matcher ikke formatet «16.07.2026, Mosjøen») — la feltet stå tomt.
+- Rett tellerne slik at "Pågående utlån" alltid viser `ongoing.length`.
+- Behold guarden mot dobbelt-oppretting og filteret som skjuler tomme drafts.
 
-### `src/pages/UtlansSkjema.tsx`
-
-**Eier-signatur (Statnett) — når vises den:**
-- **Draft (låntaker oppretter):** aldri synlig — hverken pad, tekst eller «signeres av eier senere»-melding. Fjernes helt fra UI. Skjemaet sendes videre, så låntaker skal ikke se dette feltet i det hele tatt.
-- **awaiting_owner_loan:**
-  - Eier: signaturpad, redigerbar.
-  - Andre: skjult eller diskret «Venter på eiers signatur»-linje (holdes minimal).
-- **active / awaiting_owner_return / returned:** vises som signaturbilde (ikke pad) for alle.
-
-**Innlevering (retur-signatur):**
-- Redigerbar kun i `active` (låntaker signerer innlevering) og for eier i `awaiting_owner_return`.
-- `innlevertDato` og `signaturInnlevering` låses fra og med `awaiting_owner_return`.
-
-**Låntaker-signatur:**
-- Låses så snart status forlater `draft` (i dag utilsiktet redigerbar for eier).
-
-**Badge / infokort:**
-- `displayStatus("awaiting_owner_loan")` → `{ label: "Utlånt", variant: "default" }`.
-- Infokort for `awaitingLoan`:
-  - Eier: uendret melding om at signatur mangler.
-  - Andre: kort nøytral tekst, f.eks. «Utlånet er registrert. Venter på bekreftelse fra ansvarlig utstyrseier.»
-
-### Ingen endringer
-- DB-skjema, edge function (`notify-utlans-signering`), PDF-generering (`utlansPdf.ts`), sletteregler (admin), auto-lagring.
-
-## Teknisk sammendrag
-
-- Kun frontend-endringer i to filer: `UtlansList.tsx` og `UtlansSkjema.tsx`.
-- Ingen migrasjon, ingen endring i typer, RLS eller edge functions.
+Ingen DB- eller schema-endringer.
