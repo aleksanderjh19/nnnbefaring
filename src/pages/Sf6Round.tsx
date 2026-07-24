@@ -67,6 +67,7 @@ export default function Sf6Round() {
   const navigate = useNavigate();
   const goBackToStasjon = useSmartBack("/stasjon");
   const { user } = useAuth();
+  const { isRequested, handleDeleteClick, isAdmin } = useDeletionRequests("sf6_rounds");
   const [view, setView] = useState<View>("list");
   const [history, setHistory] = useState<SavedRound[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
