@@ -7,6 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { compressImageToJpeg } from "@/lib/imageCompress";
 import Sf6PhotoLightbox, { type LightboxItem } from "./Sf6PhotoLightbox";
+import { useDeletionRequests } from "@/hooks/useDeletionRequests";
+import { DeletionRequestBadge } from "@/components/DeletionRequestBadge";
 
 export interface Sf6PhotoRow {
   id: string;
@@ -45,6 +47,7 @@ export default function Sf6BreakerPhotos({
   const [savingId, setSavingId] = useState<string | null>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const { isRequested, handleDeleteClick, isAdmin } = useDeletionRequests("sf6_round_photos");
 
   const loadUrls = useCallback(async (rows: Sf6PhotoRow[]) => {
     const entries = await Promise.all(
@@ -139,12 +142,17 @@ export default function Sf6BreakerPhotos({
     void uploadFiles(files);
   };
 
-  const deletePhoto = async (row: Sf6PhotoRow) => {
+  const hardDeletePhoto = async (row: Sf6PhotoRow) => {
     await supabase.storage.from(BUCKET).remove([row.storage_path]);
     await supabase.from("sf6_round_photos").delete().eq("id", row.id);
     onPhotosChange(photos.filter((p) => p.id !== row.id));
     toast({ title: "Slettet" });
   };
+
+  const deletePhoto = async (row: Sf6PhotoRow) => {
+    await handleDeleteClick(row.id, () => hardDeletePhoto(row));
+  };
+
 
   const saveComment = async (row: Sf6PhotoRow) => {
     const next = drafts[row.id] ?? "";
@@ -241,13 +249,16 @@ export default function Sf6BreakerPhotos({
                           <Check className="h-3 w-3 text-primary" />
                         )}
                         {!readOnly && (
-                          <button
-                            onClick={() => deletePhoto(p)}
-                            className="text-muted-foreground hover:text-destructive"
-                            aria-label="Slett bilde"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          <>
+                            {isRequested(p.id) && <DeletionRequestBadge />}
+                            <button
+                              onClick={() => deletePhoto(p)}
+                              className={isRequested(p.id) ? "text-destructive" : "text-muted-foreground hover:text-destructive"}
+                              aria-label={isAdmin ? "Slett bilde" : isRequested(p.id) ? "Fjern merking" : "Be om sletting"}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>

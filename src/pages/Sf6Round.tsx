@@ -22,6 +22,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useDeletionRequests } from "@/hooks/useDeletionRequests";
+import { DeletionRequestBadge } from "@/components/DeletionRequestBadge";
 import {
   sf6Stations,
   findSf6Station,
@@ -67,6 +69,7 @@ export default function Sf6Round() {
   const navigate = useNavigate();
   const goBackToStasjon = useSmartBack("/stasjon");
   const { user } = useAuth();
+  const { isRequested, handleDeleteClick, isAdmin } = useDeletionRequests("sf6_rounds");
   const [view, setView] = useState<View>("list");
   const [history, setHistory] = useState<SavedRound[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
@@ -249,15 +252,24 @@ export default function Sf6Round() {
     fetchHistory();
   };
 
-  const requestDelete = (r: SavedRound) => setDeleteTarget(r);
+  const requestDelete = (r: SavedRound) => {
+    if (isAdmin) {
+      setDeleteTarget(r);
+    } else {
+      handleDeleteClick(r.id, () => {});
+    }
+  };
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
-    await supabase.from("sf6_rounds").delete().eq("id", deleteTarget.id);
+    await handleDeleteClick(deleteTarget.id, async () => {
+      await supabase.from("sf6_rounds").delete().eq("id", deleteTarget.id);
+    });
     setDeleteTarget(null);
     fetchHistory();
     toast({ title: "Slettet", description: "Runden er slettet." });
   };
+
 
   const openSaved = (r: SavedRound) => {
     const s = findSf6Station(r.station_id);
@@ -405,10 +417,11 @@ export default function Sf6Round() {
                           >
                             {inProgress ? "Pågående" : "Fullført"}
                           </span>
+                          {isRequested(r.id) && <DeletionRequestBadge />}
                           <button
                             onClick={(e) => { e.stopPropagation(); requestDelete(r); }}
-                            className="text-muted-foreground hover:text-destructive"
-                            aria-label="Slett runde"
+                            className={isRequested(r.id) ? "text-destructive" : "text-muted-foreground hover:text-destructive"}
+                            aria-label={isAdmin ? "Slett runde" : isRequested(r.id) ? "Fjern merking" : "Be om sletting"}
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>

@@ -7,6 +7,8 @@ import {
   Wrench, Car, HardHat, Cpu, Package, Pencil, Calendar, User, Building2, Fuel
 } from "lucide-react";
 import statnettLogo from "@/assets/statnett-logo.png";
+import { useDeletionRequests } from "@/hooks/useDeletionRequests";
+import { DeletionRequestBadge } from "@/components/DeletionRequestBadge";
 
 const CATEGORIES = [
   { value: "bensinverktoy", label: "Bensin-/motorverktøy", icon: Fuel },
@@ -78,6 +80,7 @@ const EmployeeTraining = () => {
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  const { isRequested, handleDeleteClick, isAdmin } = useDeletionRequests("training_records");
 
   const fetchData = async () => {
     setLoading(true);
@@ -97,10 +100,16 @@ const EmployeeTraining = () => {
     fetchData();
   }, [employeeId]);
 
-  const deleteRecord = async (id: string) => {
-    if (!confirm("Er du sikker på at du vil slette denne opplæringen?")) return;
+  const hardDeleteRecord = async (id: string) => {
     await supabase.from("training_records").delete().eq("id", id);
     fetchData();
+  };
+
+  const deleteRecord = async (id: string) => {
+    if (isAdmin) {
+      if (!confirm("Er du sikker på at du vil slette denne opplæringen?")) return;
+    }
+    await handleDeleteClick(id, () => hardDeleteRecord(id));
   };
 
   const handlePrintAll = () => {
@@ -318,7 +327,12 @@ const EmployeeTraining = () => {
                               <tbody>
                                 {group.records.map((rec) => (
                                   <tr key={rec.id} className="border-t border-border">
-                                    <td className="px-3 py-2 font-body text-sm font-medium text-foreground">{rec.equipment_type || "–"}</td>
+                                    <td className="px-3 py-2 font-body text-sm font-medium text-foreground">
+                                      <div className="flex items-center gap-2">
+                                        {rec.equipment_type || "–"}
+                                        {isRequested(rec.id) && <DeletionRequestBadge />}
+                                      </div>
+                                    </td>
                                     <td className="px-3 py-2 font-body text-xs text-muted-foreground">{new Date(rec.training_date).toLocaleDateString("nb-NO")}</td>
                                     <td className="px-3 py-2 font-body text-xs text-muted-foreground">{rec.noise_level_db ? `${rec.noise_level_db} dB` : "–"}</td>
                                     <td className="px-3 py-2 font-body text-xs text-muted-foreground">{rec.vibration_ms2 ? `${rec.vibration_ms2} m/s²` : "–"}</td>
@@ -334,8 +348,8 @@ const EmployeeTraining = () => {
                                         </button>
                                         <button
                                           onClick={() => deleteRecord(rec.id)}
-                                          className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                                          title="Slett"
+                                          className={`rounded p-1 hover:bg-destructive/10 ${isRequested(rec.id) ? "text-destructive" : "text-muted-foreground hover:text-destructive"}`}
+                                          title={isAdmin ? "Slett" : isRequested(rec.id) ? "Fjern merking" : "Be om sletting"}
                                         >
                                           <Trash2 className="h-3.5 w-3.5" />
                                         </button>

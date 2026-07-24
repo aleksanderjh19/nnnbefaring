@@ -7,6 +7,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useDeletionRequests } from "@/hooks/useDeletionRequests";
+import { DeletionRequestBadge } from "@/components/DeletionRequestBadge";
 import StationSelect from "@/components/voltage-round/StationSelect";
 import BusbarAssignment from "@/components/voltage-round/BusbarAssignment";
 import MeasurementInput from "@/components/voltage-round/MeasurementInput";
@@ -109,6 +111,7 @@ export default function VoltageRound() {
   const navigate = useNavigate();
   const goBack = useSmartBack("/");
   const { user, isAdmin } = useAuth();
+  const { isRequested, handleDeleteClick } = useDeletionRequests("voltage_rounds");
   const [view, setView] = useState<"list" | "select-station" | "wizard">("list");
   const [step, setStep] = useState(0);
   const [data, setData] = useState<VoltageRoundData>({
@@ -395,17 +398,17 @@ export default function VoltageRound() {
                         <FileText className="h-4 w-4" />
                       </button>
                     )}
-                    {(r.status !== "completed" || isAdmin) && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteRound(r.id);
-                        }}
-                        className="text-muted-foreground hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    )}
+                    {isRequested(r.id) && <DeletionRequestBadge />}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteClick(r.id, () => deleteRound(r.id));
+                      }}
+                      className={isRequested(r.id) ? "text-destructive" : "text-muted-foreground hover:text-destructive"}
+                      title={isAdmin ? "Slett" : isRequested(r.id) ? "Fjern merking" : "Be om sletting"}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </CardContent>
                 </Card>
               ))}
