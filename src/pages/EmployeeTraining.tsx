@@ -7,6 +7,8 @@ import {
   Wrench, Car, HardHat, Cpu, Package, Pencil, Calendar, User, Building2, Fuel
 } from "lucide-react";
 import statnettLogo from "@/assets/statnett-logo.png";
+import { useDeletionRequests } from "@/hooks/useDeletionRequests";
+import { DeletionRequestBadge } from "@/components/DeletionRequestBadge";
 
 const CATEGORIES = [
   { value: "bensinverktoy", label: "Bensin-/motorverktøy", icon: Fuel },
