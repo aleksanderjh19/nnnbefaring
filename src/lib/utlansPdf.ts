@@ -34,8 +34,9 @@ const COORDS = {
   sigLaantaker:     { x: 285, y: H - 643, w: 220, h: 40 },
   innlevertDato:    { x: 185, y: H - 727, w: 90 },
   sigInnlevering:   { x: 335, y: H - 738, w: 200, h: 32 },
-
+  sigInnleveringEier: { x: 85,  y: H - 738, w: 200, h: 32 },
 };
+
 
 async function embedSig(pdf: PDFDocument, dataUrl?: string | null) {
   if (!dataUrl) return null;
