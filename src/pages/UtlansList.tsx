@@ -172,8 +172,9 @@ const UtlansList = () => {
                 <Card key={r.id} className="transition hover:shadow-md">
                   <CardContent className="flex items-start gap-3 p-4">
                     <button className="flex-1 text-left" onClick={() => navigate(`/utlansskjema/${r.id}`)}>
-                      <div className="mb-1 flex items-center gap-2">
+                      <div className="mb-1 flex items-center gap-2 flex-wrap">
                         <Badge className={`${meta.className} border-0 gap-1`}><Icon className="h-3 w-3" />{meta.label}</Badge>
+                        {isRequested(r.id) && <DeletionRequestBadge />}
                       </div>
                       <div className="font-medium">{r.laantaker_navn || <span className="text-muted-foreground italic">Uten navn</span>}</div>
                       <div className="text-sm text-muted-foreground">{r.utlaant_gjenstand || "—"}</div>
@@ -201,7 +202,7 @@ const UtlansList = () => {
                           <p>Last ned PDF</p>
                         </TooltipContent>
                       </Tooltip>
-                      {isAdmin && (
+                      {isAdmin ? (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
@@ -213,10 +214,20 @@ const UtlansList = () => {
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>Avbryt</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDelete(r.id)}>Slett</AlertDialogAction>
+                              <AlertDialogAction onClick={() => handleDeleteClick(r.id, () => handleDelete(r.id))}>Slett</AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={isRequested(r.id) ? "Fjern merking" : "Be om sletting"}
+                          onClick={() => handleDeleteClick(r.id, () => {})}
+                          className={isRequested(r.id) ? "text-destructive" : "text-muted-foreground hover:text-destructive"}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       )}
                     </div>
                   </CardContent>
