@@ -111,6 +111,7 @@ export default function VoltageRound() {
   const navigate = useNavigate();
   const goBack = useSmartBack("/");
   const { user, isAdmin } = useAuth();
+  const { isRequested, handleDeleteClick } = useDeletionRequests("voltage_rounds");
   const [view, setView] = useState<"list" | "select-station" | "wizard">("list");
   const [step, setStep] = useState(0);
   const [data, setData] = useState<VoltageRoundData>({
