@@ -398,17 +398,17 @@ export default function VoltageRound() {
                         <FileText className="h-4 w-4" />
                       </button>
                     )}
-                    {(r.status !== "completed" || isAdmin) && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteRound(r.id);
-                        }}
-                        className="text-muted-foreground hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    )}
+                    {isRequested(r.id) && <DeletionRequestBadge />}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteClick(r.id, () => deleteRound(r.id));
+                      }}
+                      className={isRequested(r.id) ? "text-destructive" : "text-muted-foreground hover:text-destructive"}
+                      title={isAdmin ? "Slett" : isRequested(r.id) ? "Fjern merking" : "Be om sletting"}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </CardContent>
                 </Card>
               ))}
