@@ -81,7 +81,7 @@ const UtlansList = () => {
     if (!userRes.user) return;
     const { data, error } = await supabase
       .from("utlans_skjemaer")
-      .insert({ user_id: userRes.user.id, dato_sted: new Date().toISOString().slice(0, 10) })
+      .insert({ user_id: userRes.user.id })
       .select("id")
       .single();
     if (error || !data) {
