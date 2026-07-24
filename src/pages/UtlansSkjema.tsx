@@ -350,16 +350,25 @@ const UtlansSkjema = () => {
           </div>
           <div className="space-y-2">
             <Label>Signatur låntaker</Label>
-            <SignaturePad value={data.signaturLaantaker} onChange={(v) => set("signaturLaantaker", v)} />
+            {status === "draft" ? (
+              <SignaturePad value={data.signaturLaantaker} onChange={(v) => set("signaturLaantaker", v)} />
+            ) : data.signaturLaantaker ? (
+              <img src={data.signaturLaantaker} alt="Låntaker-signatur" className="max-h-24 rounded-md border bg-white p-2" />
+            ) : (
+              <div className="rounded-md border border-dashed p-4 text-center text-xs text-muted-foreground">Ingen signatur</div>
+            )}
           </div>
-          {(isOwner || status === "active" || status === "returned" || status === "awaiting_owner_return" || status === "awaiting_owner_loan") && (
+
+          {status !== "draft" && (
             <div className="space-y-2">
               <Label>Signatur — For Statnett SF (ansvarlig utstyrseier)</Label>
-              {isOwner || status === "active" || status === "returned" || status === "awaiting_owner_return" ? (
+              {isOwner && awaitingLoan ? (
                 <SignaturePad value={data.signaturStatnett} onChange={(v) => set("signaturStatnett", v)} />
+              ) : data.signaturStatnett ? (
+                <img src={data.signaturStatnett} alt="Eier-signatur" className="max-h-24 rounded-md border bg-white p-2" />
               ) : (
                 <div className="rounded-md border border-dashed p-4 text-center text-xs text-muted-foreground">
-                  {data.signaturStatnett ? "Signert" : "Signeres av ansvarlig utstyrseier etter innsending."}
+                  Venter på eiers signatur.
                 </div>
               )}
             </div>
