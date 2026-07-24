@@ -1,26 +1,32 @@
-## Plan for å rydde opp Excel-outputten
+## Problem
 
-1. **Bytte fra navne-match til fast mal-mapping**
-   - Lage en eksplisitt mapping per Excel-mal (`marka-300`, `marka-132`, `rana-132`, `trofors-300`, `namsskogan-300`).
-   - Mappingen skal bruke interne felt-IDer og faste Excel-posisjoner, ikke tekst i overskrifter. Dette hindrer at målinger havner feil når navn/tekster avviker litt fra malen.
+Hvert felt har en egen `Ref.`-boks fordi referansespenningen på samleskinnen leses samtidig med feltmålingen (spenningen varierer). Innfyllingen i UI er riktig, men **avvikslogikken** bruker samleskinnens egen `målt`-verdi som referanse for alle felt — ikke feltets egen `refValue`. Det gir feil avvik i Resultat-siden (og feil "OK / Avvik"-status), selv om Excel-eksporten allerede regner riktig.
 
-2. **Riktig plassering av målinger**
-   - Referansefelt/samleskinne: brukerens målte referanseverdi skal inn i `Ref. instr.`-kolonnen.
-   - Vanlige felt: `refValue` skal inn i `Ref. instr.`, og `measValue` skal inn i `Måleinstr.`.
-   - Field-reference-stasjoner som Namsskogan skal håndteres riktig: valgt referansefelt behandles som referanse, ikke som vanlig felt.
-   - Rana/Svabo-omregning beholdes, men legges på faste celler i malen slik at omregnede felter fylles likt hver gang.
+Konkret ligger feilen i `calculateReferenceSections` i `src/components/voltage-round/types.ts`:
+```
+const rm = measurements[reference.id]?.[phase]?.measValue;  // ← samleskinnens måling
+const dev = effective - rm;
+```
 
-3. **Fylle rekkeklemmer og headerdata konsekvent**
-   - Eksporten skal også skrive oppdaterte rekkeklemmenummer fra appen inn i malen der brukeren har endret/lagt inn noe.
-   - Sekundærspenning skal ikke være hardkodet til `110`; den skal beregnes ut fra valgt Uf slik at `57,7 / 63,5 / 115,5 / 127` gir riktig malverdi.
+Skal være feltets egen `refValue` (avlest på samleskinnen samtidig med feltmålingen).
 
-4. **Fikse formelutførelse og diagramgrunnlag**
-   - Beholde eksisterende Excel-formler, format og diagrammer.
-   - Oppdatere/rydde formel-cache slik at avvik i Volt vises direkte ved åpning.
-   - Sette workbook-kalkulering til automatisk/full rekalkulering.
-   - Fjerne `calcChain` korrekt fra pakken, inkludert relaterte referanser, så Excel ikke åpner med stale/ødelagt kalkuleringsstatus.
-   - Beregne og skrive cached verdier for de enkle avviksformlene, mens selve formlene fortsatt beholdes dynamiske i Excel.
+## Endring
 
-5. **Legge inn eksportvalidering**
-   - Etter endring tester jeg med syntetiske målinger for hver mal og sjekker XLSX-innholdet direkte: riktig celle får riktig ref/mål-verdi, formler ligger igjen, og formelcache/diagramkilde-rader er oppdatert.
-   - For minst én mal med busbar, én med field-reference og Rana med omregning verifiseres mappingen særskilt.
+**`src/components/voltage-round/types.ts` — `calculateReferenceSections` / `buildGroup`:**
+- Bruk `measurements[field.id][phase].refValue` som referanse i stedet for `measurements[reference.id][phase].measValue`.
+- `deviation = effectiveFieldValue − field.refValue`.
+- Hvis feltets `refValue` mangler, hopp over fasen (som i dag når `measValue` mangler).
+- Referansefelt (samleskinne / valgt referansefelt) skal fortsatt ikke få egen avviksrad — filtreres bort som nå.
+
+**`src/components/voltage-round/ResultsView.tsx`:**
+- Kolonneoverskriften "Ref. (Samleskinne A)" endres til f.eks. "Ref. spenning (avlest v/felt)" for å reflektere at verdien er per-felt, ikke samleskinnens egen måling.
+- Ingen annen logikk.
+
+**Excel-eksport (`src/lib/voltageRoundXlsx.ts`):** ingen endring — bruker allerede `refValue`/`measValue` per felt riktig.
+
+**MeasurementInput:** ingen endring — UI-en er allerede korrekt (to bokser per felt, ref-boks grået ut for referansefeltet selv).
+
+## Ikke-mål
+
+- Ingen endring i datamodell, lagring, mal-mapping eller stasjonsoppsett.
+- Ingen auto-utfylling av `refValue` mellom felt.

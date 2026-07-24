@@ -136,7 +136,7 @@ export default function ResultsView({
                       <thead>
                         <tr className="border-b border-border bg-muted/30 text-[10px] uppercase text-muted-foreground">
                           <th className="text-left py-1.5 px-2 font-medium">Fase</th>
-                          <th className="text-center py-1.5 px-2 font-medium">Ref. ({section.label})</th>
+                          <th className="text-center py-1.5 px-2 font-medium">Ref. spenning (avlest v/felt)</th>
                           <th className="text-center py-1.5 px-2 font-medium">
                             Felt {g.hasConversion && "(omregnet)"}
                           </th>

@@ -160,7 +160,7 @@ export function calculateReferenceSections(
     const phases: FieldPhaseDeviation[] = [];
     for (const phase of PHASES) {
       const fm = measurements[field.id]?.[phase]?.measValue;
-      const rm = measurements[reference.id]?.[phase]?.measValue;
+      const rm = measurements[field.id]?.[phase]?.refValue;
       if (fm == null || rm == null) continue;
       const factor = field.conversion?.factor ?? 1;
       const effective = fm * factor;
