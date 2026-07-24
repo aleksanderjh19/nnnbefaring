@@ -1,32 +1,63 @@
-## Problem
 
-Hvert felt har en egen `Ref.`-boks fordi referansespenningen på samleskinnen leses samtidig med feltmålingen (spenningen varierer). Innfyllingen i UI er riktig, men **avvikslogikken** bruker samleskinnens egen `målt`-verdi som referanse for alle felt — ikke feltets egen `refValue`. Det gir feil avvik i Resultat-siden (og feil "OK / Avvik"-status), selv om Excel-eksporten allerede regner riktig.
+## Mål
 
-Konkret ligger feilen i `calculateReferenceSections` i `src/components/voltage-round/types.ts`:
+1. Når et skjema er sendt til eier for signering, skal det vises som **Utlånt** for alle (både badge og filtrering) — selv om eier ikke har signert enda.
+2. Eier skal fortsatt tydelig se hva som venter på signatur, i egen «Til signering»-seksjon.
+3. Under opprettelse (draft) skal låntaker **aldri** se eier-signaturfeltet — skjemaet sendes jo videre til eier.
+4. Rydde opp i redigeringstilganger og små inkonsekvenser.
+
+## Statusmodell (uendret i DB)
+
+Vi beholder de fem interne statusene i databasen:
+`draft → awaiting_owner_loan → active → awaiting_owner_return → returned`.
+Endringene er kun på visning/etikett og redigeringsregler.
+
+### Vist status (badge og tekst)
+
+```text
+draft                  → "Pågående"           (grå/gul)
+awaiting_owner_loan    → "Utlånt"             (samme badge som active)   ← ENDRES
+active                 → "Utlånt"
+awaiting_owner_return  → "Avventer godkjenning" (fortsatt i Pågående)
+returned               → "Innlevert"
 ```
-const rm = measurements[reference.id]?.[phase]?.measValue;  // ← samleskinnens måling
-const dev = effective - rm;
-```
 
-Skal være feltets egen `refValue` (avlest på samleskinnen samtidig med feltmålingen).
+Så snart låntaker har signert og skjema er sendt til eier, er utstyret ute. Alle skal se det som utlånt; eier bekrefter i etterkant.
 
-## Endring
+## Endringer
 
-**`src/components/voltage-round/types.ts` — `calculateReferenceSections` / `buildGroup`:**
-- Bruk `measurements[field.id][phase].refValue` som referanse i stedet for `measurements[reference.id][phase].measValue`.
-- `deviation = effectiveFieldValue − field.refValue`.
-- Hvis feltets `refValue` mangler, hopp over fasen (som i dag når `measValue` mangler).
-- Referansefelt (samleskinne / valgt referansefelt) skal fortsatt ikke få egen avviksrad — filtreres bort som nå.
+### `src/pages/UtlansList.tsx`
+- `statusMeta.awaiting_owner_loan` får samme label/ikon/styling som `active` («Utlånt»).
+- Eier ser fortsatt egen seksjon **«Til signering»** øverst (uendret filter på `awaiting_owner_loan`/`awaiting_owner_return`).
+- Alle andre brukere: `awaiting_owner_loan` teller/vises som «Pågående utlån» med badge «Utlånt».
+- `handleNew`: dropp auto-utfylling av `dato_sted` med ISO-dato (matcher ikke formatet «16.07.2026, Mosjøen») — la feltet stå tomt.
 
-**`src/components/voltage-round/ResultsView.tsx`:**
-- Kolonneoverskriften "Ref. (Samleskinne A)" endres til f.eks. "Ref. spenning (avlest v/felt)" for å reflektere at verdien er per-felt, ikke samleskinnens egen måling.
-- Ingen annen logikk.
+### `src/pages/UtlansSkjema.tsx`
 
-**Excel-eksport (`src/lib/voltageRoundXlsx.ts`):** ingen endring — bruker allerede `refValue`/`measValue` per felt riktig.
+**Eier-signatur (Statnett) — når vises den:**
+- **Draft (låntaker oppretter):** aldri synlig — hverken pad, tekst eller «signeres av eier senere»-melding. Fjernes helt fra UI. Skjemaet sendes videre, så låntaker skal ikke se dette feltet i det hele tatt.
+- **awaiting_owner_loan:**
+  - Eier: signaturpad, redigerbar.
+  - Andre: skjult eller diskret «Venter på eiers signatur»-linje (holdes minimal).
+- **active / awaiting_owner_return / returned:** vises som signaturbilde (ikke pad) for alle.
 
-**MeasurementInput:** ingen endring — UI-en er allerede korrekt (to bokser per felt, ref-boks grået ut for referansefeltet selv).
+**Innlevering (retur-signatur):**
+- Redigerbar kun i `active` (låntaker signerer innlevering) og for eier i `awaiting_owner_return`.
+- `innlevertDato` og `signaturInnlevering` låses fra og med `awaiting_owner_return`.
 
-## Ikke-mål
+**Låntaker-signatur:**
+- Låses så snart status forlater `draft` (i dag utilsiktet redigerbar for eier).
 
-- Ingen endring i datamodell, lagring, mal-mapping eller stasjonsoppsett.
-- Ingen auto-utfylling av `refValue` mellom felt.
+**Badge / infokort:**
+- `displayStatus("awaiting_owner_loan")` → `{ label: "Utlånt", variant: "default" }`.
+- Infokort for `awaitingLoan`:
+  - Eier: uendret melding om at signatur mangler.
+  - Andre: kort nøytral tekst, f.eks. «Utlånet er registrert. Venter på bekreftelse fra ansvarlig utstyrseier.»
+
+### Ingen endringer
+- DB-skjema, edge function (`notify-utlans-signering`), PDF-generering (`utlansPdf.ts`), sletteregler (admin), auto-lagring.
+
+## Teknisk sammendrag
+
+- Kun frontend-endringer i to filer: `UtlansList.tsx` og `UtlansSkjema.tsx`.
+- Ingen migrasjon, ingen endring i typer, RLS eller edge functions.

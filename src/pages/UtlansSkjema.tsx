@@ -90,7 +90,7 @@ function fromRow(r: any): { data: FormData; status: Status } {
 const displayStatus = (s: Status): { label: string; variant: "outline" | "default" | "secondary" } => {
   switch (s) {
     case "draft": return { label: "Pågående", variant: "outline" };
-    case "awaiting_owner_loan": return { label: "Avventer signering", variant: "secondary" };
+    case "awaiting_owner_loan": return { label: "Utlånt", variant: "default" };
     case "active": return { label: "Utlånt", variant: "default" };
     case "awaiting_owner_return": return { label: "Avventer godkjenning", variant: "secondary" };
     case "returned": return { label: "Innlevert", variant: "outline" };
@@ -295,7 +295,7 @@ const UtlansSkjema = () => {
             <CardContent className="p-4 text-sm">
               {isOwner
                 ? "Dette skjemaet venter på din signatur som ansvarlig utstyrseier. Signer nederst for å godkjenne utlånet."
-                : "Skjemaet er sendt til ansvarlig utstyrseier og venter på signering. Du får beskjed når det er godkjent."}
+                : "Utlånet er registrert. Venter på bekreftelse fra ansvarlig utstyrseier."}
             </CardContent>
           </Card>
         )}
@@ -350,16 +350,25 @@ const UtlansSkjema = () => {
           </div>
           <div className="space-y-2">
             <Label>Signatur låntaker</Label>
-            <SignaturePad value={data.signaturLaantaker} onChange={(v) => set("signaturLaantaker", v)} />
+            {status === "draft" ? (
+              <SignaturePad value={data.signaturLaantaker} onChange={(v) => set("signaturLaantaker", v)} />
+            ) : data.signaturLaantaker ? (
+              <img src={data.signaturLaantaker} alt="Låntaker-signatur" className="max-h-24 rounded-md border bg-white p-2" />
+            ) : (
+              <div className="rounded-md border border-dashed p-4 text-center text-xs text-muted-foreground">Ingen signatur</div>
+            )}
           </div>
-          {(isOwner || status === "active" || status === "returned" || status === "awaiting_owner_return" || status === "awaiting_owner_loan") && (
+
+          {status !== "draft" && (
             <div className="space-y-2">
               <Label>Signatur — For Statnett SF (ansvarlig utstyrseier)</Label>
-              {isOwner || status === "active" || status === "returned" || status === "awaiting_owner_return" ? (
+              {isOwner && awaitingLoan ? (
                 <SignaturePad value={data.signaturStatnett} onChange={(v) => set("signaturStatnett", v)} />
+              ) : data.signaturStatnett ? (
+                <img src={data.signaturStatnett} alt="Eier-signatur" className="max-h-24 rounded-md border bg-white p-2" />
               ) : (
                 <div className="rounded-md border border-dashed p-4 text-center text-xs text-muted-foreground">
-                  {data.signaturStatnett ? "Signert" : "Signeres av ansvarlig utstyrseier etter innsending."}
+                  Venter på eiers signatur.
                 </div>
               )}
             </div>
@@ -381,12 +390,18 @@ const UtlansSkjema = () => {
           <Section title="Innlevering">
             <div className="space-y-1.5">
               <Label htmlFor="innDato">Dato innlevert</Label>
-              <Input id="innDato" type="date" value={data.innlevertDato ?? ""} onChange={(e) => set("innlevertDato", e.target.value)} disabled={status === "returned"} />
+              <Input id="innDato" type="date" value={data.innlevertDato ?? ""} onChange={(e) => set("innlevertDato", e.target.value)} disabled={status !== "active"} />
             </div>
 
             <div className="space-y-2">
               <Label>Signatur låntaker (ved innlevering)</Label>
-              <SignaturePad value={data.signaturInnlevering ?? null} onChange={(v) => set("signaturInnlevering", v)} />
+              {status === "active" ? (
+                <SignaturePad value={data.signaturInnlevering ?? null} onChange={(v) => set("signaturInnlevering", v)} />
+              ) : data.signaturInnlevering ? (
+                <img src={data.signaturInnlevering} alt="Innlevering-signatur" className="max-h-24 rounded-md border bg-white p-2" />
+              ) : (
+                <div className="rounded-md border border-dashed p-4 text-center text-xs text-muted-foreground">Ingen signatur</div>
+              )}
             </div>
 
             {status === "active" && (
