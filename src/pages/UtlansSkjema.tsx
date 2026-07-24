@@ -295,7 +295,7 @@ const UtlansSkjema = () => {
             <CardContent className="p-4 text-sm">
               {isOwner
                 ? "Dette skjemaet venter på din signatur som ansvarlig utstyrseier. Signer nederst for å godkjenne utlånet."
-                : "Skjemaet er sendt til ansvarlig utstyrseier og venter på signering. Du får beskjed når det er godkjent."}
+                : "Utlånet er registrert. Venter på bekreftelse fra ansvarlig utstyrseier."}
             </CardContent>
           </Card>
         )}
