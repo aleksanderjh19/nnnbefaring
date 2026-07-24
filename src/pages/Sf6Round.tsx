@@ -252,15 +252,24 @@ export default function Sf6Round() {
     fetchHistory();
   };
 
-  const requestDelete = (r: SavedRound) => setDeleteTarget(r);
+  const requestDelete = (r: SavedRound) => {
+    if (isAdmin) {
+      setDeleteTarget(r);
+    } else {
+      handleDeleteClick(r.id, () => {});
+    }
+  };
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
-    await supabase.from("sf6_rounds").delete().eq("id", deleteTarget.id);
+    await handleDeleteClick(deleteTarget.id, async () => {
+      await supabase.from("sf6_rounds").delete().eq("id", deleteTarget.id);
+    });
     setDeleteTarget(null);
     fetchHistory();
     toast({ title: "Slettet", description: "Runden er slettet." });
   };
+
 
   const openSaved = (r: SavedRound) => {
     const s = findSf6Station(r.station_id);
