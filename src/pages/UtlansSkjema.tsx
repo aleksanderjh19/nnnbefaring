@@ -390,12 +390,18 @@ const UtlansSkjema = () => {
           <Section title="Innlevering">
             <div className="space-y-1.5">
               <Label htmlFor="innDato">Dato innlevert</Label>
-              <Input id="innDato" type="date" value={data.innlevertDato ?? ""} onChange={(e) => set("innlevertDato", e.target.value)} disabled={status === "returned"} />
+              <Input id="innDato" type="date" value={data.innlevertDato ?? ""} onChange={(e) => set("innlevertDato", e.target.value)} disabled={status !== "active"} />
             </div>
 
             <div className="space-y-2">
               <Label>Signatur låntaker (ved innlevering)</Label>
-              <SignaturePad value={data.signaturInnlevering ?? null} onChange={(v) => set("signaturInnlevering", v)} />
+              {status === "active" ? (
+                <SignaturePad value={data.signaturInnlevering ?? null} onChange={(v) => set("signaturInnlevering", v)} />
+              ) : data.signaturInnlevering ? (
+                <img src={data.signaturInnlevering} alt="Innlevering-signatur" className="max-h-24 rounded-md border bg-white p-2" />
+              ) : (
+                <div className="rounded-md border border-dashed p-4 text-center text-xs text-muted-foreground">Ingen signatur</div>
+              )}
             </div>
 
             {status === "active" && (
