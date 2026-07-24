@@ -31,8 +31,8 @@ const COORDS = {
   sigStatnett:      { x: 85,  y: H - 643, w: 175, h: 40 },
   sigLaantaker:     { x: 285, y: H - 643, w: 220, h: 40 },
   innlevertDato:    { x: 185, y: H - 727, w: 90 },
-  innlevertKvitt:   { x: 335, y: H - 727, w: 200 },
-  sigInnlevering:   { x: 335, y: H - 778, w: 200, h: 35 },
+  sigInnlevering:   { x: 335, y: H - 738, w: 200, h: 32 },
+
 };
 
 async function embedSig(pdf: PDFDocument, dataUrl?: string | null) {
@@ -89,7 +89,7 @@ export async function generateUtlansPdf(d: UtlansData): Promise<Uint8Array> {
   drawSig(p2, sigS, COORDS.sigStatnett);
   drawSig(p2, sigL, COORDS.sigLaantaker);
   drawText(p2, formatDate(d.innlevertDato ?? ""), COORDS.innlevertDato);
-  drawText(p2, d.innlevertKvittering ?? "", COORDS.innlevertKvitt);
+
   drawSig(p2, sigI, COORDS.sigInnlevering);
 
   return await pdf.save();

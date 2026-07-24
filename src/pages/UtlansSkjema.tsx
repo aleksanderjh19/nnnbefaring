@@ -250,16 +250,11 @@ const UtlansSkjema = () => {
         </Section>
 
         <Section title="Innlevering (fylles ut ved retur)">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="innDato">Dato innlevert</Label>
-              <Input id="innDato" type="date" value={data.innlevertDato ?? ""} onChange={(e) => set("innlevertDato", e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="kvitt">Kvittering / kommentar</Label>
-              <Textarea id="kvitt" rows={2} value={data.innlevertKvittering ?? ""} onChange={(e) => set("innlevertKvittering", e.target.value)} />
-            </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="innDato">Dato innlevert</Label>
+            <Input id="innDato" type="date" value={data.innlevertDato ?? ""} onChange={(e) => set("innlevertDato", e.target.value)} />
           </div>
+
           <div className="space-y-2">
             <Label>Signatur ansvarlig utstyrseier (ved innlevering)</Label>
             <SignaturePad value={data.signaturInnlevering ?? null} onChange={(v) => set("signaturInnlevering", v)} />
