@@ -80,6 +80,7 @@ const EmployeeTraining = () => {
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  const { isRequested, handleDeleteClick, isAdmin } = useDeletionRequests("training_records");
 
   const fetchData = async () => {
     setLoading(true);
@@ -99,10 +100,16 @@ const EmployeeTraining = () => {
     fetchData();
   }, [employeeId]);
 
-  const deleteRecord = async (id: string) => {
-    if (!confirm("Er du sikker på at du vil slette denne opplæringen?")) return;
+  const hardDeleteRecord = async (id: string) => {
     await supabase.from("training_records").delete().eq("id", id);
     fetchData();
+  };
+
+  const deleteRecord = async (id: string) => {
+    if (isAdmin) {
+      if (!confirm("Er du sikker på at du vil slette denne opplæringen?")) return;
+    }
+    await handleDeleteClick(id, () => hardDeleteRecord(id));
   };
 
   const handlePrintAll = () => {
