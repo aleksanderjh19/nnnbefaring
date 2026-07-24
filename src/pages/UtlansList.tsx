@@ -62,6 +62,7 @@ const UtlansList = () => {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -77,18 +78,24 @@ const UtlansList = () => {
   useEffect(() => { load(); }, []);
 
   const handleNew = async () => {
-    const { data: userRes } = await supabase.auth.getUser();
-    if (!userRes.user) return;
-    const { data, error } = await supabase
-      .from("utlans_skjemaer")
-      .insert({ user_id: userRes.user.id })
-      .select("id")
-      .single();
-    if (error || !data) {
-      toast({ title: "Feil", description: error?.message ?? "Kunne ikke opprette", variant: "destructive" });
-      return;
+    if (creating) return;
+    setCreating(true);
+    try {
+      const { data: userRes } = await supabase.auth.getUser();
+      if (!userRes.user) return;
+      const { data, error } = await supabase
+        .from("utlans_skjemaer")
+        .insert({ user_id: userRes.user.id })
+        .select("id")
+        .single();
+      if (error || !data) {
+        toast({ title: "Feil", description: error?.message ?? "Kunne ikke opprette", variant: "destructive" });
+        return;
+      }
+      navigate(`/utlansskjema/${data.id}`);
+    } finally {
+      setCreating(false);
     }
-    navigate(`/utlansskjema/${data.id}`);
   };
 
   const handleDelete = async (id: string) => {
@@ -135,7 +142,7 @@ const UtlansList = () => {
           <ArrowLeft className="h-4 w-4" /> Tilbake
         </button>
 
-        <Button onClick={handleNew} className="w-full gap-2"><Plus className="h-4 w-4" /> Nytt utlånsskjema</Button>
+        <Button onClick={handleNew} disabled={creating} className="w-full gap-2"><Plus className="h-4 w-4" /> Nytt utlånsskjema</Button>
 
         {loading ? (
           <p className="py-8 text-center text-sm text-muted-foreground">Laster…</p>
@@ -143,9 +150,14 @@ const UtlansList = () => {
           <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">Ingen skjemaer enda. Opprett ett med knappen over.</CardContent></Card>
         ) : (
           (() => {
-            const awaiting = rows.filter((r) => r.status === "awaiting_owner_loan" || r.status === "awaiting_owner_return");
-            const ongoing = rows.filter((r) => r.status !== "returned" && !awaiting.includes(r));
-            const history = rows.filter((r) => r.status === "returned");
+            const visibleRows = rows.filter((r) => {
+              // Skjul tomme drafts (opprettet men aldri fylt ut)
+              if (r.status === "draft" && !r.laantaker_navn?.trim() && !r.utlaant_gjenstand?.trim()) return false;
+              return true;
+            });
+            const awaiting = visibleRows.filter((r) => r.status === "awaiting_owner_loan" || r.status === "awaiting_owner_return");
+            const ongoing = visibleRows.filter((r) => r.status !== "returned" && !awaiting.includes(r));
+            const history = visibleRows.filter((r) => r.status === "returned");
 
             const renderCard = (r: Row) => {
               const meta = statusMeta[r.status] ?? statusMeta.draft;
