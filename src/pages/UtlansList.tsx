@@ -62,6 +62,7 @@ const UtlansList = () => {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
 
   const load = async () => {
     setLoading(true);
