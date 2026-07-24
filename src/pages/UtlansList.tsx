@@ -150,9 +150,14 @@ const UtlansList = () => {
           <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">Ingen skjemaer enda. Opprett ett med knappen over.</CardContent></Card>
         ) : (
           (() => {
-            const awaiting = rows.filter((r) => r.status === "awaiting_owner_loan" || r.status === "awaiting_owner_return");
-            const ongoing = rows.filter((r) => r.status !== "returned" && !awaiting.includes(r));
-            const history = rows.filter((r) => r.status === "returned");
+            const visibleRows = rows.filter((r) => {
+              // Skjul tomme drafts (opprettet men aldri fylt ut)
+              if (r.status === "draft" && !r.laantaker_navn?.trim() && !r.utlaant_gjenstand?.trim()) return false;
+              return true;
+            });
+            const awaiting = visibleRows.filter((r) => r.status === "awaiting_owner_loan" || r.status === "awaiting_owner_return");
+            const ongoing = visibleRows.filter((r) => r.status !== "returned" && !awaiting.includes(r));
+            const history = visibleRows.filter((r) => r.status === "returned");
 
             const renderCard = (r: Row) => {
               const meta = statusMeta[r.status] ?? statusMeta.draft;
