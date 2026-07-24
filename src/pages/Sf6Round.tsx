@@ -417,10 +417,11 @@ export default function Sf6Round() {
                           >
                             {inProgress ? "Pågående" : "Fullført"}
                           </span>
+                          {isRequested(r.id) && <DeletionRequestBadge />}
                           <button
                             onClick={(e) => { e.stopPropagation(); requestDelete(r); }}
-                            className="text-muted-foreground hover:text-destructive"
-                            aria-label="Slett runde"
+                            className={isRequested(r.id) ? "text-destructive" : "text-muted-foreground hover:text-destructive"}
+                            aria-label={isAdmin ? "Slett runde" : isRequested(r.id) ? "Fjern merking" : "Be om sletting"}
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
