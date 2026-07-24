@@ -1,20 +1,26 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSmartBack } from "@/hooks/useSmartBack";
-import { ArrowLeft, ArrowRight, Download, PackageCheck, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Download, PackageCheck, Send, ShieldCheck } from "lucide-react";
 import CategoryHeader from "@/components/CategoryHeader";
 import SignaturePad from "@/components/SignaturePad";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { generateUtlansPdf, downloadPdf, type UtlansData } from "@/lib/utlansPdf";
 
-const emptyData: UtlansData = {
+type Status = "draft" | "awaiting_owner_loan" | "active" | "awaiting_owner_return" | "returned";
+
+interface FormData extends UtlansData {
+  signaturInnleveringEier?: string | null;
+}
+
+const emptyData: FormData = {
   laantakerNavn: "",
   ansattnr: "",
   utlaantGjenstand: "",
@@ -27,9 +33,8 @@ const emptyData: UtlansData = {
   innlevertDato: "",
   innlevertKvittering: "",
   signaturInnlevering: null,
+  signaturInnleveringEier: null,
 };
-
-type Status = "draft" | "active" | "returned";
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <Card>
@@ -40,7 +45,7 @@ const Section = ({ title, children }: { title: string; children: React.ReactNode
   </Card>
 );
 
-function toRow(d: UtlansData, status?: Status) {
+function toRow(d: FormData, status?: Status) {
   const row: Record<string, unknown> = {
     laantaker_navn: d.laantakerNavn,
     ansattnr: d.ansattnr,
@@ -54,12 +59,13 @@ function toRow(d: UtlansData, status?: Status) {
     innlevert_dato: d.innlevertDato || null,
     innlevert_kvittering: d.innlevertKvittering ?? "",
     signatur_innlevering: d.signaturInnlevering,
+    signatur_innlevering_eier: d.signaturInnleveringEier ?? null,
   };
   if (status) row.status = status;
   return row;
 }
 
-function fromRow(r: any): { data: UtlansData; status: Status } {
+function fromRow(r: any): { data: FormData; status: Status } {
   return {
     data: {
       laantakerNavn: r.laantaker_navn ?? "",
@@ -74,15 +80,21 @@ function fromRow(r: any): { data: UtlansData; status: Status } {
       innlevertDato: r.innlevert_dato ?? "",
       innlevertKvittering: r.innlevert_kvittering ?? "",
       signaturInnlevering: r.signatur_innlevering,
+      signaturInnleveringEier: r.signatur_innlevering_eier ?? null,
     },
     status: (r.status as Status) ?? "draft",
   };
 }
 
-const statusLabels: Record<Status, string> = {
-  draft: "Kladd",
-  active: "Utlånt",
-  returned: "Innlevert",
+// Vist status til bruker (skjuler "avventer"-skygger)
+const displayStatus = (s: Status): { label: string; variant: "outline" | "default" | "secondary" } => {
+  switch (s) {
+    case "draft": return { label: "Pågående", variant: "outline" };
+    case "awaiting_owner_loan": return { label: "Avventer signering", variant: "secondary" };
+    case "active": return { label: "Utlånt", variant: "default" };
+    case "awaiting_owner_return": return { label: "Avventer godkjenning", variant: "secondary" };
+    case "returned": return { label: "Innlevert", variant: "outline" };
+  }
 };
 
 const UtlansSkjema = () => {
@@ -90,21 +102,22 @@ const UtlansSkjema = () => {
   const navigate = useNavigate();
   const goBack = useSmartBack("/utlansskjema");
   const { id } = useParams<{ id: string }>();
+  const { isOwner } = useAuth();
 
-  const [data, setData] = useState<UtlansData>(emptyData);
+  const [data, setData] = useState<FormData>(emptyData);
   const [status, setStatus] = useState<Status>("draft");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const dirtyRef = useRef(false);
   const saveTimer = useRef<number | null>(null);
 
-  // Load
   useEffect(() => {
     (async () => {
       if (!id) return;
       const { data: row, error } = await supabase
-        .from("utlans_skjemaer").select("*").eq("id", id).maybeSingle();
+        .from("utlans_skjemaer" as any).select("*").eq("id", id).maybeSingle();
       if (error || !row) {
         toast({ title: "Fant ikke skjema", variant: "destructive" });
         navigate("/utlansskjema");
@@ -117,11 +130,11 @@ const UtlansSkjema = () => {
     })();
   }, [id, navigate]);
 
-  const persist = useCallback(async (nextStatus?: Status) => {
-    if (!id) return;
+  const persist = useCallback(async (nextStatus?: Status, overrideData?: FormData) => {
+    if (!id) return false;
     setSaving(true);
-    const payload = toRow(data, nextStatus);
-    const { error } = await supabase.from("utlans_skjemaer").update(payload).eq("id", id);
+    const payload = toRow(overrideData ?? data, nextStatus);
+    const { error } = await supabase.from("utlans_skjemaer" as any).update(payload).eq("id", id);
     setSaving(false);
     if (error) {
       toast({ title: "Feil ved lagring", description: error.message, variant: "destructive" });
@@ -132,7 +145,7 @@ const UtlansSkjema = () => {
     return true;
   }, [data, id]);
 
-  // Autosave (debounced) when dirty
+  // Autosave (debounced) — men ikke overskriv status
   useEffect(() => {
     if (loading) return;
     dirtyRef.current = true;
@@ -141,8 +154,86 @@ const UtlansSkjema = () => {
     return () => { if (saveTimer.current) window.clearTimeout(saveTimer.current); };
   }, [data, loading, persist]);
 
-  const set = <K extends keyof UtlansData>(k: K, v: UtlansData[K]) =>
+  const set = <K extends keyof FormData>(k: K, v: FormData[K]) =>
     setData((p) => ({ ...p, [k]: v }));
+
+  const notifyOwner = async (type: "loan" | "return") => {
+    try {
+      await supabase.functions.invoke("notify-utlans-signering", {
+        body: {
+          skjemaId: id,
+          type,
+          laantakerNavn: data.laantakerNavn,
+          utlaantGjenstand: data.utlaantGjenstand,
+        },
+      });
+    } catch (e) {
+      console.error("notify failed", e);
+    }
+  };
+
+  // Actions
+  const canSendForLoanSignature =
+    status === "draft" &&
+    data.laantakerNavn.trim().length > 0 &&
+    data.utlaantGjenstand.trim().length > 0 &&
+    !!data.signaturLaantaker;
+
+  const handleSendForLoanSignature = async () => {
+    if (!canSendForLoanSignature) {
+      toast({ title: "Fyll ut navn, utstyr og signer som låntaker først", variant: "destructive" });
+      return;
+    }
+    setSubmitting(true);
+    const ok = await persist("awaiting_owner_loan");
+    if (ok) {
+      notifyOwner("loan");
+      toast({ title: "Sendt til ansvarlig utstyrseier for signering" });
+      navigate("/utlansskjema");
+    }
+    setSubmitting(false);
+  };
+
+  const handleOwnerSignLoan = async () => {
+    if (!data.signaturStatnett) {
+      toast({ title: "Signer først som ansvarlig utstyrseier", variant: "destructive" });
+      return;
+    }
+    setSubmitting(true);
+    const ok = await persist("active");
+    if (ok) toast({ title: "Utlån godkjent og aktivt" });
+    setSubmitting(false);
+  };
+
+  const canSendForReturnSignature =
+    status === "active" && !!data.signaturInnlevering;
+
+  const handleSendForReturnSignature = async () => {
+    if (!canSendForReturnSignature) {
+      toast({ title: "Signer innlevering som låntaker først", variant: "destructive" });
+      return;
+    }
+    setSubmitting(true);
+    const nextData = { ...data, innlevertDato: data.innlevertDato || new Date().toISOString().slice(0, 10) };
+    setData(nextData);
+    const ok = await persist("awaiting_owner_return", nextData);
+    if (ok) {
+      notifyOwner("return");
+      toast({ title: "Sendt til eier for godkjenning av innlevering" });
+    }
+    setSubmitting(false);
+  };
+
+  const handleOwnerSignReturn = async () => {
+    if (!data.signaturInnleveringEier) {
+      toast({ title: "Signer først som ansvarlig utstyrseier", variant: "destructive" });
+      return;
+    }
+    setSubmitting(true);
+    const ok = await persist("returned");
+    if (ok) toast({ title: "Innlevering bekreftet" });
+    setSubmitting(false);
+  };
 
   const canGeneratePdf =
     data.laantakerNavn.trim().length > 0 || data.utlaantGjenstand.trim().length > 0;
@@ -163,22 +254,14 @@ const UtlansSkjema = () => {
     }
   };
 
-  const handleMarkActive = async () => {
-    const ok = await persist("active");
-    if (ok) {
-      toast({ title: "Skjema lagret som utlånt" });
-      navigate("/utlansskjema");
-    }
-  };
-
-  const handleMarkReturned = async () => {
-    const ok = await persist("returned");
-    if (ok) toast({ title: "Merket som innlevert" });
-  };
-
   if (loading) {
     return <div className="p-10 text-center text-sm text-muted-foreground">Laster…</div>;
   }
+
+  const meta = displayStatus(status);
+  const awaitingLoan = status === "awaiting_owner_loan";
+  const awaitingReturn = status === "awaiting_owner_return";
+  const isLocked = awaitingLoan || awaitingReturn || status === "active" || status === "returned";
 
   return (
     <div className="min-h-screen bg-background pb-32">
@@ -193,22 +276,41 @@ const UtlansSkjema = () => {
             <ArrowLeft className="h-4 w-4" /> Alle skjemaer
           </button>
           <div className="flex items-center gap-2">
-            <Badge variant="outline">{statusLabels[status]}</Badge>
+            <Badge variant={meta.variant}>{meta.label}</Badge>
             <span className="text-xs text-muted-foreground">
               {saving ? "Lagrer…" : dirtyRef.current ? "Endringer…" : "Lagret"}
             </span>
           </div>
         </div>
 
+        {awaitingLoan && (
+          <Card className="border-amber-300 bg-amber-50 dark:bg-amber-950/30">
+            <CardContent className="p-4 text-sm">
+              {isOwner
+                ? "Dette skjemaet venter på din signatur som ansvarlig utstyrseier. Signer nederst for å godkjenne utlånet."
+                : "Skjemaet er sendt til ansvarlig utstyrseier og venter på signering. Du får beskjed når det er godkjent."}
+            </CardContent>
+          </Card>
+        )}
+        {awaitingReturn && (
+          <Card className="border-amber-300 bg-amber-50 dark:bg-amber-950/30">
+            <CardContent className="p-4 text-sm">
+              {isOwner
+                ? "Låntaker har signert innlevering. Bekreft ved å signere nederst."
+                : "Innlevering er sendt til ansvarlig utstyrseier for godkjenning."}
+            </CardContent>
+          </Card>
+        )}
+
         <Section title="Låntaker">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="navn">Navn</Label>
-              <Input id="navn" value={data.laantakerNavn} onChange={(e) => set("laantakerNavn", e.target.value)} placeholder="Fullt navn" />
+              <Input id="navn" value={data.laantakerNavn} onChange={(e) => set("laantakerNavn", e.target.value)} placeholder="Fullt navn" disabled={isLocked && !isOwner} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="ansattnr">Ansattnr.</Label>
-              <Input id="ansattnr" value={data.ansattnr} onChange={(e) => set("ansattnr", e.target.value)} placeholder="F.eks. 12345" />
+              <Input id="ansattnr" value={data.ansattnr} onChange={(e) => set("ansattnr", e.target.value)} placeholder="F.eks. 12345" disabled={isLocked && !isOwner} />
             </div>
           </div>
         </Section>
@@ -216,20 +318,20 @@ const UtlansSkjema = () => {
         <Section title="Utstyr">
           <div className="space-y-1.5">
             <Label htmlFor="gjenstand">Utlånt gjenstand</Label>
-            <Input id="gjenstand" value={data.utlaantGjenstand} onChange={(e) => set("utlaantGjenstand", e.target.value)} placeholder="F.eks. tilhenger, betongblander" />
+            <Input id="gjenstand" value={data.utlaantGjenstand} onChange={(e) => set("utlaantGjenstand", e.target.value)} placeholder="F.eks. tilhenger, betongblander" disabled={isLocked && !isOwner} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="regnr">Reg.nr / serienr.</Label>
-            <Input id="regnr" value={data.regnr} onChange={(e) => set("regnr", e.target.value)} />
+            <Input id="regnr" value={data.regnr} onChange={(e) => set("regnr", e.target.value)} disabled={isLocked && !isOwner} />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="fra">Dato fra</Label>
-              <Input id="fra" type="date" value={data.datoFra} onChange={(e) => set("datoFra", e.target.value)} />
+              <Input id="fra" type="date" value={data.datoFra} onChange={(e) => set("datoFra", e.target.value)} disabled={isLocked && !isOwner} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="til">Dato til</Label>
-              <Input id="til" type="date" value={data.datoTil} onChange={(e) => set("datoTil", e.target.value)} />
+              <Input id="til" type="date" value={data.datoTil} onChange={(e) => set("datoTil", e.target.value)} disabled={isLocked && !isOwner} />
             </div>
           </div>
         </Section>
@@ -237,7 +339,7 @@ const UtlansSkjema = () => {
         <Section title="Sted & signatur">
           <div className="space-y-1.5">
             <Label htmlFor="stedDato">Dato / Sted</Label>
-            <Input id="stedDato" value={data.datoSted} onChange={(e) => set("datoSted", e.target.value)} placeholder="F.eks. 16.07.2026, Mosjøen" />
+            <Input id="stedDato" value={data.datoSted} onChange={(e) => set("datoSted", e.target.value)} placeholder="F.eks. 16.07.2026, Mosjøen" disabled={isLocked && !isOwner} />
           </div>
           <div className="space-y-2">
             <Label>Signatur låntaker</Label>
@@ -245,44 +347,78 @@ const UtlansSkjema = () => {
           </div>
           <div className="space-y-2">
             <Label>Signatur — For Statnett SF (ansvarlig utstyrseier)</Label>
-            <SignaturePad value={data.signaturStatnett} onChange={(v) => set("signaturStatnett", v)} />
+            {isOwner || status === "active" || status === "returned" || status === "awaiting_owner_return" ? (
+              <SignaturePad value={data.signaturStatnett} onChange={(v) => set("signaturStatnett", v)} />
+            ) : (
+              <div className="rounded-md border border-dashed p-4 text-center text-xs text-muted-foreground">
+                {data.signaturStatnett ? "Signert" : "Signeres av ansvarlig utstyrseier etter innsending."}
+              </div>
+            )}
           </div>
-        </Section>
 
-        <Section title="Innlevering (fylles ut ved retur)">
-          <div className="space-y-1.5">
-            <Label htmlFor="innDato">Dato innlevert</Label>
-            <Input id="innDato" type="date" value={data.innlevertDato ?? ""} onChange={(e) => set("innlevertDato", e.target.value)} />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Signatur ansvarlig utstyrseier (ved innlevering)</Label>
-            <SignaturePad value={data.signaturInnlevering ?? null} onChange={(v) => set("signaturInnlevering", v)} />
-          </div>
-          {status !== "returned" && (
-            <Button variant="secondary" onClick={handleMarkReturned} className="w-full gap-2">
-              <PackageCheck className="h-4 w-4" /> Merk som innlevert
-            </Button>
-          )}
-        </Section>
-
-        <div className="grid gap-2 sm:grid-cols-2">
           {status === "draft" && (
-            <Button variant="secondary" onClick={handleMarkActive} className="gap-2">
-              <CheckCircle2 className="h-4 w-4" /> Fullfør utlån
-              <ArrowRight className="h-4 w-4" />
+            <Button onClick={handleSendForLoanSignature} disabled={!canSendForLoanSignature || submitting} className="w-full gap-2">
+              <Send className="h-4 w-4" /> Send til eier for signering
             </Button>
           )}
-          <Button
-            onClick={handleGenerate}
-            disabled={generating || !canGeneratePdf}
-            className={`gap-2 ${status === "draft" ? "" : "sm:col-start-2"}`}
-          >
-            {generating ? "Genererer…" : (<><Download className="h-4 w-4" /> Last ned PDF</>)}
-          </Button>
-        </div>
+          {awaitingLoan && isOwner && (
+            <Button onClick={handleOwnerSignLoan} disabled={!data.signaturStatnett || submitting} className="w-full gap-2">
+              <ShieldCheck className="h-4 w-4" /> Godkjenn utlån
+            </Button>
+          )}
+        </Section>
+
+        {(status === "active" || status === "awaiting_owner_return" || status === "returned") && (
+          <Section title="Innlevering">
+            <div className="space-y-1.5">
+              <Label htmlFor="innDato">Dato innlevert</Label>
+              <Input id="innDato" type="date" value={data.innlevertDato ?? ""} onChange={(e) => set("innlevertDato", e.target.value)} disabled={status === "returned"} />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Signatur låntaker (ved innlevering)</Label>
+              <SignaturePad value={data.signaturInnlevering ?? null} onChange={(v) => set("signaturInnlevering", v)} />
+            </div>
+
+            {status === "active" && (
+              <Button onClick={handleSendForReturnSignature} disabled={!canSendForReturnSignature || submitting} variant="secondary" className="w-full gap-2">
+                <Send className="h-4 w-4" /> Send innlevering til eier for godkjenning
+              </Button>
+            )}
+
+            {(awaitingReturn || status === "returned") && (
+              <div className="space-y-2">
+                <Label>Signatur ansvarlig utstyrseier (bekreftelse på tilbakelevering)</Label>
+                {isOwner && awaitingReturn ? (
+                  <SignaturePad value={data.signaturInnleveringEier ?? null} onChange={(v) => set("signaturInnleveringEier", v)} />
+                ) : data.signaturInnleveringEier ? (
+                  <img src={data.signaturInnleveringEier} alt="Eier-signatur" className="max-h-24 rounded-md border bg-white p-2" />
+                ) : (
+                  <div className="rounded-md border border-dashed p-4 text-center text-xs text-muted-foreground">
+                    Venter på eiers bekreftelse.
+                  </div>
+                )}
+
+                {awaitingReturn && isOwner && (
+                  <Button onClick={handleOwnerSignReturn} disabled={!data.signaturInnleveringEier || submitting} className="w-full gap-2">
+                    <PackageCheck className="h-4 w-4" /> Bekreft innlevering
+                  </Button>
+                )}
+              </div>
+            )}
+          </Section>
+        )}
+
+        <Button
+          onClick={handleGenerate}
+          disabled={generating || !canGeneratePdf}
+          variant="outline"
+          className="w-full gap-2"
+        >
+          {generating ? "Genererer…" : (<><Download className="h-4 w-4" /> Last ned PDF</>)}
+        </Button>
         <p className="text-center text-xs text-muted-foreground">
-          Skjemaet lagres automatisk. Du kan fullføre uten alle felt og fylle inn innlevering senere.
+          Skjemaet lagres automatisk.
         </p>
       </main>
     </div>

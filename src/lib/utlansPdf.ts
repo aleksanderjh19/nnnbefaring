@@ -14,7 +14,9 @@ export interface UtlansData {
   innlevertDato?: string;
   innlevertKvittering?: string;
   signaturInnlevering?: string | null;
+  signaturInnleveringEier?: string | null;
 }
+
 
 // Field coordinates (PDF points, origin bottom-left) measured on the original template
 // Page height = 842pt
@@ -32,8 +34,9 @@ const COORDS = {
   sigLaantaker:     { x: 285, y: H - 643, w: 220, h: 40 },
   innlevertDato:    { x: 185, y: H - 727, w: 90 },
   sigInnlevering:   { x: 335, y: H - 738, w: 200, h: 32 },
-
+  sigInnleveringEier: { x: 85,  y: H - 738, w: 200, h: 32 },
 };
+
 
 async function embedSig(pdf: PDFDocument, dataUrl?: string | null) {
   if (!dataUrl) return null;
@@ -75,6 +78,7 @@ export async function generateUtlansPdf(d: UtlansData): Promise<Uint8Array> {
   const sigL = await embedSig(pdf, d.signaturLaantaker);
   const sigS = await embedSig(pdf, d.signaturStatnett);
   const sigI = await embedSig(pdf, d.signaturInnlevering);
+  const sigIE = await embedSig(pdf, d.signaturInnleveringEier);
 
   // Page 1: låntaker (navn – ansattnr)
   const laantakerText = [d.laantakerNavn, d.ansattnr].filter(Boolean).join(" – ");
@@ -91,6 +95,8 @@ export async function generateUtlansPdf(d: UtlansData): Promise<Uint8Array> {
   drawText(p2, formatDate(d.innlevertDato ?? ""), COORDS.innlevertDato);
 
   drawSig(p2, sigI, COORDS.sigInnlevering);
+  drawSig(p2, sigIE, COORDS.sigInnleveringEier);
+
 
   return await pdf.save();
 }

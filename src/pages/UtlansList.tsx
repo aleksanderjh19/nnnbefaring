@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSmartBack } from "@/hooks/useSmartBack";
-import { ArrowLeft, Plus, FileSignature, CheckCircle2, Clock, PackageCheck, Trash2, Download } from "lucide-react";
+import { ArrowLeft, Plus, FileSignature, CheckCircle2, Clock, PackageCheck, Trash2, Download, ShieldAlert } from "lucide-react";
 import CategoryHeader from "@/components/CategoryHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -46,16 +46,19 @@ type Row = {
 };
 
 const statusMeta: Record<string, { label: string; icon: any; className: string }> = {
-  draft:      { label: "Pågående",  icon: Clock,         className: "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-100" },
-  active:     { label: "Utlånt",    icon: FileSignature, className: "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-100" },
-  returned:   { label: "Innlevert", icon: PackageCheck,  className: "bg-emerald-100 text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100" },
+  draft:                 { label: "Pågående",             icon: Clock,         className: "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-100" },
+  awaiting_owner_loan:   { label: "Avventer signering",   icon: ShieldAlert,   className: "bg-orange-100 text-orange-900 dark:bg-orange-900/40 dark:text-orange-100" },
+  active:                { label: "Utlånt",               icon: FileSignature, className: "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-100" },
+  awaiting_owner_return: { label: "Avventer godkjenning", icon: ShieldAlert,   className: "bg-orange-100 text-orange-900 dark:bg-orange-900/40 dark:text-orange-100" },
+  returned:              { label: "Innlevert",            icon: PackageCheck,  className: "bg-emerald-100 text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100" },
 };
 
 const UtlansList = () => {
   useEffect(() => { document.title = "Utlånsskjema – NNHH Verktøy"; }, []);
   const navigate = useNavigate();
   const goBack = useSmartBack("/");
-  const { isAdmin } = useAuth();
+  const { isAdmin, isOwner } = useAuth();
+
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
@@ -140,7 +143,8 @@ const UtlansList = () => {
           <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">Ingen skjemaer enda. Opprett ett med knappen over.</CardContent></Card>
         ) : (
           (() => {
-            const ongoing = rows.filter((r) => r.status !== "returned");
+            const awaiting = rows.filter((r) => r.status === "awaiting_owner_loan" || r.status === "awaiting_owner_return");
+            const ongoing = rows.filter((r) => r.status !== "returned" && !awaiting.includes(r));
             const history = rows.filter((r) => r.status === "returned");
 
             const renderCard = (r: Row) => {
@@ -207,14 +211,26 @@ const UtlansList = () => {
 
             return (
               <div className="space-y-6">
+                {isOwner && awaiting.length > 0 && (
+                  <section className="space-y-2">
+                    <h2 className="px-1 text-sm font-semibold uppercase tracking-wide text-orange-700 dark:text-orange-300">
+                      Til signering <span className="ml-1 text-xs font-normal">({awaiting.length})</span>
+                    </h2>
+                    <div className="space-y-3">{awaiting.map(renderCard)}</div>
+                  </section>
+                )}
+
                 <section className="space-y-2">
                   <h2 className="px-1 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                    Pågående utlån {ongoing.length > 0 && <span className="ml-1 text-xs font-normal">({ongoing.length})</span>}
+                    Pågående utlån {(ongoing.length + (isOwner ? 0 : awaiting.length)) > 0 && <span className="ml-1 text-xs font-normal">({ongoing.length + (isOwner ? 0 : awaiting.length)})</span>}
                   </h2>
-                  {ongoing.length === 0 ? (
+                  {ongoing.length === 0 && (isOwner || awaiting.length === 0) ? (
                     <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">Ingen pågående utlån.</CardContent></Card>
                   ) : (
-                    <div className="space-y-3">{ongoing.map(renderCard)}</div>
+                    <div className="space-y-3">
+                      {!isOwner && awaiting.map(renderCard)}
+                      {ongoing.map(renderCard)}
+                    </div>
                   )}
                 </section>
 
@@ -231,6 +247,7 @@ const UtlansList = () => {
               </div>
             );
           })()
+
         )}
       </main>
     </div>

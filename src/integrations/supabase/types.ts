@@ -349,6 +349,7 @@ export type Database = {
           laantaker_navn: string
           regnr: string
           signatur_innlevering: string | null
+          signatur_innlevering_eier: string | null
           signatur_laantaker: string | null
           signatur_statnett: string | null
           status: string
@@ -368,6 +369,7 @@ export type Database = {
           laantaker_navn?: string
           regnr?: string
           signatur_innlevering?: string | null
+          signatur_innlevering_eier?: string | null
           signatur_laantaker?: string | null
           signatur_statnett?: string | null
           status?: string
@@ -387,6 +389,7 @@ export type Database = {
           laantaker_navn?: string
           regnr?: string
           signatur_innlevering?: string | null
+          signatur_innlevering_eier?: string | null
           signatur_laantaker?: string | null
           signatur_statnett?: string | null
           status?: string
@@ -552,7 +555,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "user"
+      app_role: "admin" | "user" | "equipment_owner"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -680,7 +683,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user"],
+      app_role: ["admin", "user", "equipment_owner"],
     },
   },
 } as const
