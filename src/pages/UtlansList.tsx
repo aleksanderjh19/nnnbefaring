@@ -46,16 +46,19 @@ type Row = {
 };
 
 const statusMeta: Record<string, { label: string; icon: any; className: string }> = {
-  draft:      { label: "Pågående",  icon: Clock,         className: "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-100" },
-  active:     { label: "Utlånt",    icon: FileSignature, className: "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-100" },
-  returned:   { label: "Innlevert", icon: PackageCheck,  className: "bg-emerald-100 text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100" },
+  draft:                 { label: "Pågående",             icon: Clock,         className: "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-100" },
+  awaiting_owner_loan:   { label: "Avventer signering",   icon: ShieldAlert,   className: "bg-orange-100 text-orange-900 dark:bg-orange-900/40 dark:text-orange-100" },
+  active:                { label: "Utlånt",               icon: FileSignature, className: "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-100" },
+  awaiting_owner_return: { label: "Avventer godkjenning", icon: ShieldAlert,   className: "bg-orange-100 text-orange-900 dark:bg-orange-900/40 dark:text-orange-100" },
+  returned:              { label: "Innlevert",            icon: PackageCheck,  className: "bg-emerald-100 text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100" },
 };
 
 const UtlansList = () => {
   useEffect(() => { document.title = "Utlånsskjema – NNHH Verktøy"; }, []);
   const navigate = useNavigate();
   const goBack = useSmartBack("/");
-  const { isAdmin } = useAuth();
+  const { isAdmin, isOwner } = useAuth();
+
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
