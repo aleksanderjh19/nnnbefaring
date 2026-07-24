@@ -47,6 +47,7 @@ export default function Sf6BreakerPhotos({
   const [savingId, setSavingId] = useState<string | null>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const { isRequested, handleDeleteClick, isAdmin } = useDeletionRequests("sf6_round_photos");
 
   const loadUrls = useCallback(async (rows: Sf6PhotoRow[]) => {
     const entries = await Promise.all(
