@@ -201,7 +201,10 @@ const UtlansSkjema = () => {
     }
     setSubmitting(true);
     const ok = await persist("active");
-    if (ok) toast({ title: "Utlån godkjent og aktivt" });
+    if (ok) {
+      toast({ title: "Utlån godkjent og aktivt" });
+      navigate("/utlansskjema");
+    }
     setSubmitting(false);
   };
 
@@ -220,6 +223,7 @@ const UtlansSkjema = () => {
     if (ok) {
       notifyOwner("return");
       toast({ title: "Sendt til eier for godkjenning av innlevering" });
+      navigate("/utlansskjema");
     }
     setSubmitting(false);
   };
@@ -231,7 +235,10 @@ const UtlansSkjema = () => {
     }
     setSubmitting(true);
     const ok = await persist("returned");
-    if (ok) toast({ title: "Innlevering bekreftet" });
+    if (ok) {
+      toast({ title: "Innlevering bekreftet" });
+      navigate("/utlansskjema");
+    }
     setSubmitting(false);
   };
 
