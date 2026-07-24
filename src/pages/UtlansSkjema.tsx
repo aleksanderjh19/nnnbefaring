@@ -352,16 +352,18 @@ const UtlansSkjema = () => {
             <Label>Signatur låntaker</Label>
             <SignaturePad value={data.signaturLaantaker} onChange={(v) => set("signaturLaantaker", v)} />
           </div>
-          <div className="space-y-2">
-            <Label>Signatur — For Statnett SF (ansvarlig utstyrseier)</Label>
-            {isOwner || status === "active" || status === "returned" || status === "awaiting_owner_return" ? (
-              <SignaturePad value={data.signaturStatnett} onChange={(v) => set("signaturStatnett", v)} />
-            ) : (
-              <div className="rounded-md border border-dashed p-4 text-center text-xs text-muted-foreground">
-                {data.signaturStatnett ? "Signert" : "Signeres av ansvarlig utstyrseier etter innsending."}
-              </div>
-            )}
-          </div>
+          {(isOwner || status === "active" || status === "returned" || status === "awaiting_owner_return" || status === "awaiting_owner_loan") && (
+            <div className="space-y-2">
+              <Label>Signatur — For Statnett SF (ansvarlig utstyrseier)</Label>
+              {isOwner || status === "active" || status === "returned" || status === "awaiting_owner_return" ? (
+                <SignaturePad value={data.signaturStatnett} onChange={(v) => set("signaturStatnett", v)} />
+              ) : (
+                <div className="rounded-md border border-dashed p-4 text-center text-xs text-muted-foreground">
+                  {data.signaturStatnett ? "Signert" : "Signeres av ansvarlig utstyrseier etter innsending."}
+                </div>
+              )}
+            </div>
+          )}
 
           {status === "draft" && (
             <Button onClick={handleSendForLoanSignature} disabled={!canSendForLoanSignature || submitting} className="w-full gap-2">
