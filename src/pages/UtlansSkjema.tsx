@@ -90,7 +90,7 @@ function fromRow(r: any): { data: FormData; status: Status } {
 const displayStatus = (s: Status): { label: string; variant: "outline" | "default" | "secondary" } => {
   switch (s) {
     case "draft": return { label: "Pågående", variant: "outline" };
-    case "awaiting_owner_loan": return { label: "Avventer signering", variant: "secondary" };
+    case "awaiting_owner_loan": return { label: "Utlånt", variant: "default" };
     case "active": return { label: "Utlånt", variant: "default" };
     case "awaiting_owner_return": return { label: "Avventer godkjenning", variant: "secondary" };
     case "returned": return { label: "Innlevert", variant: "outline" };
