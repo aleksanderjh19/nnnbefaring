@@ -61,6 +61,7 @@ const UtlansList = () => {
   const goBack = useSmartBack("/");
   const { isAdmin, isOwner } = useAuth();
 
+  const { isRequested, handleDeleteClick } = useDeletionRequests("utlans_skjemaer");
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
