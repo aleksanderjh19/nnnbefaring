@@ -41,6 +41,33 @@ export type Database = {
         }
         Relationships: []
       }
+      deletion_requests: {
+        Row: {
+          id: string
+          note: string | null
+          requested_at: string
+          requested_by: string
+          row_id: string
+          table_name: string
+        }
+        Insert: {
+          id?: string
+          note?: string | null
+          requested_at?: string
+          requested_by: string
+          row_id: string
+          table_name: string
+        }
+        Update: {
+          id?: string
+          note?: string | null
+          requested_at?: string
+          requested_by?: string
+          row_id?: string
+          table_name?: string
+        }
+        Relationships: []
+      }
       employees: {
         Row: {
           active: boolean
