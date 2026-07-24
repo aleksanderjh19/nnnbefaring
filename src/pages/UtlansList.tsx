@@ -78,18 +78,24 @@ const UtlansList = () => {
   useEffect(() => { load(); }, []);
 
   const handleNew = async () => {
-    const { data: userRes } = await supabase.auth.getUser();
-    if (!userRes.user) return;
-    const { data, error } = await supabase
-      .from("utlans_skjemaer")
-      .insert({ user_id: userRes.user.id })
-      .select("id")
-      .single();
-    if (error || !data) {
-      toast({ title: "Feil", description: error?.message ?? "Kunne ikke opprette", variant: "destructive" });
-      return;
+    if (creating) return;
+    setCreating(true);
+    try {
+      const { data: userRes } = await supabase.auth.getUser();
+      if (!userRes.user) return;
+      const { data, error } = await supabase
+        .from("utlans_skjemaer")
+        .insert({ user_id: userRes.user.id })
+        .select("id")
+        .single();
+      if (error || !data) {
+        toast({ title: "Feil", description: error?.message ?? "Kunne ikke opprette", variant: "destructive" });
+        return;
+      }
+      navigate(`/utlansskjema/${data.id}`);
+    } finally {
+      setCreating(false);
     }
-    navigate(`/utlansskjema/${data.id}`);
   };
 
   const handleDelete = async (id: string) => {
