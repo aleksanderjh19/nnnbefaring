@@ -156,7 +156,7 @@ const UtlansList = () => {
               return true;
             });
             const awaiting = visibleRows.filter((r) => r.status === "awaiting_owner_loan" || r.status === "awaiting_owner_return");
-            const ongoing = visibleRows.filter((r) => r.status !== "returned" && !awaiting.includes(r));
+            const ongoing = visibleRows.filter((r) => r.status !== "returned");
             const history = visibleRows.filter((r) => r.status === "returned");
 
             const renderCard = (r: Row) => {
