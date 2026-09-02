@@ -211,6 +211,43 @@ export default function Sf6Round() {
     return data as unknown as SavedRound;
   };
 
+  // Autolagring: lagre målinger automatisk (debounced) og når appen lukkes/går i bakgrunnen
+  const latestRef = useRef({ activeRoundId, monthLabel, temperature, measurements });
+  latestRef.current = { activeRoundId, monthLabel, temperature, measurements };
+
+  const silentSave = useCallback(async () => {
+    const { activeRoundId: id, monthLabel: ml, temperature: t, measurements: m } = latestRef.current;
+    if (!id) return;
+    await supabase
+      .from("sf6_rounds")
+      .update({
+        month_label: ml.trim() || currentMonthLabel(),
+        temperature: t.trim() === "" ? null : Number(t.replace(",", ".")),
+        measurements: m as any,
+      })
+      .eq("id", id);
+  }, []);
+
+  useEffect(() => {
+    if (!activeRoundId) return;
+    const timer = setTimeout(() => { silentSave(); }, 800);
+    return () => clearTimeout(timer);
+  }, [measurements, temperature, monthLabel, activeRoundId, silentSave]);
+
+  useEffect(() => {
+    const onHide = () => { silentSave(); };
+    window.addEventListener("pagehide", onHide);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") onHide();
+    });
+    return () => {
+      window.removeEventListener("pagehide", onHide);
+      document.removeEventListener("visibilitychange", onHide);
+    };
+  }, [silentSave]);
+
+
+
   const openLevel = (lvl: Sf6Level) => {
     setActiveLevel(lvl);
     setView("level");
