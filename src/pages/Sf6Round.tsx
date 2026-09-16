@@ -261,12 +261,24 @@ export default function Sf6Round() {
     return data as unknown as SavedRound;
   };
 
-  // Autolagring: lagre målinger automatisk (debounced), periodisk og når appen lukkes/går i bakgrunnen
+  // Autolagring: lokal sikkerhetskopi umiddelbart + server (debounced, periodisk, ved lukking)
   const latestRef = useRef({ activeRoundId, monthLabel, temperature, measurements });
   latestRef.current = { activeRoundId, monthLabel, temperature, measurements };
   const lastSavedRef = useRef<string>("");
   const [autoSaveState, setAutoSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+
+  // Skriv lokal kopi ved hver endring – synkront, så data aldri går tapt om appen lukkes
+  useEffect(() => {
+    if (!activeRoundId) return;
+    writeDraft(activeRoundId, {
+      monthLabel,
+      temperature,
+      measurements,
+      updatedAt: Date.now(),
+      synced: false,
+    });
+  }, [activeRoundId, monthLabel, temperature, measurements]);
 
   const silentSave = useCallback(async (force = false) => {
     const { activeRoundId: id, monthLabel: ml, temperature: t, measurements: m } = latestRef.current;
@@ -287,6 +299,7 @@ export default function Sf6Round() {
       return;
     }
     lastSavedRef.current = snapshot;
+    markDraftSynced(id);
     setLastSavedAt(new Date());
     setAutoSaveState("saved");
   }, []);
@@ -307,15 +320,19 @@ export default function Sf6Round() {
   useEffect(() => {
     const onHide = () => { silentSave(); };
     const onVisibility = () => { if (document.visibilityState === "hidden") onHide(); };
+    const onOnline = () => { silentSave(true); };
     window.addEventListener("pagehide", onHide);
     window.addEventListener("blur", onHide);
+    window.addEventListener("online", onOnline);
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
       window.removeEventListener("pagehide", onHide);
       window.removeEventListener("blur", onHide);
+      window.removeEventListener("online", onOnline);
       document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [silentSave]);
+
 
   const AutoSaveIndicator = () => {
     if (!activeRoundId || autoSaveState === "idle") return null;
