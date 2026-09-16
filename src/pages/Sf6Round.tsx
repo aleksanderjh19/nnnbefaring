@@ -395,9 +395,12 @@ export default function Sf6Round() {
       return;
     }
     setTempError(null);
+    const roundId = activeRoundId;
     const saved = await saveProgress({ status: "completed" });
     if (!saved) return;
+    if (roundId) clearDraft(roundId);
     toast({ title: "Lagret", description: "SF6-runden er fullført." });
+
     setViewingRound(saved);
     resetBreakerMarks();
     setView("view");
