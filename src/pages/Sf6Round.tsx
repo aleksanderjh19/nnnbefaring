@@ -211,14 +211,20 @@ export default function Sf6Round() {
     return data as unknown as SavedRound;
   };
 
-  // Autolagring: lagre målinger automatisk (debounced) og når appen lukkes/går i bakgrunnen
+  // Autolagring: lagre målinger automatisk (debounced), periodisk og når appen lukkes/går i bakgrunnen
   const latestRef = useRef({ activeRoundId, monthLabel, temperature, measurements });
   latestRef.current = { activeRoundId, monthLabel, temperature, measurements };
+  const lastSavedRef = useRef<string>("");
+  const [autoSaveState, setAutoSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
 
-  const silentSave = useCallback(async () => {
+  const silentSave = useCallback(async (force = false) => {
     const { activeRoundId: id, monthLabel: ml, temperature: t, measurements: m } = latestRef.current;
     if (!id) return;
-    await supabase
+    const snapshot = JSON.stringify({ ml, t, m });
+    if (!force && snapshot === lastSavedRef.current) return;
+    setAutoSaveState("saving");
+    const { error } = await supabase
       .from("sf6_rounds")
       .update({
         month_label: ml.trim() || currentMonthLabel(),
@@ -226,25 +232,67 @@ export default function Sf6Round() {
         measurements: m as any,
       })
       .eq("id", id);
+    if (error) {
+      setAutoSaveState("error");
+      return;
+    }
+    lastSavedRef.current = snapshot;
+    setLastSavedAt(new Date());
+    setAutoSaveState("saved");
   }, []);
 
   useEffect(() => {
     if (!activeRoundId) return;
-    const timer = setTimeout(() => { silentSave(); }, 800);
+    const timer = setTimeout(() => { silentSave(); }, 600);
     return () => clearTimeout(timer);
   }, [measurements, temperature, monthLabel, activeRoundId, silentSave]);
 
+  // Sikkerhetsnett: lagre periodisk mens runden er åpen
+  useEffect(() => {
+    if (!activeRoundId) return;
+    const interval = setInterval(() => { silentSave(); }, 15000);
+    return () => clearInterval(interval);
+  }, [activeRoundId, silentSave]);
+
   useEffect(() => {
     const onHide = () => { silentSave(); };
+    const onVisibility = () => { if (document.visibilityState === "hidden") onHide(); };
     window.addEventListener("pagehide", onHide);
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "hidden") onHide();
-    });
+    window.addEventListener("blur", onHide);
+    document.addEventListener("visibilitychange", onVisibility);
     return () => {
       window.removeEventListener("pagehide", onHide);
-      document.removeEventListener("visibilitychange", onHide);
+      window.removeEventListener("blur", onHide);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [silentSave]);
+
+  const AutoSaveIndicator = () => {
+    if (!activeRoundId || autoSaveState === "idle") return null;
+    const time = lastSavedAt
+      ? lastSavedAt.toLocaleTimeString("no-NO", { hour: "2-digit", minute: "2-digit" })
+      : "";
+    if (autoSaveState === "error") {
+      return (
+        <span className="flex items-center gap-1 text-[11px] text-destructive">
+          <AlertCircle className="h-3 w-3" /> Ikke lagret
+        </span>
+      );
+    }
+    if (autoSaveState === "saving") {
+      return (
+        <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+          <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/70 animate-pulse" /> Lagrer…
+        </span>
+      );
+    }
+    return (
+      <span className="flex items-center gap-1 text-[11px] text-muted-foreground transition-opacity">
+        <Check className="h-3 w-3 text-primary" /> Lagret {time}
+      </span>
+    );
+  };
+
 
 
 
