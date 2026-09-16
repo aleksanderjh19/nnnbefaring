@@ -65,6 +65,56 @@ function breakerUnit(kV: string, breakerName: string): string {
   return "MPa";
 }
 
+// ── Lokal sikkerhetskopi (overlever at appen lukkes / nettet faller ut) ──
+const DRAFT_PREFIX = "sf6_draft_";
+
+interface Sf6Draft {
+  monthLabel: string;
+  temperature: string;
+  measurements: Sf6Measurements;
+  updatedAt: number;
+  synced: boolean;
+}
+
+function readDraft(roundId: string): Sf6Draft | null {
+  try {
+    const raw = localStorage.getItem(DRAFT_PREFIX + roundId);
+    return raw ? (JSON.parse(raw) as Sf6Draft) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeDraft(roundId: string, draft: Sf6Draft) {
+  try {
+    localStorage.setItem(DRAFT_PREFIX + roundId, JSON.stringify(draft));
+  } catch {
+    /* ignore */
+  }
+}
+
+function markDraftSynced(roundId: string) {
+  const d = readDraft(roundId);
+  if (d) writeDraft(roundId, { ...d, synced: true });
+}
+
+function clearDraft(roundId: string) {
+  try {
+    localStorage.removeItem(DRAFT_PREFIX + roundId);
+  } catch {
+    /* ignore */
+  }
+}
+
+function hasAnyValue(m: Sf6Measurements): boolean {
+  return Object.values(m ?? {}).some((lvl) =>
+    Object.values(lvl ?? {}).some((b: any) =>
+      b && Object.values(b).some((v) => v !== null && v !== undefined && v !== "")
+    )
+  );
+}
+
+
 export default function Sf6Round() {
   const navigate = useNavigate();
   const goBackToStasjon = useSmartBack("/stasjon");
