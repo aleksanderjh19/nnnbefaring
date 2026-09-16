@@ -65,6 +65,56 @@ function breakerUnit(kV: string, breakerName: string): string {
   return "MPa";
 }
 
+// ── Lokal sikkerhetskopi (overlever at appen lukkes / nettet faller ut) ──
+const DRAFT_PREFIX = "sf6_draft_";
+
+interface Sf6Draft {
+  monthLabel: string;
+  temperature: string;
+  measurements: Sf6Measurements;
+  updatedAt: number;
+  synced: boolean;
+}
+
+function readDraft(roundId: string): Sf6Draft | null {
+  try {
+    const raw = localStorage.getItem(DRAFT_PREFIX + roundId);
+    return raw ? (JSON.parse(raw) as Sf6Draft) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeDraft(roundId: string, draft: Sf6Draft) {
+  try {
+    localStorage.setItem(DRAFT_PREFIX + roundId, JSON.stringify(draft));
+  } catch {
+    /* ignore */
+  }
+}
+
+function markDraftSynced(roundId: string) {
+  const d = readDraft(roundId);
+  if (d) writeDraft(roundId, { ...d, synced: true });
+}
+
+function clearDraft(roundId: string) {
+  try {
+    localStorage.removeItem(DRAFT_PREFIX + roundId);
+  } catch {
+    /* ignore */
+  }
+}
+
+function hasAnyValue(m: Sf6Measurements): boolean {
+  return Object.values(m ?? {}).some((lvl) =>
+    Object.values(lvl ?? {}).some((b: any) =>
+      b && Object.values(b).some((v) => v !== null && v !== undefined && v !== "")
+    )
+  );
+}
+
+
 export default function Sf6Round() {
   const navigate = useNavigate();
   const goBackToStasjon = useSmartBack("/stasjon");
@@ -211,12 +261,24 @@ export default function Sf6Round() {
     return data as unknown as SavedRound;
   };
 
-  // Autolagring: lagre målinger automatisk (debounced), periodisk og når appen lukkes/går i bakgrunnen
+  // Autolagring: lokal sikkerhetskopi umiddelbart + server (debounced, periodisk, ved lukking)
   const latestRef = useRef({ activeRoundId, monthLabel, temperature, measurements });
   latestRef.current = { activeRoundId, monthLabel, temperature, measurements };
   const lastSavedRef = useRef<string>("");
   const [autoSaveState, setAutoSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+
+  // Skriv lokal kopi ved hver endring – synkront, så data aldri går tapt om appen lukkes
+  useEffect(() => {
+    if (!activeRoundId) return;
+    writeDraft(activeRoundId, {
+      monthLabel,
+      temperature,
+      measurements,
+      updatedAt: Date.now(),
+      synced: false,
+    });
+  }, [activeRoundId, monthLabel, temperature, measurements]);
 
   const silentSave = useCallback(async (force = false) => {
     const { activeRoundId: id, monthLabel: ml, temperature: t, measurements: m } = latestRef.current;
@@ -237,6 +299,7 @@ export default function Sf6Round() {
       return;
     }
     lastSavedRef.current = snapshot;
+    markDraftSynced(id);
     setLastSavedAt(new Date());
     setAutoSaveState("saved");
   }, []);
@@ -257,15 +320,19 @@ export default function Sf6Round() {
   useEffect(() => {
     const onHide = () => { silentSave(); };
     const onVisibility = () => { if (document.visibilityState === "hidden") onHide(); };
+    const onOnline = () => { silentSave(true); };
     window.addEventListener("pagehide", onHide);
     window.addEventListener("blur", onHide);
+    window.addEventListener("online", onOnline);
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
       window.removeEventListener("pagehide", onHide);
       window.removeEventListener("blur", onHide);
+      window.removeEventListener("online", onOnline);
       document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [silentSave]);
+
 
   const AutoSaveIndicator = () => {
     if (!activeRoundId || autoSaveState === "idle") return null;
@@ -328,9 +395,12 @@ export default function Sf6Round() {
       return;
     }
     setTempError(null);
+    const roundId = activeRoundId;
     const saved = await saveProgress({ status: "completed" });
     if (!saved) return;
+    if (roundId) clearDraft(roundId);
     toast({ title: "Lagret", description: "SF6-runden er fullført." });
+
     setViewingRound(saved);
     resetBreakerMarks();
     setView("view");
@@ -364,19 +434,33 @@ export default function Sf6Round() {
     if (r.status === "in_progress") {
       // Gjenoppta redigering
       setActiveRoundId(r.id);
-      setMonthLabel(r.month_label);
-      setTemperature(r.temperature == null ? "" : String(r.temperature));
-      setTempError(null);
       // Sørg for at alle brytere finnes i measurements-objektet
       const base = createEmptyMeasurements(s);
       const merged: Sf6Measurements = { ...base };
       for (const kV of Object.keys(base)) {
         merged[kV] = { ...base[kV], ...(r.measurements?.[kV] ?? {}) };
       }
+      // Ulagret lokal kopi (f.eks. appen ble lukket uten nett) har forrang
+      const draft = readDraft(r.id);
+      const useDraft = !!draft && !draft.synced && (hasAnyValue(draft.measurements) || draft.temperature.trim() !== "");
+      if (useDraft && draft) {
+        for (const kV of Object.keys(base)) {
+          merged[kV] = { ...merged[kV], ...(draft.measurements?.[kV] ?? {}) };
+        }
+        setMonthLabel(draft.monthLabel || r.month_label);
+        setTemperature(draft.temperature);
+        toast({ title: "Gjenopprettet", description: "Ulagrede målinger fra forrige økt ble hentet fram." });
+      } else {
+        setMonthLabel(r.month_label);
+        setTemperature(r.temperature == null ? "" : String(r.temperature));
+      }
+      setTempError(null);
       setMeasurements(merged);
       loadPhotos(r.id);
       setView("round");
+      if (useDraft) setTimeout(() => silentSave(true), 300);
     } else {
+
       setViewingRound(r);
       loadPhotos(r.id);
       setView("view");
