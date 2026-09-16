@@ -686,6 +686,8 @@ export default function Sf6Round() {
                 {station.name} · {activeLevel.kV} kV
               </h1>
             </div>
+            <div className="ml-auto shrink-0"><AutoSaveIndicator /></div>
+
           </div>
         </header>
 
