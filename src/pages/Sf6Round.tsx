@@ -431,19 +431,33 @@ export default function Sf6Round() {
     if (r.status === "in_progress") {
       // Gjenoppta redigering
       setActiveRoundId(r.id);
-      setMonthLabel(r.month_label);
-      setTemperature(r.temperature == null ? "" : String(r.temperature));
-      setTempError(null);
       // Sørg for at alle brytere finnes i measurements-objektet
       const base = createEmptyMeasurements(s);
       const merged: Sf6Measurements = { ...base };
       for (const kV of Object.keys(base)) {
         merged[kV] = { ...base[kV], ...(r.measurements?.[kV] ?? {}) };
       }
+      // Ulagret lokal kopi (f.eks. appen ble lukket uten nett) har forrang
+      const draft = readDraft(r.id);
+      const useDraft = !!draft && !draft.synced && (hasAnyValue(draft.measurements) || draft.temperature.trim() !== "");
+      if (useDraft && draft) {
+        for (const kV of Object.keys(base)) {
+          merged[kV] = { ...merged[kV], ...(draft.measurements?.[kV] ?? {}) };
+        }
+        setMonthLabel(draft.monthLabel || r.month_label);
+        setTemperature(draft.temperature);
+        toast({ title: "Gjenopprettet", description: "Ulagrede målinger fra forrige økt ble hentet fram." });
+      } else {
+        setMonthLabel(r.month_label);
+        setTemperature(r.temperature == null ? "" : String(r.temperature));
+      }
+      setTempError(null);
       setMeasurements(merged);
       loadPhotos(r.id);
       setView("round");
+      if (useDraft) setTimeout(() => silentSave(true), 300);
     } else {
+
       setViewingRound(r);
       loadPhotos(r.id);
       setView("view");
