@@ -561,9 +561,12 @@ export default function Sf6Round() {
               <Wind className="h-5 w-5 text-primary shrink-0" />
               <h1 className="font-display text-lg font-bold truncate">{station.name}</h1>
             </div>
-            <span className="ml-auto shrink-0 text-[10px] px-2 py-0.5 rounded-full font-medium bg-amber-500/15 text-amber-600 dark:text-amber-400">
-              Pågående
-            </span>
+            <div className="ml-auto shrink-0 flex items-center gap-2">
+              <AutoSaveIndicator />
+              <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                Pågående
+              </span>
+            </div>
           </div>
         </header>
 
